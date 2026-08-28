@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Магазин — макет</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=Space+Grotesk:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E0E10;
+    --surface: #18181B;
+    --line: #2A2A2E;
+    --text: #F2F0EA;
+    --text-muted: #8C8A85;
+    --accent: #B08D57;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .frame {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 32px;
+  }
+  .section-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 60px 0 20px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px;
+  }
+
+  /* ===== DESKTOP MOCKUP ===== */
+  .desktop-shell {
+    border: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 40px;
+    border-bottom: 1px solid var(--line);
+  }
+  .logo {
+    font-family: 'Newsreader', serif;
+    font-size: 22px;
+    font-style: italic;
+    letter-spacing: 0.02em;
+  }
+  .burger {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    width: 22px;
+  }
+  .burger span {
+    display: block;
+    height: 1px;
+    background: var(--text);
+    width: 100%;
+  }
+  .nav-icons {
+    display: flex;
+    gap: 20px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .menu-panel {
+    display: none;
+    border-bottom: 1px solid var(--line);
+    padding: 32px 40px;
+  }
+  .menu-panel.open { display: block; }
+  .menu-col-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .menu-items {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .menu-items span {
+    font-family: 'Newsreader', serif;
+    font-size: 20px;
+    cursor: default;
+  }
+  .menu-cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero-text {
+    padding: 60px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-right: 1px solid var(--line);
+  }
+  .hero-eyebrow {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .hero-title {
+    font-family: 'Newsreader', serif;
+    font-weight: 400;
+    font-size: 44px;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin-bottom: 24px;
+  }
+  .hero-sub {
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 380px;
+    margin-bottom: 32px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--text);
+    padding: 14px 24px;
+    width: fit-content;
+    border-radius: 2px;
+  }
+  .hero-visual {
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .hero-visual .frame-num {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .garment-mark {
+    width: 140px;
+    height: 180px;
+    border: 1px solid var(--line);
+    position: relative;
+  }
+  .garment-mark::before {
+    content: '';
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    width: 1px;
+    height: 60%;
+    background: var(--line);
+    transform: translateX(-50%);
+  }
+
+  .catalog-row {
+    padding: 0 40px 40px;
+  }
+  .catalog-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 32px 0 24px;
+  }
+  .catalog-heading h2 {
+    font-family: 'Newsreader', serif;
+    font-weight: 400;
+    font-size: 26px;
+  }
+  .catalog-heading .count {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .card {
+    background: var(--bg);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .card-image {
+    aspect-ratio: 3/4;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card-image .mark {
+    width: 40%;
+    height: 55%;
+    border: 1px solid var(--text-muted);
+    opacity: 0.5;
+  }
+  .card-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .card-title {
+    font-family: 'Newsreader', serif;
+    font-size: 17px;
+  }
+  .card-price {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    color: var(--accent);
+  }
+
+  /* ===== MOBILE MOCKUP ===== */
+  .mobile-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 20px 0;
+  }
+  .mobile-shell {
+    width: 375px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .m-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .m-logo {
+    font-family: 'Newsreader', serif;
+    font-size: 18px;
+    font-style: italic;
+  }
+  .m-icons {
+    display: flex;
+    gap: 16px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .m-hero {
+    padding: 32px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .m-hero-eyebrow {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .m-hero-title {
+    font-family: 'Newsreader', serif;
+    font-size: 28px;
+    line-height: 1.2;
+    margin-bottom: 16px;
+  }
+  .m-hero-sub {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .m-btn {
+    display: inline-flex;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--text);
+    padding: 12px 20px;
+  }
+  .m-catalog-heading {
+    padding: 20px 20px 0;
+    font-family: 'Newsreader', serif;
+    font-size: 19px;
+  }
+  .m-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border-top: 1px solid var(--line);
+    margin-top: 16px;
+  }
+  .m-card {
+    background: var(--bg);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .m-card-image {
+    aspect-ratio: 3/4;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .m-card-image .mark {
+    width: 40%;
+    height: 55%;
+    border: 1px solid var(--text-muted);
+    opacity: 0.5;
+  }
+  .m-card-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+  }
+  .m-card-title {
+    font-family: 'Newsreader', serif;
+    font-size: 14px;
+  }
+  .m-card-price {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  .m-tabbar {
+    display: flex;
+    justify-content: space-around;
+    padding: 16px 0;
+    border-top: 1px solid var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .m-tabbar .active { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <div class="section-label">Desktop — 1200px</div>
+  <div class="desktop-shell">
+    <div class="nav">
+      <div class="burger"><span></span><span></span><span></span></div>
+      <div class="logo">Nomad</div>
+      <div class="nav-icons">
+        <span>Поиск</span>
+        <span>Корзина (0)</span>
+      </div>
+    </div>
+
+    <div class="menu-panel open">
+      <div class="menu-cols">
+        <div>
+          <div class="menu-col-title">Категории</div>
+          <div class="menu-items">
+            <span>Женское</span>
+            <span>Мужское</span>
+            <span>Детское</span>
+          </div>
+        </div>
+        <div>
+          <div class="menu-col-title">Каталог</div>
+          <div class="menu-items">
+            <span>Новое</span>
+            <span>Верхняя одежда</span>
+            <span>Обувь</span>
+            <span>Аксессуары</span>
+          </div>
+        </div>
+        <div>
+          <div class="menu-col-title">Информация</div>
+          <div class="menu-items">
+            <span>О нас</span>
+            <span>Доставка</span>
+            <span>Контакты</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="hero-text">
+        <div class="hero-eyebrow">Коллекция — Осень 2026</div>
+        <div class="hero-title">Одежда для<br>повседневной жизни</div>
+        <div class="hero-sub">Отобранные вещи для Душанбе и других городов Таджикистана. Доставка по всей стране.</div>
+        <div class="btn">Смотреть коллекцию</div>
+      </div>
+      <div class="hero-visual">
+        <div class="frame-num">01 / 12</div>
+        <div class="garment-mark"></div>
+      </div>
+    </div>
+
+    <div class="catalog-row">
+      <div class="catalog-heading">
+        <h2>Новые поступления</h2>
+        <div class="count">Кат. 001–012</div>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <div class="card-image"><div class="mark"></div></div>
+          <div class="card-title">Пальто шерстяное</div>
+          <div class="card-label"><span>Кат. № 014</span><span class="card-price">420 смн</span></div>
+        </div>
+        <div class="card">
+          <div class="card-image"><div class="mark"></div></div>
+          <div class="card-title">Рубашка льняная</div>
+          <div class="card-label"><span>Кат. № 022</span><span class="card-price">180 смн</span></div>
+        </div>
+        <div class="card">
+          <div class="card-image"><div class="mark"></div></div>
+          <div class="card-title">Брюки прямые</div>
+          <div class="card-label"><span>Кат. № 031</span><span class="card-price">260 смн</span></div>
+        </div>
+        <div class="card">
+          <div class="card-image"><div class="mark"></div></div>
+          <div class="card-title">Свитер вязаный</div>
+          <div class="card-label"><span>Кат. № 045</span><span class="card-price">310 смн</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Mobile — 375px</div>
+  <div class="mobile-wrap">
+    <div class="mobile-shell">
+      <div class="m-nav">
+        <div class="burger"><span></span><span></span><span></span></div>
+        <div class="m-logo">Nomad</div>
+        <div class="m-icons">
+          <span>Поиск</span>
+        </div>
+      </div>
+
+      <div class="menu-panel open" style="padding: 24px 20px;">
+        <div class="menu-col-title">Категории</div>
+        <div class="menu-items" style="margin-bottom: 20px;">
+          <span style="font-size: 17px;">Женское</span>
+          <span style="font-size: 17px;">Мужское</span>
+          <span style="font-size: 17px;">Детское</span>
+        </div>
+        <div class="menu-col-title">Каталог</div>
+        <div class="menu-items">
+          <span style="font-size: 17px;">Новое</span>
+          <span style="font-size: 17px;">Верхняя одежда</span>
+          <span style="font-size: 17px;">Обувь</span>
+        </div>
+      </div>
+
+      <div class="m-hero">
+        <div class="m-hero-eyebrow">Осень 2026</div>
+        <div class="m-hero-title">Одежда для повседневной жизни</div>
+        <div class="m-hero-sub">Отобранные вещи с доставкой по Таджикистану.</div>
+        <div class="m-btn">Смотреть коллекцию</div>
+      </div>
+
+      <div class="m-catalog-heading">Новые поступления</div>
+      <div class="m-grid">
+        <div class="m-card">
+          <div class="m-card-image"><div class="mark"></div></div>
+          <div class="m-card-title">Пальто шерстяное</div>
+          <div class="m-card-label"><span>№ 014</span><span class="m-card-price">420 смн</span></div>
+        </div>
+        <div class="m-card">
+          <div class="m-card-image"><div class="mark"></div></div>
+          <div class="m-card-title">Рубашка льняная</div>
+          <div class="m-card-label"><span>№ 022</span><span class="m-card-price">180 смн</span></div>
+        </div>
+        <div class="m-card">
+          <div class="m-card-image"><div class="mark"></div></div>
+          <div class="m-card-title">Брюки прямые</div>
+          <div class="m-card-label"><span>№ 031</span><span class="m-card-price">260 смн</span></div>
+        </div>
+        <div class="m-card">
+          <div class="m-card-image"><div class="mark"></div></div>
+          <div class="m-card-title">Свитер вязаный</div>
+          <div class="m-card-label"><span>№ 045</span><span class="m-card-price">310 смн</span></div>
+        </div>
+      </div>
+
+      <div class="m-tabbar">
+        <span class="active">Каталог</span>
+        <span>Поиск</span>
+        <span>Корзина</span>
+        <span>Профиль</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
