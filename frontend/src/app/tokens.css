@@ -1,0 +1,65 @@
+:root {
+  /* Color */
+  --bg: #0E0E10;
+  --surface: #18181B;
+  --line: #2A2A2E;
+  --text: #F2F0EA;
+  --text-muted: #8C8A85;
+  --accent: #B08D57;
+  --accent-hover: #C9A96A;
+
+  /* Type */
+  --font-display: 'Newsreader', serif;
+  --font-label: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 40px;
+  --space-6: 64px;
+
+  /* Border */
+  --border-hairline: 1px solid var(--line);
+  --radius: 2px;
+}
+
+[data-theme="light"] {
+  --bg: #F5F3EE;
+  --surface: #FFFFFF;
+  --line: #D8D4C8;
+  --text: #17171A;
+  --text-muted: #6B6960;
+  --accent: #96703F;
+  --accent-hover: #7A5A32;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+.catalog-label {
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-top: var(--border-hairline);
+  padding-top: var(--space-2);
+}
+
+.price {
+  font-family: var(--font-label);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+h1, h2, h3, .product-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
