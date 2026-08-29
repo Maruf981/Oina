@@ -15,6 +15,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
+      <head>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+      </head>
       <body>
         <AuthProvider>
           <CartProvider>{children}</CartProvider>
