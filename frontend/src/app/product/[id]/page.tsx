@@ -53,6 +53,8 @@ type Product = {
   images: ProductImage[];
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
@@ -76,13 +78,13 @@ export default function ProductPage() {
   }, []);
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/products/${params.id}`)
+    fetch(`${API_URL}/products/${params.id}`)
       .then((res) => res.json())
       .then((data) => {
         setProduct(data);
         if (data.variants?.length > 0) setSelectedVariant(data.variants[0].id);
         if (data.category_id) {
-          fetch(`http://127.0.0.1:8000/products/?category_id=${data.category_id}`)
+        fetch(`${API_URL}/products/?category_id=${data.category_id}`)
             .then((res) => res.json())
             .then((all: ProductBrief[]) => setRelated(all.filter((p) => p.id !== data.id).slice(0, 4)));
         }

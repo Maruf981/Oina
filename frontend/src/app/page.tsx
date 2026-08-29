@@ -37,6 +37,8 @@ type Product = {
   images: ProductImage[];
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -91,7 +93,7 @@ export default function Home() {
   const handlePlaceOrder = async () => {
     setPlacing(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/orders/", {
+      const res = await fetch(`${API_URL}/orders/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -140,7 +142,7 @@ export default function Home() {
     if (filterSize) params.set("size", filterSize);
     if (filterColor) params.set("color", filterColor);
 
-    fetch(`http://127.0.0.1:8000/products/?${params.toString()}`)
+      fetch(`${API_URL}/products/?${params.toString()}`)
       .then((res) => res.json())
       .then(setProducts)
       .catch(() => setProducts([]));

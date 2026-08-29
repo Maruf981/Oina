@@ -18,6 +18,8 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -32,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchMe = async (t: string) => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/auth/me", {
+    const res = await fetch(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${t}` },
       });
       if (res.ok) {

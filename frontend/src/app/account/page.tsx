@@ -32,6 +32,8 @@ const statusLabels: Record<string, string> = {
   cancelled: "Отменён",
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 export default function AccountPage() {
   const auth = useAuth();
   const router = useRouter();
@@ -48,7 +50,7 @@ export default function AccountPage() {
       router.push("/");
       return;
     }
-    fetch("http://127.0.0.1:8000/orders/my", {
+    fetch(`${API_URL}/orders/my`, {
       headers: { Authorization: `Bearer ${auth.token}` },
     })
       .then((res) => res.json())
