@@ -55,6 +55,10 @@ export default function WebAppPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ init_data: initData }),
       });
+      if (!loginRes.ok) {
+        const err = await loginRes.json();
+        throw new Error(`Login failed: ${JSON.stringify(err)}`);
+      }
       const { access_token } = await loginRes.json();
 
       const variants = size || color || stock
@@ -75,6 +79,10 @@ export default function WebAppPage() {
           variants,
         }),
       });
+     if (!productRes.ok) {
+        const err = await productRes.json();
+        throw new Error(`Product creation failed: ${JSON.stringify(err)}`);
+      }
       const product = await productRes.json();
 
       for (const photo of photos) {
@@ -90,7 +98,7 @@ export default function WebAppPage() {
       setDone(true);
       setTimeout(() => window.Telegram?.WebApp?.close(), 1500);
     } catch (err) {
-      alert("Ошибка сохранения");
+      alert(`Ошибка: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSaving(false);
     }
