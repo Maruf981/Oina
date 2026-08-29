@@ -189,12 +189,12 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API}/products/`).then((r) => r.json()).then(setProducts);
+    authFetch(`${API}/products/admin/all`).then((r) => r.json()).then(setProducts);
     fetch(`${API}/categories/`).then((r) => r.json()).then(setCategories);
     authFetch(`${API}/orders/`).then((r) => r.json()).then(setOrders);
   }, [token]);
 
-  const refreshProducts = () => fetch(`${API}/products/`).then((r) => r.json()).then(setProducts);
+  const refreshProducts = () => authFetch(`${API}/products/admin/all`).then((r) => r.json()).then(setProducts);
   const refreshCategories = () => fetch(`${API}/categories/`).then((r) => r.json()).then(setCategories);
 
   if (!token) {

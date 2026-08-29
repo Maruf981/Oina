@@ -9,6 +9,12 @@ from app.schemas.product import ProductCreate, ProductOut
 router = APIRouter(prefix="/products", tags=["products"])
 
 
+@router.get("/admin/all", response_model=list[ProductOut])
+def list_all_products_admin(db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    from app.models.product import Product
+    return db.query(Product).order_by(Product.id.desc()).all()
+
+
 @router.get("/", response_model=list[ProductOut])
 def list_products(
     category_id: int | None = None,
