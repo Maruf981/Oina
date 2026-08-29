@@ -27,13 +27,7 @@ export default function WebAppPage() {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
-      const data = window.Telegram.WebApp.initData;
-      setInitData(data);
-      console.log("TELEGRAM initData:", data);
-      console.log("TELEGRAM initData length:", data?.length);
-      alert(`initData length: ${data?.length || 0}`);
-    } else {
-      alert("window.Telegram.WebApp not found!");
+      setInitData(window.Telegram.WebApp.initData);
     }
     fetch(`${API}/categories/`)
       .then((r) => r.json())
@@ -104,7 +98,7 @@ export default function WebAppPage() {
       setDone(true);
       setTimeout(() => window.Telegram?.WebApp?.close(), 1500);
     } catch (err) {
-      alert(`Ошибка: ${err instanceof Error ? err.message : String(err)}`);
+      alert("Ошибка сохранения. Попробуй ещё раз.");
     } finally {
       setSaving(false);
     }

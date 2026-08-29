@@ -26,16 +26,8 @@ def verify_telegram_init_data(init_data: str, bot_token: str) -> dict:
     calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
     import sys
-    print(f"DEBUG bot_token repr: {repr(bot_token)}", flush=True, file=sys.stderr)
-    print(f"DEBUG received_hash: {received_hash}", flush=True, file=sys.stderr)
-    print(f"DEBUG calculated_hash: {calculated_hash}", flush=True, file=sys.stderr)
-    print(f"DEBUG data_check_string: {data_check_string}", flush=True, file=sys.stderr)
-
     if calculated_hash != received_hash:
-        raise HTTPException(
-            status_code=401,
-            detail=f"Invalid signature. token_len={len(bot_token)} received={received_hash[:10]} calculated={calculated_hash[:10]}"
-        )
+        raise HTTPException(status_code=401, detail="Invalid Telegram signature")
 
     return parsed
 
