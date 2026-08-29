@@ -13,6 +13,14 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN_CLIENT: str = ""
     TELEGRAM_BOT_TOKEN_ADMIN: str = ""
 
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
+
+    ADMIN_PASSWORD: str = "change-me"
+    BOT_TOKEN_ADMIN: str = ""
+    ADMIN_TELEGRAM_ID: int = 0
+
     class Config:
         env_file = ".env"
 

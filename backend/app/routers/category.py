@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.deps import get_current_admin
 from app.repositories import category as category_repo
 from app.schemas.category import CategoryCreate, CategoryOut
 
@@ -22,5 +23,5 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=CategoryOut)
-def create_category(data: CategoryCreate, db: Session = Depends(get_db)):
+def create_category(data: CategoryCreate, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     return category_repo.create(db, data)
