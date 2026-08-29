@@ -32,7 +32,10 @@ def verify_telegram_init_data(init_data: str, bot_token: str) -> dict:
     print(f"DEBUG data_check_string: {data_check_string}", flush=True, file=sys.stderr)
 
     if calculated_hash != received_hash:
-        raise HTTPException(status_code=401, detail="Invalid Telegram signature")
+        raise HTTPException(
+            status_code=401,
+            detail=f"Invalid signature. token_len={len(bot_token)} received={received_hash[:10]} calculated={calculated_hash[:10]}"
+        )
 
     return parsed
 
