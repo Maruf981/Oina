@@ -142,23 +142,11 @@ async def drafts_handler(message: Message):
 
 
 # ===== Добавление товара =====
-
 @dp.message(F.text == "📦 Добавить товар")
 async def add_product_start(message: Message):
     if not is_admin(message.from_user.id):
         return
     await message.answer("Нажми кнопку ниже, чтобы открыть форму:", reply_markup=webapp_inline_button)
-    if not is_admin(message.from_user.id):
-        return
-    async with httpx.AsyncClient() as client:
-        res = await client.get(f"{API_BASE_URL}/categories/")
-        categories = res.json()
-    if not categories:
-        await message.answer("Сначала создай хотя бы одну категорию в админке.")
-        return
-    text = "Выбери категорию (напиши номер):\n" + "\n".join(f"{c['id']}. {c['name']}" for c in categories)
-    await state.set_state(AddProduct.category)
-    await message.answer(text, reply_markup=cancel_menu)
 
 
 
