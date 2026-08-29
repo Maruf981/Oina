@@ -20,7 +20,7 @@ ADMIN_API_PASSWORD = os.getenv("ADMIN_API_PASSWORD")
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
-WEBAPP_URL = "https://sandpaper-uniformed-sinless.ngrok-free.dev/admin/webapp"
+WEBAPP_URL = "https://oina-frontend.onrender.com/admin/webapp"
 
 main_menu = ReplyKeyboardMarkup(
     keyboard=[
