@@ -27,7 +27,13 @@ export default function WebAppPage() {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
-      setInitData(window.Telegram.WebApp.initData);
+      const data = window.Telegram.WebApp.initData;
+      setInitData(data);
+      console.log("TELEGRAM initData:", data);
+      console.log("TELEGRAM initData length:", data?.length);
+      alert(`initData length: ${data?.length || 0}`);
+    } else {
+      alert("window.Telegram.WebApp not found!");
     }
     fetch(`${API}/categories/`)
       .then((r) => r.json())
