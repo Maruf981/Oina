@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from sqlalchemy import String, Numeric, ForeignKey, Boolean, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -25,6 +25,11 @@ class Product(Base):
     care_instructions_ru: Mapped[str | None] = mapped_column(String(500), nullable=True)
     care_instructions_tj: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_new: Mapped[bool] = mapped_column(Boolean, default=False)
+    discount_percent: Mapped[int | None] = mapped_column(nullable=True)
+    discount_from: Mapped["date | None"] = mapped_column(nullable=True)
+    discount_to: Mapped["date | None"] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     category: Mapped["Category"] = relationship(back_populates="products")

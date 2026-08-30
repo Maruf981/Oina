@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 type Lang = "ru" | "tj";
 
@@ -103,6 +103,10 @@ type Product = {
   category: Category | null;
   variants: Variant[];
   images: ProductImage[];
+  is_active: boolean;
+  is_featured: boolean;
+  is_new: boolean;
+  discount_percent: number | null;
 };
 
 type Order = {
@@ -189,12 +193,19 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!token) return;
-    authFetch(`${API}/products/admin/all`).then((r) => r.json()).then(setProducts);
+    refreshProducts();
     fetch(`${API}/categories/`).then((r) => r.json()).then(setCategories);
-    authFetch(`${API}/orders/`).then((r) => r.json()).then(setOrders);
+    authFetch(`${API}/orders/`).then((r) => (r.ok ? r.json() : [])).then(setOrders);
   }, [token]);
 
-  const refreshProducts = () => authFetch(`${API}/products/admin/all`).then((r) => r.json()).then(setProducts);
+  const refreshProducts = () =>
+    authFetch(`${API}/products/admin/all`).then((r) => {
+      if (r.status === 401) {
+        handleLogout();
+        return [];
+      }
+      return r.ok ? r.json() : [];
+    }).then(setProducts);
   const refreshCategories = () => fetch(`${API}/categories/`).then((r) => r.json()).then(setCategories);
 
   if (!token) {
@@ -293,7 +304,24 @@ export default function AdminPage() {
   );
 }
 
+function getAdminBadgeSrc(p: Product): string | null {
+  if (p.discount_percent) {
+    const steps = [5, 10, 15, 20];
+    let closest = steps[0];
+    for (const step of steps) {
+      if (step <= p.discount_percent) closest = step;
+    }
+    return `/badge-discount-${closest}.png`;
+  }
+  if (p.is_new) return "/badge-new.png";
+  if (p.is_featured) return "/badge-featured.png";
+  return null;
+}
+
 function ProductsTab({ t, products, categories, selectedProduct, setSelectedProduct, creatingProduct, setCreatingProduct, authFetch, refreshProducts, token }: any) {
+  const productList: Product[] = Array.isArray(products) ? products : [];
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
   if (selectedProduct || creatingProduct) {
     return (
       <ProductForm
@@ -311,6 +339,112 @@ function ProductsTab({ t, products, categories, selectedProduct, setSelectedProd
     );
   }
 
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const publishOne = (id: number) => {
+    authFetch(`${API}/products/${id}/publish`, { method: "POST" }).then(() => refreshProducts());
+  };
+
+  const publishSelected = () => {
+    Promise.all(
+      Array.from(selectedIds).map((id) => authFetch(`${API}/products/${id}/publish`, { method: "POST" }))
+    ).then(() => {
+      setSelectedIds(new Set());
+      refreshProducts();
+    });
+  };
+
+  const draftProducts = productList.filter((p) => !p.is_active);
+  const publishedProducts = productList.filter((p) => p.is_active);
+
+  const renderCard = (p: Product, showCheckbox: boolean) => (
+    <div
+      key={p.id}
+      onClick={() => setSelectedProduct(p)}
+      style={{ cursor: "pointer", border: "1px solid var(--line)", padding: 16, position: "relative" }}
+    >
+      {showCheckbox && (
+        <span
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleSelect(p.id);
+          }}
+          style={{ position: "absolute", top: 8, left: 8, zIndex: 1 }}
+        >
+          <input type="checkbox" checked={selectedIds.has(p.id)} readOnly style={{ width: 18, height: 18, cursor: "pointer" }} />
+        </span>
+      )}
+      <span
+        onClick={(e) => {
+          e.stopPropagation();
+          if (confirm(`Удалить товар "${p.title_ru}"?`)) {
+            authFetch(`${API}/products/${p.id}`, { method: "DELETE" }).then(() => refreshProducts());
+          }
+        }}
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          zIndex: 1,
+          width: 24,
+          height: 24,
+          borderRadius: "50%",
+          background: "rgba(0,0,0,0.6)",
+          color: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 14,
+          cursor: "pointer",
+        }}
+      >
+        ✕
+      </span>
+      <div
+        style={{
+          position: "relative",
+          aspectRatio: "3/4",
+          background: "var(--surface)",
+          marginBottom: 10,
+          backgroundImage: p.images[0] ? `url(${p.images[0].url})` : "none",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        {getAdminBadgeSrc(p) && (
+          <img
+            src={getAdminBadgeSrc(p)!}
+            alt="Бейдж"
+            style={{ position: "absolute", top: -9, left: -9, width: 56, height: 56, objectFit: "contain", pointerEvents: "none" }}
+          />
+        )}
+      </div>
+      <div className="product-title" style={{ fontSize: 15, marginBottom: 4 }}>{p.title_ru}</div>
+      <div className="catalog-label" style={{ border: "none", padding: 0, display: "flex", justifyContent: "space-between", marginBottom: showCheckbox ? 10 : 0 }}>
+        <span>{t.catalogNumber} {p.catalog_number}</span>
+        <span className="price">{p.price} смн</span>
+      </div>
+      {showCheckbox && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            publishOne(p.id);
+          }}
+          style={{ width: "100%", padding: "8px", background: "var(--accent)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+        >
+          Опубликовать
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div>
       <button
@@ -320,37 +454,42 @@ function ProductsTab({ t, products, categories, selectedProduct, setSelectedProd
         + {t.addProduct}
       </button>
 
-      {products.length === 0 && <p style={{ color: "var(--text-muted)" }}>{t.noProducts}</p>}
+      {productList.length === 0 && <p style={{ color: "var(--text-muted)" }}>{t.noProducts}</p>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>
-        {products.map((p: Product) => (
-          <div
-            key={p.id}
-            onClick={() => setSelectedProduct(p)}
-            style={{ cursor: "pointer", border: "1px solid var(--line)", padding: 16 }}
-          >
-            <div
-              style={{
-                aspectRatio: "3/4",
-                background: "var(--surface)",
-                marginBottom: 10,
-                backgroundImage: p.images[0] ? `url(${p.images[0].url})` : "none",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            />
-            <div className="product-title" style={{ fontSize: 15, marginBottom: 4 }}>{p.title_ru}</div>
-            <div className="catalog-label" style={{ border: "none", padding: 0, display: "flex", justifyContent: "space-between" }}>
-              <span>{t.catalogNumber} {p.catalog_number}</span>
-              <span className="price">{p.price} смн</span>
+      {draftProducts.length > 0 && (
+        <div style={{ marginBottom: 40 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div className="catalog-label" style={{ border: "none", padding: 0, color: "var(--text-muted)" }}>
+              Черновики ({draftProducts.length})
             </div>
+            {selectedIds.size > 0 && (
+              <button
+                onClick={publishSelected}
+                style={{ padding: "8px 16px", background: "var(--accent)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+              >
+                Опубликовать выбранные ({selectedIds.size})
+              </button>
+            )}
           </div>
-        ))}
-      </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>
+            {draftProducts.map((p) => renderCard(p, true))}
+          </div>
+        </div>
+      )}
+
+      {publishedProducts.length > 0 && (
+        <div>
+          <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 16, color: "var(--text-muted)" }}>
+            Опубликовано ({publishedProducts.length})
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>
+            {publishedProducts.map((p) => renderCard(p, false))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
 function ProductForm({ t, product, categories, authFetch, onClose }: any) {
   const [form, setForm] = useState({
     category_id: product?.category_id ?? categories[0]?.id ?? 1,
@@ -365,16 +504,22 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
     country_of_origin_tj: product?.country_of_origin_tj ?? "",
     care_instructions_ru: product?.care_instructions_ru ?? "",
     care_instructions_tj: product?.care_instructions_tj ?? "",
+    badgeType: (product?.discount_percent ? "discount" : product?.is_new ? "new" : product?.is_featured ? "featured" : "none") as "none" | "featured" | "new" | "discount",
+    discount_percent: product?.discount_percent ?? "",
+    discount_from: product?.discount_from ?? "",
+    discount_to: product?.discount_to ?? "",
   });
-  const [variants, setVariants] = useState<{ size: string; color: string; stock: number; sku: string }[]>(
+  const [variants, setVariants] = useState<{ size: string; color: string; stock: number }[]>(
     product?.variants ?? []
   );
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [productImages, setProductImages] = useState(product?.images ?? []);
 
   const updateField = (key: string, value: any) => setForm({ ...form, [key]: value });
 
-  const addVariant = () => setVariants([...variants, { size: "", color: "", stock: 0, sku: "" }]);
+  const addVariant = () => setVariants([...variants, { size: "", color: "", stock: 0 }]);
   const updateVariant = (idx: number, key: string, value: any) => {
     const next = [...variants];
     (next[idx] as any)[key] = value;
@@ -382,11 +527,28 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
   };
 
   const handleSave = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
-      const payload = { ...form, price: Number(form.price), variants };
-      const res = await authFetch("http://127.0.0.1:8000/products/", {
-        method: "POST",
+      const { badgeType, ...restForm } = form;
+      const payload = {
+        ...restForm,
+        price: Number(form.price),
+        is_featured: badgeType === "featured",
+        is_new: badgeType === "new",
+        discount_percent: badgeType === "discount" && form.discount_percent !== "" ? Number(form.discount_percent) : null,
+        discount_from: badgeType === "discount" && form.discount_from !== "" ? form.discount_from : null,
+        discount_to: badgeType === "discount" && form.discount_to !== "" ? form.discount_to : null,
+        is_active: product ? product.is_active : false,
+        variants: variants.map(({ sku, ...rest }) => rest),
+      };
+      const url = product
+        ? `http://127.0.0.1:8000/products/${product.id}`
+        : "http://127.0.0.1:8000/products/";
+      const method = product ? "PATCH" : "POST";
+      const res = await authFetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -399,17 +561,27 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
     }
   };
 
+  const [imageColor, setImageColor] = useState("");
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!product || !e.target.files?.[0]) return;
     setUploadingImage(true);
     const formData = new FormData();
     formData.append("file", e.target.files[0]);
     try {
-      await authFetch(`http://127.0.0.1:8000/upload/product-image/${product.id}`, {
+      const url = imageColor
+        ? `http://127.0.0.1:8000/upload/product-image/${product.id}?color=${encodeURIComponent(imageColor)}`
+        : `http://127.0.0.1:8000/upload/product-image/${product.id}`;
+      const res = await authFetch(url, {
         method: "POST",
         body: formData,
       });
-      onClose();
+      if (res.ok) {
+        const newImage = await res.json();
+        setProductImages((prev: any[]) => [...prev, newImage]);
+      }
+      setImageColor("");
+      e.target.value = "";
     } finally {
       setUploadingImage(false);
     }
@@ -457,13 +629,62 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
         <input placeholder={`${t.care} (TJ)`} value={form.care_instructions_tj} onChange={(e) => updateField("care_instructions_tj", e.target.value)} style={inputStyle} />
       </div>
 
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>Бейдж на карточке (можно выбрать только один)</div>
+        <div style={{ display: "flex", gap: 20, marginBottom: 14 }}>
+          {(["none", "featured", "new", "discount"] as const).map((option) => (
+            <label key={option} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+              <input
+                type="radio"
+                name="badgeType"
+                checked={form.badgeType === option}
+                onChange={() => updateField("badgeType", option)}
+              />
+              {option === "none" && "Без бейджа"}
+              {option === "featured" && "Хорошая цена"}
+              {option === "new" && "Новинка"}
+              {option === "discount" && "Скидка"}
+            </label>
+          ))}
+        </div>
+
+        {form.badgeType === "discount" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            <input
+              type="number"
+              placeholder="Скидка, %"
+              value={form.discount_percent}
+              onChange={(e) => updateField("discount_percent", e.target.value)}
+              style={inputStyle}
+            />
+            <div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Действует с</div>
+              <input
+                type="date"
+                value={form.discount_from}
+                onChange={(e) => updateField("discount_from", e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Действует по</div>
+              <input
+                type="date"
+                value={form.discount_to}
+                onChange={(e) => updateField("discount_to", e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 12 }}>{t.variants}</div>
       {variants.map((v, idx) => (
-        <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+        <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
           <input placeholder={t.size} value={v.size} onChange={(e) => updateVariant(idx, "size", e.target.value)} style={inputStyle} />
           <input placeholder={t.color} value={v.color} onChange={(e) => updateVariant(idx, "color", e.target.value)} style={inputStyle} />
           <input type="number" placeholder={t.stock} value={v.stock} onChange={(e) => updateVariant(idx, "stock", Number(e.target.value))} style={inputStyle} />
-          <input placeholder={t.sku} value={v.sku} onChange={(e) => updateVariant(idx, "sku", e.target.value)} style={inputStyle} />
         </div>
       ))}
       <span onClick={addVariant} style={{ cursor: "pointer", color: "var(--accent)", fontSize: 13, display: "block", marginBottom: 24 }}>
@@ -473,6 +694,13 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
       {product && (
         <div style={{ marginBottom: 24 }}>
           <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 12 }}>{t.uploadImage}</div>
+          <input
+            type="text"
+            placeholder="Цвет фото (например: Серый) — необязательно"
+            value={imageColor}
+            onChange={(e) => setImageColor(e.target.value)}
+            style={{ ...inputStyle, marginBottom: 10 }}
+          />
           <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
         </div>
       )}

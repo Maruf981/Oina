@@ -11,3 +11,35 @@ html, body {
   background: var(--bg);
   color: var(--text);
 }
+
+.products-grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+@media (max-width: 640px) {
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .catalog-container {
+    padding: 0 12px 24px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .products-grid > div {
+    padding: 10px !important;
+  }
+}
+@media (max-width: 640px) {
+  .product-detail-container {
+    padding: 12px !important;
+  }
+  .product-detail-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  .product-detail-image {
+    max-width: 100% !important;
+  }
+}

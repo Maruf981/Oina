@@ -1,7 +1,5 @@
-from datetime import datetime
-
+from datetime import datetime, date
 from pydantic import BaseModel
-
 
 class CategoryBrief(BaseModel):
     id: int
@@ -16,7 +14,7 @@ class ProductVariantBase(BaseModel):
     size: str
     color: str
     stock: int = 0
-    sku: str
+    sku: str | None = None
 
 
 class ProductVariantCreate(ProductVariantBase):
@@ -55,6 +53,11 @@ class ProductBase(BaseModel):
     care_instructions_ru: str | None = None
     care_instructions_tj: str | None = None
     is_active: bool = True
+    is_featured: bool = False
+    is_new: bool = False
+    discount_percent: int | None = None
+    discount_from: date | None = None
+    discount_to: date | None = None
 
 
 class ProductCreate(ProductBase):

@@ -66,6 +66,32 @@ export default function ProductPage() {
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [lang, setLang] = useState<Lang>("ru");
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+
+  const handleCopyLink = async () => {
+    const url = window.location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      // clipboard blocked, silently ignore
+    }
+    setShareMenuOpen(false);
+  };
+
+  const handleShareWhatsApp = () => {
+    const url = window.location.href;
+    window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, "_blank");
+    setShareMenuOpen(false);
+  };
+
+  const handleShareTelegram = () => {
+    const url = window.location.href;
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}`, "_blank");
+    setShareMenuOpen(false);
+  };
   const t = translations[lang];
 
   const localized = (ru: string, tj: string | null) => (lang === "tj" && tj ? tj : ru);
@@ -118,7 +144,7 @@ export default function ProductPage() {
       data-theme={theme}
       style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}
     >
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "40px" }}>
+      <div className="product-detail-container" style={{ maxWidth: 1000, margin: "0 auto", padding: "40px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>
           <span onClick={() => router.push("/")} style={{ cursor: "pointer" }}>
             Главная
@@ -135,18 +161,21 @@ export default function ProductPage() {
           <span style={{ color: "var(--text)" }}>{localized(product.title_ru, product.title_tj)}</span>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, marginTop: 30 }}>
+        <div className="product-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, marginTop: 30 }}>
           <div>
             <div
+              className="product-detail-image"
               style={{
                 aspectRatio: "3/4",
+                maxWidth: "75%",
                 background: "var(--surface)",
                 border: "1px solid var(--line)",
                 marginBottom: 10,
                 backgroundImage: product.images[activeImage]
                   ? `url(${product.images[activeImage].url})`
                   : "none",
-                backgroundSize: "cover",
+                backgroundSize: "contain",
+                backgroundRepeat: "no-repeat",
                 backgroundPosition: "center",
               }}
             />
@@ -172,12 +201,100 @@ export default function ProductPage() {
           </div>
 
           <div>
-            <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 16 }}>
-              Кат. № {product.catalog_number}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div className="catalog-label" style={{ border: "none", padding: 0 }}>
+                Кат. № {product.catalog_number}
+              </div>
+              <span
+                onClick={() => setShareMenuOpen(!shareMenuOpen)}
+                style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6, position: "relative" }}
+                title={lang === "ru" ? "Поделиться" : "Мубодила кардан"}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                  <circle cx="18" cy="5" r="2.5" fill="none" stroke="var(--text-muted)" strokeWidth="1.4" />
+                  <circle cx="6" cy="12" r="2.5" fill="none" stroke="var(--text-muted)" strokeWidth="1.4" />
+                  <circle cx="18" cy="19" r="2.5" fill="none" stroke="var(--text-muted)" strokeWidth="1.4" />
+                  <line x1="8.2" y1="10.8" x2="15.8" y2="6.2" stroke="var(--text-muted)" strokeWidth="1.4" />
+                  <line x1="8.2" y1="13.2" x2="15.8" y2="17.8" stroke="var(--text-muted)" strokeWidth="1.4" />
+                </svg>
+                {shareCopied && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      top: 24,
+                      background: "var(--text)",
+                      color: "var(--bg)",
+                      fontSize: 11,
+                      padding: "4px 8px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {lang === "ru" ? "Ссылка скопирована" : "Пайванд нусхабардорӣ шуд"}
+                  </span>
+                )}
+                {shareMenuOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      top: 24,
+                      background: "var(--bg)",
+                      display: "flex",
+                      gap: 4,
+                      padding: 8,
+                      zIndex: 10,
+                    }}
+                  >
+                    <div
+                      onClick={(e) => { e.stopPropagation(); handleShareWhatsApp(); }}
+                      style={{ width: 34, height: 34, borderRadius: "50%", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                      title="WhatsApp"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                        <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33C8.5 21.51 10.2 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.28 1.2-1.76 1.24-.45.05-1.02.07-1.65-.1-.38-.11-.87-.28-1.5-.55-2.64-1.14-4.36-3.8-4.5-3.98-.13-.18-1.08-1.43-1.08-2.73s.68-1.94.92-2.2c.24-.27.52-.33.7-.33h.5c.16 0 .38-.06.59.45.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.44-.14.16-.29.35-.41.47-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.89 1.05.94 1.94 1.23 2.22 1.37.27.13.43.11.59-.07.16-.18.68-.79.86-1.06.18-.27.36-.22.6-.13.24.09 1.55.73 1.81.86.27.13.45.2.51.31.06.11.06.63-.16 1.25z"/>
+                      </svg>
+                    </div>
+                    <div
+                      onClick={(e) => { e.stopPropagation(); handleShareTelegram(); }}
+                      style={{ width: 34, height: 34, borderRadius: "50%", background: "#26A5E4", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                      title="Telegram"
+                    >
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="#fff">
+                        <path d="M22 4.01L2.3 11.5c-1.3.5-1.3 1.2-.24 1.53l4.98 1.55L18.2 7.05c.5-.32.96-.14.58.2l-8.5 7.67h-.02l.02.01-.32 4.9c.47 0 .68-.22.93-.47l2.24-2.15 4.66 3.42c.86.47 1.48.23 1.7-.8L22.9 5.4c.32-1.25-.47-1.82-1.13-1.4z"/>
+                      </svg>
+                    </div>
+                    <div
+                      onClick={(e) => { e.stopPropagation(); handleCopyLink(); }}
+                      style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--surface)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                      title="Copy link"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.5">
+                        <rect x="9" y="9" width="12" height="12" rx="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </span>
             </div>
-            <h1 className="product-title" style={{ fontSize: 32, marginBottom: 12 }}>
+            <h1 className="product-title" style={{ fontSize: 32, marginBottom: 8 }}>
               {localized(product.title_ru, product.title_tj)}
             </h1>
+            <div
+              style={{
+                fontSize: 13,
+                fontFamily: "var(--font-label)",
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                color: product.variants.some((v) => v.stock > 0) ? "#4CAF50" : "#E24B4A",
+                marginBottom: 12,
+              }}
+            >
+              {product.variants.some((v) => v.stock > 0)
+                ? (lang === "ru" ? "Есть в наличии" : "Мавчуд ҳаст")
+                : (lang === "ru" ? "Нет в наличии" : "Мавчуд нест")}
+            </div>
             <div className="price" style={{ fontSize: 22, marginBottom: 24 }}>
               {product.price} смн
             </div>
@@ -191,7 +308,15 @@ export default function ProductPage() {
               <>
                 <select
                   value={selectedVariant ?? ""}
-                  onChange={(e) => setSelectedVariant(Number(e.target.value))}
+                  onChange={(e) => {
+                    const newVariantId = Number(e.target.value);
+                    setSelectedVariant(newVariantId);
+                    const variant = product.variants.find((v) => v.id === newVariantId);
+                    if (variant) {
+                      const imgIdx = product.images.findIndex((img) => img.color === variant.color);
+                      if (imgIdx !== -1) setActiveImage(imgIdx);
+                    }
+                  }}
                   style={{
                     width: "100%",
                     marginBottom: 8,

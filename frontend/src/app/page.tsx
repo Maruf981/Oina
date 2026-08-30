@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { translations, Lang } from "./translations";
 import { useCart } from "./cart-context";
 import { useAuth } from "./auth-context";
+import { Footer } from "./footer";
 import { useRouter } from "next/navigation";
 
 type Variant = {
@@ -33,14 +34,40 @@ type Product = {
   care_instructions_tj: string | null;
   description_ru: string | null;
   description_tj: string | null;
+  is_featured: boolean;
+  is_new: boolean;
+  discount_percent: number | null;
+  discount_from: string | null;
+  discount_to: string | null;
   variants: Variant[];
   images: ProductImage[];
 };
+
+function isDiscountActive(p: Product): boolean {
+  if (!p.discount_percent) return false;
+  const now = new Date();
+  if (p.discount_from && new Date(p.discount_from) > now) return false;
+  if (p.discount_to && new Date(p.discount_to) < now) return false;
+  return true;
+}
+
+const DISCOUNT_BADGE_STEPS = [5, 10, 15, 20];
+
+function getDiscountBadgeSrc(percent: number | null): string | null {
+  if (!percent) return null;
+  let closest = DISCOUNT_BADGE_STEPS[0];
+  for (const step of DISCOUNT_BADGE_STEPS) {
+    if (step <= percent) closest = step;
+  }
+  return `/badge-discount-${closest}.png`;
+}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [lang, setLang] = useState<Lang>("ru");
@@ -70,8 +97,52 @@ export default function Home() {
   const [authPhone, setAuthPhone] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const localized = (ru: string, tj: string | null) => (lang === "tj" && tj ? tj : ru);
+
+  useEffect(() => {
+    if (!auth.token) {
+      setFavoriteIds(new Set());
+      return;
+    }
+    fetch(`${API_URL}/favorites/`, {
+      headers: { Authorization: `Bearer ${auth.token}` },
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((favs: { product: { id: number } }[]) => {
+        setFavoriteIds(new Set(favs.map((f) => f.product.id)));
+      })
+      .catch(() => setFavoriteIds(new Set()));
+  }, [auth.token]);
+
+  const toggleFavorite = async (productId: number) => {
+    if (!auth.token) {
+      setAuthOpen(true);
+      return;
+    }
+    const isFav = favoriteIds.has(productId);
+    const method = isFav ? "DELETE" : "POST";
+    try {
+      const res = await fetch(`${API_URL}/favorites/${productId}`, {
+        method,
+        headers: { Authorization: `Bearer ${auth.token}` },
+      });
+      if (!res.ok) return;
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (isFav) {
+          next.delete(productId);
+        } else {
+          next.add(productId);
+        }
+        return next;
+      });
+    } catch {
+      // network error, ignore
+    }
+  };
 
     const handleAuthSubmit = async () => {
     setAuthError("");
@@ -132,6 +203,8 @@ export default function Home() {
       size: variant.size,
       color: variant.color,
     });
+    setToastMessage(lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд");
+    setTimeout(() => setToastMessage(null), 2000);
   };
 
   useEffect(() => {
@@ -171,39 +244,53 @@ export default function Home() {
   };
 
   return (
-    <div data-theme={theme} style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
+    <div data-theme={theme} style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh", paddingTop: 90 }}>
       <nav
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "24px 40px",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
           borderBottom: "1px solid var(--line)",
           background: "var(--bg)",
+          zIndex: 100,
         }}
       >
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: "0 auto",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "16px 20px",
+            gap: 10,
+          }}
+        >
         <div
           onClick={() => setMenuOpen(!menuOpen)}
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 5,
+            gap: 6,
             cursor: "pointer",
-            width: 22,
+            width: 28,
+            flexShrink: 0,
           }}
         >
-          <span style={{ height: 1, background: "var(--text)" }} />
-          <span style={{ height: 1, background: "var(--text)" }} />
-          <span style={{ height: 1, background: "var(--text)" }} />
+          <span style={{ height: 2, background: "var(--text)" }} />
+          <span style={{ height: 2, background: "var(--text)" }} />
+          <span style={{ height: 2, background: "var(--text)" }} />
         </div>
+
         <img
           src={theme === "dark" ? "/logo.png" : "/logo-light.png"}
           alt="Oina.tj"
-          style={{ height: 72 }}
+          style={{ height: "clamp(28px, 8vw, 48px)", flexShrink: 1, minWidth: 0 }}
         />
 
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <div
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+          <span
             onClick={toggleLang}
             style={{
               cursor: "pointer",
@@ -214,8 +301,9 @@ export default function Home() {
             }}
           >
             {lang === "ru" ? "RU" : "TJ"}
-          </div>
-          <div
+          </span>
+
+          <span
             onClick={toggleTheme}
             style={{
               cursor: "pointer",
@@ -226,33 +314,69 @@ export default function Home() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              flexShrink: 0,
             }}
             title="Переключить тему"
           >
             <span style={{ fontSize: 10 }}>{theme === "dark" ? "☀" : "☾"}</span>
-          </div>
-          <div
+          </span>
+
+          <span
             onClick={() => (auth.customer ? router.push("/account") : setAuthOpen(true))}
-            style={{
-              cursor: "pointer",
-              fontFamily: "var(--font-label)",
-              fontSize: 13,
-              color: "var(--text-muted)",
-            }}
+            style={{ cursor: "pointer" }}
+            title={auth.customer ? auth.customer.name || "Профиль" : lang === "ru" ? "Войти" : "Даромадан"}
           >
-            {auth.customer ? auth.customer.name || "Профиль" : lang === "ru" ? "Войти" : "Даромадан"}
-          </div>
+            <svg width="20" height="20" viewBox="0 0 20 20">
+              <circle cx="10" cy="7" r="3.2" fill="none" stroke="var(--text-muted)" strokeWidth="1" />
+              <path d="M4 17 C4 13 6.5 11 10 11 C13.5 11 16 13 16 17" fill="none" stroke="var(--text-muted)" strokeWidth="1" />
+            </svg>
+          </span>
+
           <div
             onClick={() => setCartOpen(true)}
-            style={{
-              cursor: "pointer",
-              fontFamily: "var(--font-label)",
-              fontSize: 13,
-              color: "var(--text-muted)",
-            }}
+            style={{ cursor: "pointer", position: "relative", width: 26, height: 26, flexShrink: 0 }}
           >
-            {t.cart} ({cart.totalCount})
+            <svg width="26" height="26" viewBox="0 0 30 30">
+              <path
+                d="M8 13 C8 13 8 11 10 11 L20 11 C22 11 22 13 22 13 L21 25 C21 25.5 20.5 26 20 26 L10 26 C9.5 26 9 25.5 9 25 Z"
+                fill="none"
+                stroke="var(--text)"
+                strokeWidth="1"
+              />
+              <path
+                d="M10 11 C10 8 12.2 6 15 6 C17.8 6 20 8 20 11"
+                fill="none"
+                stroke="var(--text)"
+                strokeWidth="1"
+              />
+              <line x1="12" y1="16" x2="12" y2="21" stroke="var(--text)" strokeWidth="0.6" />
+              <line x1="15" y1="16" x2="15" y2="21" stroke="var(--text)" strokeWidth="0.6" />
+              <line x1="18" y1="16" x2="18" y2="21" stroke="var(--text)" strokeWidth="0.6" />
+            </svg>
+            {cart.totalCount > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -6,
+                  width: 15,
+                  height: 15,
+                  borderRadius: "50%",
+                  background: "var(--bg)",
+                  border: "1px solid var(--accent)",
+                  color: "var(--accent)",
+                  fontSize: 9,
+                  fontFamily: "var(--font-label)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {cart.totalCount}
+              </div>
+            )}
           </div>
+        </div>
         </div>
       </nav>
 
@@ -372,17 +496,63 @@ export default function Home() {
       </div>
 
       {menuOpen && (
-        <div style={{ padding: "32px 40px", borderBottom: "1px solid var(--line)" }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 150,
+          }}
+        >
           <div
-            className="catalog-label"
-            style={{ border: "none", padding: 0, marginBottom: 16 }}
+            onMouseLeave={() => setMenuOpen(false)}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 280,
+              maxWidth: "80vw",
+              background: "var(--menu-panel-bg)",
+              padding: "24px 0",
+              display: "flex",
+              flexDirection: "column",
+              borderTopRightRadius: 16,
+              borderBottomRightRadius: 16,
+            }}
           >
-            {t.categories}
-          </div>
-          <div style={{ display: "flex", gap: 40 }}>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>{t.women}</span>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>{t.men}</span>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>{t.kids}</span>
+            <div style={{ marginBottom: 30, padding: "0 24px" }}>
+              <span
+                className="catalog-label"
+                style={{ border: "none", padding: 0, fontSize: 18, color: "var(--text)" }}
+              >
+                {t.categories}
+              </span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {(["women", "men", "kids"] as const).map((key) => {
+                const isActive = activeCategory === key || hoveredCategory === key;
+                return (
+                  <span
+                    key={key}
+                    onClick={() => setActiveCategory(key)}
+                    onMouseEnter={() => setHoveredCategory(key)}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 20,
+                      cursor: "pointer",
+                      padding: "16px 24px",
+                      background: isActive ? "var(--bg)" : "transparent",
+                      borderBottom: "1px solid var(--line)",
+                      transition: "background 0.15s ease",
+                    }}
+                  >
+                    {t[key]}
+                  </span>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -404,14 +574,14 @@ export default function Home() {
         </p>
       </div>
 
-      <div style={{ padding: "0 40px 40px" }}>
+        <div className="catalog-container" style={{ padding: "0 40px 40px" }}>
         <h2 className="product-title" style={{ fontSize: 26, padding: "32px 0 24px" }}>
           {t.newArrivals}
         </h2>
         <div
+          className="products-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
             gap: 1,
             background: "var(--line)",
             border: "1px solid var(--line)",
@@ -425,28 +595,134 @@ export default function Home() {
           {products.map((p) => (
             <div key={p.id} style={{ background: "var(--bg)", padding: 20 }}>
               <div
-                onClick={() => router.push(`/product/${p.id}`)}
                 style={{
+                  position: "relative",
                   aspectRatio: "3/4",
                   background: "var(--surface)",
                   border: "1px solid var(--line)",
                   marginBottom: 14,
-                  cursor: "pointer",
-                  backgroundImage: p.images[0] ? `url(${p.images[0].url})` : "none",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
                 }}
-              />
+              >
+                <AutoSlideImage images={p.images} onClick={() => router.push(`/product/${p.id}`)} />
+                {isDiscountActive(p) && getDiscountBadgeSrc(p.discount_percent) ? (
+                  <img
+                    src={getDiscountBadgeSrc(p.discount_percent)!}
+                    alt="Скидка"
+                    style={{ position: "absolute", top: -9, left: -9, width: 64, height: 64, objectFit: "contain", pointerEvents: "none" }}
+                  />
+                ) : p.is_new ? (
+                  <img
+                    src="/badge-new.png"
+                    alt="Новинка"
+                    style={{ position: "absolute", top: -9, left: -9, width: 64, height: 64, objectFit: "contain", pointerEvents: "none" }}
+                  />
+                ) : p.is_featured ? (
+                  <img
+                    src="/badge-featured.png"
+                    alt="Хорошая цена"
+                    style={{ position: "absolute", top: -9, left: -9, width: 64, height: 64, objectFit: "contain", pointerEvents: "none" }}
+                  />
+                ) : null}
+
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(p.id);
+                  }}
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 4,
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    background: "rgba(14,14,16,0.55)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                  }}
+                >
+                  <svg width="19" height="19" viewBox="0 0 24 24">
+                    <path
+                      d="M12 21 C12 21 3 14.5 3 8.6 C3 5.5 5.4 3.3 8.2 3.3 C10 3.3 11.3 4.2 12 5.4 C12.7 4.2 14 3.3 15.8 3.3 C18.6 3.3 21 5.5 21 8.6 C21 14.5 12 21 12 21 Z"
+                      fill={favoriteIds.has(p.id) ? "var(--accent)" : "none"}
+                      stroke={favoriteIds.has(p.id) ? "var(--accent)" : "#fff"}
+                      strokeWidth="1.4"
+                    />
+                  </svg>
+                </div>
+
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (p.variants.length > 0) handleAddToCart(p);
+                  }}
+                  style={{
+                    position: "absolute",
+                    top: 32,
+                    right: 4,
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    background: "rgba(14,14,16,0.55)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: p.variants.length === 0 ? "not-allowed" : "pointer",
+                    opacity: p.variants.length === 0 ? 0.4 : 1,
+                  }}
+                >
+                  <svg width="23" height="23" viewBox="0 0 30 30">
+                    <path
+                      d="M8 13 C8 13 8 11 10 11 L20 11 C22 11 22 13 22 13 L21 25 C21 25.5 20.5 26 20 26 L10 26 C9.5 26 9 25.5 9 25 Z"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="1"
+                    />
+                    <path
+                      d="M10 11 C10 8 12.2 6 15 6 C17.8 6 20 8 20 11"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="1"
+                    />
+                    <line x1="12" y1="16" x2="12" y2="21" stroke="#fff" strokeWidth="0.6" />
+                    <line x1="15" y1="16" x2="15" y2="21" stroke="#fff" strokeWidth="0.6" />
+                    <line x1="18" y1="16" x2="18" y2="21" stroke="#fff" strokeWidth="0.6" />
+                  </svg>
+                </div>
+              </div>
               <div
                 onClick={() => router.push(`/product/${p.id}`)}
                 className="product-title"
-                style={{ fontSize: 17, marginBottom: 10, cursor: "pointer" }}
+                style={{ fontSize: 17, marginBottom: 4, cursor: "pointer" }}
               >
                 {localized(p.title_ru, p.title_tj)}
               </div>
+              <div
+                style={{
+                  fontSize: 9,
+                  fontFamily: "var(--font-label)",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  color: p.variants.some((v) => v.stock > 0) ? "#4CAF50" : "#E24B4A",
+                  marginBottom: 8,
+                }}
+              >
+                {p.variants.some((v) => v.stock > 0)
+                  ? (lang === "ru" ? "Есть в наличии" : "Мавҷуд ҳаст")
+                  : (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")}
+              </div>
               <div className="catalog-label" style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
                 <span>{t.catalogNumber} {p.catalog_number}</span>
-                <span className="price">{p.price} смн</span>
+                <span style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  {isDiscountActive(p) && (
+                    <span style={{ textDecoration: "line-through", color: "var(--text-muted)", fontSize: 12 }}>
+                      {Math.round(p.price / (1 - (p.discount_percent as number) / 100))} смн
+                    </span>
+                  )}
+                  <span className="price" style={{ color: "#4CAF50" }}>{p.price} смн</span>
+                </span>
               </div>
 
               {p.variants.length > 0 && (
@@ -473,25 +749,6 @@ export default function Home() {
                   ))}
                 </select>
               )}
-
-              <button
-                onClick={() => handleAddToCart(p)}
-                disabled={p.variants.length === 0}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  background: "var(--text)",
-                  color: "var(--bg)",
-                  border: "none",
-                  fontFamily: "var(--font-label)",
-                  fontSize: 12,
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                }}
-              >
-                {t.cart}
-              </button>
             </div>
           ))}
         </div>
@@ -902,6 +1159,34 @@ export default function Home() {
           </div>
         </div>
       )}
+      <Footer lang={lang} />
     </div>
+  );
+}
+function AutoSlideImage({ images, onClick }: { images: { url: string }[]; onClick: () => void }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % images.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        position: "absolute",
+        inset: 0,
+        cursor: "pointer",
+        backgroundImage: images[index] ? `url(${images[index].url})` : "none",
+        backgroundSize: "contain",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+        transition: "background-image 0.3s ease",
+      }}
+    />
   );
 }

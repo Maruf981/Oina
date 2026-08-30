@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-
 from app.models.product import Product, ProductVariant
 from app.schemas.product import ProductCreate
 from app.services.translate import translate_to_tj
@@ -44,6 +43,36 @@ def get_by_id(db: Session, product_id: int) -> Product | None:
     return db.query(Product).filter(Product.id == product_id).first()
 
 
+def update(db: Session, product: Product, data: ProductCreate) -> Product:
+    product_data = data.model_dump(exclude={"variants", "catalog_number"})
+    if not product_data.get("title_tj"):
+        product_data["title_tj"] = translate_to_tj(product_data.get("title_ru"))
+    if not product_data.get("description_tj"):
+        product_data["description_tj"] = translate_to_tj(product_data.get("description_ru"))
+    if not product_data.get("material_tj"):
+        product_data["material_tj"] = translate_to_tj(product_data.get("material_ru"))
+    if not product_data.get("country_of_origin_tj"):
+        product_data["country_of_origin_tj"] = translate_to_tj(product_data.get("country_of_origin_ru"))
+    if not product_data.get("care_instructions_tj"):
+        product_data["care_instructions_tj"] = translate_to_tj(product_data.get("care_instructions_ru"))
+
+    for key, value in product_data.items():
+        setattr(product, key, value)
+
+    for variant in list(product.variants):
+        db.delete(variant)
+    db.flush()
+
+    for idx, variant in enumerate(data.variants, start=1):
+        variant_data = variant.model_dump(exclude={"sku"})
+        generated_sku = f"{product.catalog_number}-{idx}"
+        db.add(ProductVariant(product_id=product.id, sku=generated_sku, **variant_data))
+
+    db.commit()
+    db.refresh(product)
+    return product
+
+
 def create(db: Session, data: ProductCreate) -> Product:
     variants_data = data.variants
     product_data = data.model_dump(exclude={"variants", "catalog_number"})
@@ -65,10 +94,10 @@ def create(db: Session, data: ProductCreate) -> Product:
     product = Product(**product_data)
     db.add(product)
     db.flush()
-
-    for variant in variants_data:
-        db.add(ProductVariant(product_id=product.id, **variant.model_dump()))
-
+    for idx, variant in enumerate(variants_data, start=1):
+        variant_data = variant.model_dump(exclude={"sku"})
+        generated_sku = f"{product.catalog_number}-{idx}"
+        db.add(ProductVariant(product_id=product.id, sku=generated_sku, **variant_data))
     db.commit()
     db.refresh(product)
     return product

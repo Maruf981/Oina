@@ -47,3 +47,31 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=ProductOut)
 def create_product(data: ProductCreate, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     return product_repo.create(db, data)
+
+
+@router.patch("/{product_id}", response_model=ProductOut)
+def update_product(product_id: int, data: ProductCreate, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    product = product_repo.get_by_id(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product_repo.update(db, product, data)
+
+
+@router.post("/{product_id}/publish")
+def publish_product(product_id: int, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    product = product_repo.get_by_id(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    product.is_active = True
+    db.commit()
+    return {"status": "published"}
+
+
+@router.delete("/{product_id}")
+def delete_product(product_id: int, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    product = product_repo.get_by_id(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    db.delete(product)
+    db.commit()
+    return {"status": "deleted"}
