@@ -51,7 +51,7 @@ function isDiscountActive(p: Product): boolean {
   return true;
 }
 
-const DISCOUNT_BADGE_STEPS = [5, 10, 15, 20];
+const DISCOUNT_BADGE_STEPS = [5, 10, 15, 20, 25, 30];
 
 function getDiscountBadgeSrc(percent: number | null): string | null {
   if (!percent) return null;
@@ -322,14 +322,41 @@ export default function Home() {
           </span>
 
           <span
-            onClick={() => (auth.customer ? router.push("/account") : setAuthOpen(true))}
-            style={{ cursor: "pointer" }}
-            title={auth.customer ? auth.customer.name || "Профиль" : lang === "ru" ? "Войти" : "Даромадан"}
+            className="header-profile-icon"
+            onClick={() => (auth.customer ? router.push("/favorites") : setAuthOpen(true))}
+            style={{ cursor: "pointer", position: "relative", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+            title={lang === "ru" ? "Избранное" : "Интихобҳо"}
           >
-            <svg width="20" height="20" viewBox="0 0 20 20">
-              <circle cx="10" cy="7" r="3.2" fill="none" stroke="var(--text-muted)" strokeWidth="1" />
-              <path d="M4 17 C4 13 6.5 11 10 11 C13.5 11 16 13 16 17" fill="none" stroke="var(--text-muted)" strokeWidth="1" />
+            <svg width="21" height="21" viewBox="0 0 24 24">
+              <path
+                d="M12 21 C12 21 3 14.5 3 8.6 C3 5.5 5.4 3.3 8.2 3.3 C10 3.3 11.3 4.2 12 5.4 C12.7 4.2 14 3.3 15.8 3.3 C18.6 3.3 21 5.5 21 8.6 C21 14.5 12 21 12 21 Z"
+                fill="none"
+                stroke="var(--text)"
+                strokeWidth="1"
+              />
             </svg>
+            {favoriteIds.size > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -6,
+                  width: 15,
+                  height: 15,
+                  borderRadius: "50%",
+                  background: "var(--bg)",
+                  border: "1px solid var(--accent)",
+                  color: "var(--accent)",
+                  fontSize: 9,
+                  fontFamily: "var(--font-label)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {favoriteIds.size}
+              </div>
+            )}
           </span>
 
           <div
@@ -376,6 +403,32 @@ export default function Home() {
               </div>
             )}
           </div>
+
+          <span
+            className="header-profile-icon"
+            onClick={() => (auth.customer ? router.push("/account") : setAuthOpen(true))}
+            style={{ cursor: "pointer", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+            title={auth.customer ? auth.customer.name || "Профиль" : lang === "ru" ? "Войти" : "Даромадан"}
+          >
+            {auth.customer?.avatar_url ? (
+              <div
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: "50%",
+                  backgroundImage: `url(${auth.customer.avatar_url})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  border: "1px solid var(--line)",
+                }}
+              />
+            ) : (
+              <svg width="21" height="21" viewBox="0 0 20 20">
+                <circle cx="10" cy="7" r="3.2" fill="none" stroke="var(--text-muted)" strokeWidth="1" />
+                <path d="M4 17 C4 13 6.5 11 10 11 C13.5 11 16 13 16 17" fill="none" stroke="var(--text-muted)" strokeWidth="1" />
+              </svg>
+            )}
+          </span>
         </div>
         </div>
       </nav>

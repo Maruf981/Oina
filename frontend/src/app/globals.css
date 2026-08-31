@@ -32,6 +32,23 @@ html, body {
   }
 }
 @media (max-width: 640px) {
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+}
+@media (max-width: 640px) {
+  .bottom-nav-mobile {
+    display: block !important;
+  }
+  body {
+    padding-bottom: 58px;
+  }
+  .header-profile-icon {
+    display: none !important;
+  }
+}
+@media (max-width: 640px) {
   .product-detail-container {
     padding: 12px !important;
   }

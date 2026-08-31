@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.deps import get_current_admin
+from app.core.deps import get_current_admin, get_current_customer
 from app.models.product import Product, ProductImage
+from app.models.customer import Customer
 
 cloudinary.config(
     cloud_name=settings.CLOUDINARY_CLOUD_NAME,
@@ -48,3 +49,18 @@ async def upload_product_image(
     db.refresh(image)
 
     return {"id": image.id, "url": image.url, "color": image.color, "sort_order": image.sort_order}
+
+@router.post("/avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current: Customer = Depends(get_current_customer),
+):
+    result = cloudinary.uploader.upload(
+        file.file,
+        folder="oina/avatars",
+    )
+    current.avatar_url = result["secure_url"]
+    db.commit()
+    db.refresh(current)
+    return {"avatar_url": current.avatar_url}

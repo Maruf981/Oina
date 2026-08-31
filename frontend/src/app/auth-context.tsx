@@ -6,6 +6,8 @@ type Customer = {
   id: number;
   name: string | null;
   phone: string;
+  address: string | null;
+  avatar_url: string | null;
 };
 
 type AuthContextType = {
@@ -14,6 +16,7 @@ type AuthContextType = {
   login: (phone: string, password: string) => Promise<void>;
   register: (name: string, phone: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshMe: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -80,8 +83,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCustomer(null);
   };
 
+  const refreshMe = async () => {
+    if (token) await fetchMe(token);
+  };
+
   return (
-    <AuthContext.Provider value={{ customer, token, login, register, logout }}>
+    <AuthContext.Provider value={{ customer, token, login, register, logout, refreshMe }}>
       {children}
     </AuthContext.Provider>
   );

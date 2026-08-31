@@ -3,6 +3,7 @@ import "./globals.css";
 import { CartProvider } from "./cart-context";
 import { AuthProvider } from "./auth-context";
 import { ThemeSync } from "./theme-sync";
+import { BottomNav } from "./bottom-nav";
 
 export const metadata: Metadata = {
   title: "Oina.tj",
@@ -22,7 +23,10 @@ export default function RootLayout({
       <body>
         <ThemeSync />
         <AuthProvider>
-          <CartProvider>{children}</CartProvider>
+          <CartProvider>
+            {children}
+            <BottomNav />
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

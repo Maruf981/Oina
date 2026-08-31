@@ -10,6 +10,7 @@ export function Footer({ lang }: { lang: Lang }) {
   return (
     <footer style={{ borderTop: "1px solid var(--line)", marginTop: 60 }}>
       <div
+        className="footer-grid"
         style={{
           maxWidth: 1200,
           margin: "0 auto",
