@@ -541,7 +541,7 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
         discount_from: badgeType === "discount" && form.discount_from !== "" ? form.discount_from : null,
         discount_to: badgeType === "discount" && form.discount_to !== "" ? form.discount_to : null,
         is_active: product ? product.is_active : false,
-        variants: variants.map(({ sku, ...rest }) => rest),
+        variants,
       };
       const url = product
         ? `http://127.0.0.1:8000/products/${product.id}`
