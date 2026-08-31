@@ -636,19 +636,23 @@ export default function Home() {
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
-                    background: "rgba(14,14,16,0.55)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     cursor: "pointer",
                   }}
                 >
-                  <svg width="19" height="19" viewBox="0 0 24 24">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.35))" }}
+                  >
                     <path
                       d="M12 21 C12 21 3 14.5 3 8.6 C3 5.5 5.4 3.3 8.2 3.3 C10 3.3 11.3 4.2 12 5.4 C12.7 4.2 14 3.3 15.8 3.3 C18.6 3.3 21 5.5 21 8.6 C21 14.5 12 21 12 21 Z"
                       fill={favoriteIds.has(p.id) ? "var(--accent)" : "none"}
-                      stroke={favoriteIds.has(p.id) ? "var(--accent)" : "#fff"}
-                      strokeWidth="1.4"
+                      stroke="var(--accent)"
+                      strokeWidth="1.5"
                     />
                   </svg>
                 </div>
@@ -665,7 +669,6 @@ export default function Home() {
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
-                    background: "rgba(14,14,16,0.55)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -673,22 +676,27 @@ export default function Home() {
                     opacity: p.variants.length === 0 ? 0.4 : 1,
                   }}
                 >
-                  <svg width="23" height="23" viewBox="0 0 30 30">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 30 30"
+                    style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.35))" }}
+                  >
                     <path
                       d="M8 13 C8 13 8 11 10 11 L20 11 C22 11 22 13 22 13 L21 25 C21 25.5 20.5 26 20 26 L10 26 C9.5 26 9 25.5 9 25 Z"
                       fill="none"
-                      stroke="#fff"
-                      strokeWidth="1"
+                      stroke="var(--accent)"
+                      strokeWidth="1.1"
                     />
                     <path
                       d="M10 11 C10 8 12.2 6 15 6 C17.8 6 20 8 20 11"
                       fill="none"
-                      stroke="#fff"
-                      strokeWidth="1"
+                      stroke="var(--accent)"
+                      strokeWidth="1.1"
                     />
-                    <line x1="12" y1="16" x2="12" y2="21" stroke="#fff" strokeWidth="0.6" />
-                    <line x1="15" y1="16" x2="15" y2="21" stroke="#fff" strokeWidth="0.6" />
-                    <line x1="18" y1="16" x2="18" y2="21" stroke="#fff" strokeWidth="0.6" />
+                    <line x1="12" y1="16" x2="12" y2="21" stroke="var(--accent)" strokeWidth="0.7" />
+                    <line x1="15" y1="16" x2="15" y2="21" stroke="var(--accent)" strokeWidth="0.7" />
+                    <line x1="18" y1="16" x2="18" y2="21" stroke="var(--accent)" strokeWidth="0.7" />
                   </svg>
                 </div>
               </div>
