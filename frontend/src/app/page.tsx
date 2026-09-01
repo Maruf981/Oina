@@ -92,6 +92,12 @@ export default function Home() {
   const auth = useAuth();
   const router = useRouter();
   const [authOpen, setAuthOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("login") === "1") {
+      setAuthOpen(true);
+    }
+  }, []);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [authName, setAuthName] = useState("");
   const [authPhone, setAuthPhone] = useState("");

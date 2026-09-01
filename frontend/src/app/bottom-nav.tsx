@@ -93,7 +93,7 @@ export function BottomNav() {
               key={tab.key}
               onClick={() => {
                 if (tab.key === "account" && !auth.customer) {
-                  router.push("/");
+                  router.push("/?login=1");
                   return;
                 }
                 router.push(tab.path);
