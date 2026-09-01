@@ -4,6 +4,7 @@ import { CartProvider } from "./cart-context";
 import { AuthProvider } from "./auth-context";
 import { ThemeSync } from "./theme-sync";
 import { BottomNav } from "./bottom-nav";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "Oina.tj",
@@ -16,9 +17,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" suppressHydrationWarning>
       <head>
-        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
       </head>
       <body>
         <ThemeSync />
