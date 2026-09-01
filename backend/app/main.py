@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import category, product, upload, order, auth, supplier, telegram_auth, favorite
+from app.routers import category, product, upload, order, auth, supplier, telegram_auth, favorite, cart
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -21,6 +21,7 @@ app.include_router(auth.router)
 app.include_router(supplier.router)
 app.include_router(telegram_auth.router)
 app.include_router(favorite.router)
+app.include_router(cart.router)
 
 
 @app.get("/health")

@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
+import { useAuth } from "./auth-context";
 
 export type CartItem = {
   variantId: number;
@@ -13,6 +14,23 @@ export type CartItem = {
   qty: number;
 };
 
+type ServerCartItem = {
+  id: number;
+  quantity: number;
+  variant: {
+    id: number;
+    size: string;
+    color: string;
+    product: {
+      id: number;
+      title_ru: string;
+      title_tj: string | null;
+      catalog_number: string | null;
+      price: number;
+    };
+  };
+};
+
 type CartContextType = {
   items: CartItem[];
   addItem: (item: Omit<CartItem, "qty">) => void;
@@ -23,49 +41,170 @@ type CartContextType = {
 };
 
 const CartContext = createContext<CartContextType | null>(null);
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+function serverItemToCartItem(s: ServerCartItem): CartItem {
+  return {
+    variantId: s.variant.id,
+    productId: s.variant.product.id,
+    title: s.variant.product.title_ru,
+    catalogNumber: s.variant.product.catalog_number || "",
+    price: s.variant.product.price,
+    size: s.variant.size,
+    color: s.variant.color,
+    qty: s.quantity,
+  };
+}
+
+// map variantId -> server cart item id, needed for PATCH/DELETE by server id
+const serverIdMap = new Map<number, number>();
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const auth = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
+  const guestMergedRef = useRef(false);
 
+  const authHeaders = () => ({ Authorization: `Bearer ${auth.token}` });
+
+  const loadServerCart = async () => {
+    if (!auth.token) return;
+    try {
+      const res = await fetch(`${API_URL}/cart/`, { headers: authHeaders() });
+      if (!res.ok) return;
+      const data: ServerCartItem[] = await res.json();
+      serverIdMap.clear();
+      data.forEach((s) => serverIdMap.set(s.variant.id, s.id));
+      setItems(data.map(serverItemToCartItem));
+    } catch {
+      // network error, keep current state
+    }
+  };
+
+  // Load guest cart from localStorage on first mount (before we know auth state)
   useEffect(() => {
-    const saved = localStorage.getItem("cart");
-    if (saved) setItems(JSON.parse(saved));
+    if (!auth.token) {
+      const saved = localStorage.getItem("cart");
+      if (saved) {
+        try {
+          setItems(JSON.parse(saved));
+        } catch {
+          // ignore corrupt data
+        }
+      }
+    }
   }, []);
 
+  // Persist guest cart to localStorage whenever items change while logged out
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(items));
-  }, [items]);
+    if (!auth.token) {
+      localStorage.setItem("cart", JSON.stringify(items));
+    }
+  }, [items, auth.token]);
 
-  const addItem = (item: Omit<CartItem, "qty">) => {
-    setItems((prev) => {
-      const existing = prev.find((i) => i.variantId === item.variantId);
-      if (existing) {
-        return prev.map((i) =>
-          i.variantId === item.variantId ? { ...i, qty: i.qty + 1 } : i
-        );
+  // When auth.token appears (login), merge any local guest cart into server cart, then load server cart
+  useEffect(() => {
+    const run = async () => {
+      if (!auth.token || guestMergedRef.current) return;
+      guestMergedRef.current = true;
+
+      const saved = localStorage.getItem("cart");
+      let guestItems: CartItem[] = [];
+      if (saved) {
+        try {
+          guestItems = JSON.parse(saved);
+        } catch {
+          guestItems = [];
+        }
       }
-      return [...prev, { ...item, qty: 1 }];
-    });
+
+      for (const gi of guestItems) {
+        try {
+          await fetch(`${API_URL}/cart/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify({ product_variant_id: gi.variantId, quantity: gi.qty }),
+          });
+        } catch {
+          // skip failed item
+        }
+      }
+
+      localStorage.removeItem("cart");
+      await loadServerCart();
+    };
+    run();
+  }, [auth.token]);
+
+  // When logged out, reset merge flag so a future login re-merges correctly
+  useEffect(() => {
+    if (!auth.token) {
+      guestMergedRef.current = false;
+    }
+  }, [auth.token]);
+
+  const addItem = async (item: Omit<CartItem, "qty">) => {
+    if (!auth.token) {
+      setItems((prev) => {
+        const existing = prev.find((i) => i.variantId === item.variantId);
+        if (existing) {
+          return prev.map((i) => (i.variantId === item.variantId ? { ...i, qty: i.qty + 1 } : i));
+        }
+        return [...prev, { ...item, qty: 1 }];
+      });
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/cart/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ product_variant_id: item.variantId, quantity: 1 }),
+      });
+      if (res.ok) await loadServerCart();
+    } catch {
+      // ignore
+    }
   };
 
-  const removeItem = (variantId: number) => {
-    setItems((prev) => prev.filter((i) => i.variantId !== variantId));
+  const removeItem = async (variantId: number) => {
+    if (!auth.token) {
+      setItems((prev) => prev.filter((i) => i.variantId !== variantId));
+      return;
+    }
+    const serverId = serverIdMap.get(variantId);
+    if (!serverId) return;
+    try {
+      await fetch(`${API_URL}/cart/${serverId}`, { method: "DELETE", headers: authHeaders() });
+      await loadServerCart();
+    } catch {
+      // ignore
+    }
   };
 
-  const updateQty = (variantId: number, qty: number) => {
+  const updateQty = async (variantId: number, qty: number) => {
     if (qty < 1) return;
-    setItems((prev) =>
-      prev.map((i) => (i.variantId === variantId ? { ...i, qty } : i))
-    );
+    if (!auth.token) {
+      setItems((prev) => prev.map((i) => (i.variantId === variantId ? { ...i, qty } : i)));
+      return;
+    }
+    const serverId = serverIdMap.get(variantId);
+    if (!serverId) return;
+    try {
+      await fetch(`${API_URL}/cart/${serverId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ quantity: qty }),
+      });
+      await loadServerCart();
+    } catch {
+      // ignore
+    }
   };
 
   const totalCount = items.reduce((sum, i) => sum + i.qty, 0);
   const totalPrice = items.reduce((sum, i) => sum + i.qty * i.price, 0);
 
   return (
-    <CartContext.Provider
-      value={{ items, addItem, removeItem, updateQty, totalCount, totalPrice }}
-    >
+    <CartContext.Provider value={{ items, addItem, removeItem, updateQty, totalCount, totalPrice }}>
       {children}
     </CartContext.Provider>
   );

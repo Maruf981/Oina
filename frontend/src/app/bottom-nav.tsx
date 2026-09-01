@@ -4,6 +4,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "./auth-context";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 const tabsByLang = {
   ru: [
     { key: "home", label: "Главная", path: "/", icon: "home" },
@@ -58,16 +60,61 @@ function Icon({ name, active }: { name: string; active: boolean }) {
   );
 }
 
+function Badge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: -3,
+        right: -8,
+        width: 15,
+        height: 15,
+        borderRadius: "50%",
+        background: "var(--bg)",
+        border: "1px solid var(--accent)",
+        color: "var(--accent)",
+        fontSize: 9,
+        fontFamily: "var(--font-label)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {count}
+    </div>
+  );
+}
+
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
   const [lang, setLang] = useState<"ru" | "tj">("ru");
+  const [favoritesCount, setFavoritesCount] = useState(0);
+  const [ordersCount, setOrdersCount] = useState(0);
 
   useEffect(() => {
     const saved = localStorage.getItem("lang") as "ru" | "tj" | null;
     if (saved) setLang(saved);
   }, []);
+
+  useEffect(() => {
+    if (!auth.token) {
+      setFavoritesCount(0);
+      setOrdersCount(0);
+      return;
+    }
+    fetch(`${API_URL}/favorites/`, { headers: { Authorization: `Bearer ${auth.token}` } })
+      .then((res) => res.json())
+      .then((data) => setFavoritesCount(Array.isArray(data) ? data.length : 0))
+      .catch(() => setFavoritesCount(0));
+
+    fetch(`${API_URL}/orders/my`, { headers: { Authorization: `Bearer ${auth.token}` } })
+      .then((res) => res.json())
+      .then((data) => setOrdersCount(Array.isArray(data) ? data.length : 0))
+      .catch(() => setOrdersCount(0));
+  }, [auth.token, pathname]);
 
   const tabs = tabsByLang[lang];
 
@@ -88,6 +135,7 @@ export function BottomNav() {
       >
         {tabs.map((tab) => {
           const active = tab.path === "/" ? pathname === "/" : pathname.startsWith(tab.path);
+          const count = tab.key === "favorites" ? favoritesCount : tab.key === "orders" ? ordersCount : 0;
           return (
             <div
               key={tab.key}
@@ -108,7 +156,24 @@ export function BottomNav() {
                 cursor: "pointer",
               }}
             >
-              <Icon name={tab.icon} active={active} />
+              <div style={{ position: "relative" }}>
+                {tab.key === "account" && auth.customer?.avatar_url ? (
+                  <div
+                    style={{
+                      width: 21,
+                      height: 21,
+                      borderRadius: "50%",
+                      backgroundImage: `url(${auth.customer.avatar_url})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      border: active ? "1.5px solid var(--accent)" : "1px solid var(--line)",
+                    }}
+                  />
+                ) : (
+                  <Icon name={tab.icon} active={active} />
+                )}
+                <Badge count={count} />
+              </div>
               <span
                 style={{
                   fontFamily: "var(--font-label)",

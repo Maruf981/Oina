@@ -4,3 +4,4 @@ from app.models.customer import Customer
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.supplier import Supplier
 from app.models.favorite import Favorite
+from app.models.cart import CartItem
