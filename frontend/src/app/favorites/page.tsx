@@ -93,7 +93,7 @@ export default function FavoritesPage() {
 
   return (
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: 40 }}>
+      <div className="favorites-container" style={{ maxWidth: 900, margin: "0 auto", padding: 40 }}>
         <span
           onClick={() => router.push("/")}
           style={{ cursor: "pointer", fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)" }}
@@ -112,6 +112,7 @@ export default function FavoritesPage() {
         )}
 
         <div
+          className="favorites-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",

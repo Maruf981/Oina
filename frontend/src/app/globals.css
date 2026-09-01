@@ -47,6 +47,13 @@ html, body {
   .header-profile-icon {
     display: none !important;
   }
+  .favorites-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  .favorites-container {
+    padding: 20px 16px !important;
+  }
 }
 @media (max-width: 640px) {
   .product-detail-container {
