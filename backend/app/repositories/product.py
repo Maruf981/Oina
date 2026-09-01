@@ -59,14 +59,37 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
     for key, value in product_data.items():
         setattr(product, key, value)
 
-    for variant in list(product.variants):
-        db.delete(variant)
-    db.flush()
+    from app.models.order import OrderItem
 
-    for idx, variant in enumerate(data.variants, start=1):
-        variant_data = variant.model_dump(exclude={"sku"})
-        generated_sku = f"{product.catalog_number}-{idx}"
-        db.add(ProductVariant(product_id=product.id, sku=generated_sku, **variant_data))
+    existing_by_key = {(v.size, v.color): v for v in product.variants}
+    incoming_keys = {(v.size, v.color) for v in data.variants}
+    next_idx = len(existing_by_key) + 1
+
+    for variant in data.variants:
+        key = (variant.size, variant.color)
+        existing = existing_by_key.get(key)
+        if existing:
+            existing.stock = variant.stock
+        else:
+            generated_sku = f"{product.catalog_number}-{next_idx}"
+            next_idx += 1
+            db.add(ProductVariant(
+                product_id=product.id,
+                sku=generated_sku,
+                size=variant.size,
+                color=variant.color,
+                stock=variant.stock,
+            ))
+
+    for key, existing in existing_by_key.items():
+        if key not in incoming_keys:
+            has_orders = db.query(OrderItem).filter(
+                OrderItem.product_variant_id == existing.id
+            ).first() is not None
+            if has_orders:
+                existing.stock = 0
+            else:
+                db.delete(existing)
 
     db.commit()
     db.refresh(product)
