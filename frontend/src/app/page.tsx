@@ -36,6 +36,7 @@ type Product = {
   description_tj: string | null;
   is_featured: boolean;
   is_new: boolean;
+  is_brand: boolean;
   discount_percent: number | null;
   discount_from: string | null;
   discount_to: string | null;
@@ -51,7 +52,7 @@ function isDiscountActive(p: Product): boolean {
   return true;
 }
 
-const DISCOUNT_BADGE_STEPS = [5, 10, 15, 20, 25, 30];
+const DISCOUNT_BADGE_STEPS = [5, 10, 15, 20, 25, 30, 40, 50];
 
 function getDiscountBadgeSrc(percent: number | null): string | null {
   if (!percent) return null;
@@ -682,6 +683,13 @@ export default function Home() {
                     style={{ position: "absolute", top: -9, left: -9, width: 64, height: 64, objectFit: "contain", pointerEvents: "none" }}
                   />
                 ) : null}
+                {p.is_brand && (
+                  <img
+                    src="/badge-brand.png"
+                    alt="Бренд"
+                    style={{ position: "absolute", top: -41, left: "50%", transform: "translateX(-50%)", width: 108, height: 108, objectFit: "contain", pointerEvents: "none" }}
+                  />
+                )}
 
                 <div
                   onClick={(e) => {

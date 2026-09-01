@@ -27,6 +27,7 @@ class Product(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
     is_new: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_brand: Mapped[bool] = mapped_column(Boolean, default=False)
     discount_percent: Mapped[int | None] = mapped_column(nullable=True)
     discount_from: Mapped["date | None"] = mapped_column(nullable=True)
     discount_to: Mapped["date | None"] = mapped_column(nullable=True)

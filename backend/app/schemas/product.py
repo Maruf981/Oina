@@ -55,6 +55,7 @@ class ProductBase(BaseModel):
     is_active: bool = True
     is_featured: bool = False
     is_new: bool = False
+    is_brand: bool = False
     discount_percent: int | None = None
     discount_from: date | None = None
     discount_to: date | None = None

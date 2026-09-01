@@ -106,6 +106,7 @@ type Product = {
   is_active: boolean;
   is_featured: boolean;
   is_new: boolean;
+  is_brand: boolean;
   discount_percent: number | null;
 };
 
@@ -381,7 +382,7 @@ export default function AdminPage() {
 
 function getAdminBadgeSrc(p: Product): string | null {
   if (p.discount_percent) {
-    const steps = [5, 10, 15, 20];
+    const steps = [5, 10, 15, 20, 25, 30, 40, 50];
     let closest = steps[0];
     for (const step of steps) {
       if (step <= p.discount_percent) closest = step;
@@ -505,6 +506,13 @@ function ProductsTab({ t, products, categories, selectedProduct, setSelectedProd
             style={{ position: "absolute", top: -9, left: -9, width: 56, height: 56, objectFit: "contain", pointerEvents: "none" }}
           />
         )}
+        {p.is_brand && (
+          <img
+            src="/badge-brand.png"
+            alt="Бренд"
+            style={{ position: "absolute", top: -25, left: "50%", transform: "translateX(-50%)", width: 84, height: 84, objectFit: "contain", pointerEvents: "none" }}
+          />
+        )}
       </div>
       <div className="product-title" style={{ fontSize: 15, marginBottom: 4 }}>{p.title_ru}</div>
       <div className="catalog-label" style={{ border: "none", padding: 0, display: "flex", justifyContent: "space-between", marginBottom: showCheckbox ? 10 : 0 }}>
@@ -585,6 +593,7 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
     care_instructions_ru: product?.care_instructions_ru ?? "",
     care_instructions_tj: product?.care_instructions_tj ?? "",
     badgeType: (product?.discount_percent ? "discount" : product?.is_new ? "new" : product?.is_featured ? "featured" : "none") as "none" | "featured" | "new" | "discount",
+    is_brand: product?.is_brand ?? false,
     discount_percent: product?.discount_percent ?? "",
     discount_from: product?.discount_from ?? "",
     discount_to: product?.discount_to ?? "",
@@ -639,6 +648,7 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
         price: Number(form.price),
         is_featured: badgeType === "featured",
         is_new: badgeType === "new",
+        is_brand: form.is_brand,
         discount_percent: badgeType === "discount" && form.discount_percent !== "" ? Number(form.discount_percent) : null,
         discount_from: badgeType === "discount" && form.discount_from !== "" ? form.discount_from : null,
         discount_to: badgeType === "discount" && form.discount_to !== "" ? form.discount_to : null,
@@ -768,6 +778,14 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
             </label>
           ))}
         </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text)", cursor: "pointer", marginBottom: 4 }}>
+          <input
+            type="checkbox"
+            checked={form.is_brand}
+            onChange={(e) => updateField("is_brand", e.target.checked)}
+          />
+          Бренд (можно сочетать с любым бейджем выше)
+        </label>
 
         {form.badgeType === "discount" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
