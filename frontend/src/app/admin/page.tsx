@@ -79,7 +79,7 @@ const labels = {
   },
 };
 
-type Category = { id: number; name: string; slug: string };
+type Category = { id: number; name: string; slug: string; parent_id: number | null };
 
 type Variant = { id: number; size: string; color: string; stock: number; sku: string };
 
@@ -120,6 +120,81 @@ type Order = {
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+const COLOR_MAP: Record<string, string> = {
+  "красный": "#E24B4A",
+  "тёмно-красный": "#8B1E1E",
+  "темно-красный": "#8B1E1E",
+  "бордовый": "#7A1F2B",
+  "синий": "#378ADD",
+  "тёмно-синий": "#1B3A5C",
+  "темно-синий": "#1B3A5C",
+  "голубой": "#85B7EB",
+  "светло-голубой": "#BFE0F5",
+  "зелёный": "#639922",
+  "зеленый": "#639922",
+  "тёмно-зелёный": "#2F4A17",
+  "темно-зеленый": "#2F4A17",
+  "изумрудный": "#0F6E56",
+  "жёлтый": "#EF9F27",
+  "желтый": "#EF9F27",
+  "горчичный": "#B8860B",
+  "оранжевый": "#D85A30",
+  "терракотовый": "#C1653D",
+  "фиолетовый": "#7F77DD",
+  "сиреневый": "#B39DDB",
+  "лавандовый": "#C9B8E8",
+  "розовый": "#D4537E",
+  "пудровый": "#E8C4C4",
+  "чёрный": "#1A1A1A",
+  "черный": "#1A1A1A",
+  "белый": "#F5F5F0",
+  "серый": "#888780",
+  "светло-серый": "#C7C5BD",
+  "тёмно-серый": "#4A4A47",
+  "темно-серый": "#4A4A47",
+  "бежевый": "#D8CBB8",
+  "коричневый": "#8B5A2B",
+  "хаки": "#7C7A5C",
+  "мятный": "#9FE1CB",
+  "золотой": "#C9A648",
+  "серебристый": "#C0C0C0",
+  "малиновый": "#B22245",
+  "лимонный": "#E8D44D",
+  "молочный": "#F2ECD9",
+  "кремовый": "#EFE3C8",
+};
+
+const COLOR_OPTIONS = [
+  "Красный", "Тёмно-красный", "Бордовый",
+  "Синий", "Тёмно-синий", "Голубой", "Светло-голубой",
+  "Зелёный", "Тёмно-зелёный", "Изумрудный",
+  "Жёлтый", "Горчичный",
+  "Оранжевый", "Терракотовый",
+  "Фиолетовый", "Сиреневый", "Лавандовый",
+  "Розовый", "Пудровый",
+  "Чёрный", "Белый",
+  "Серый", "Светло-серый", "Тёмно-серый",
+  "Бежевый", "Коричневый", "Хаки",
+  "Мятный", "Золотой", "Серебристый",
+  "Малиновый", "Лимонный", "Молочный", "Кремовый",
+];
+const LETTER_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL", "6XL"];
+const NUMERIC_SIZES = Array.from({ length: 50 - 15 + 1 }, (_, i) => String(15 + i));
+
+const getColorHex = (name: string): string => {
+  const key = name.trim().toLowerCase();
+  return COLOR_MAP[key] || "var(--surface)";
+};
+
+const getContrastText = (hex: string): string => {
+  if (!hex.startsWith("#")) return "var(--text)";
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? "#1A1A1A" : "#FFFFFF";
+};
 
 export default function AdminPage() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -334,6 +409,11 @@ function ProductsTab({ t, products, categories, selectedProduct, setSelectedProd
           setCreatingProduct(false);
           refreshProducts();
         }}
+        onCreated={(newProduct: any) => {
+          setSelectedProduct(newProduct);
+          setCreatingProduct(false);
+          refreshProducts();
+        }}
         token={token}
       />
     );
@@ -490,7 +570,7 @@ function ProductsTab({ t, products, categories, selectedProduct, setSelectedProd
     </div>
   );
 }
-function ProductForm({ t, product, categories, authFetch, onClose }: any) {
+function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: any) {
   const [form, setForm] = useState({
     category_id: product?.category_id ?? categories[0]?.id ?? 1,
     title_ru: product?.title_ru ?? "",
@@ -519,11 +599,33 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
 
   const updateField = (key: string, value: any) => setForm({ ...form, [key]: value });
 
-  const addVariant = () => setVariants([...variants, { size: "", color: "", stock: 0 }]);
-  const updateVariant = (idx: number, key: string, value: any) => {
-    const next = [...variants];
-    (next[idx] as any)[key] = value;
-    setVariants(next);
+  const [activeColors, setActiveColors] = useState<string[]>(
+    Array.from(new Set((product?.variants ?? []).map((v: any) => v.color)))
+  );
+  const [sizeTypeByColor, setSizeTypeByColor] = useState<Record<string, "letter" | "numeric">>({});
+
+  const toggleColorActive = (color: string) => {
+    if (activeColors.includes(color)) {
+      setActiveColors(activeColors.filter((c) => c !== color));
+      setVariants(variants.filter((v) => v.color !== color));
+    } else {
+      setActiveColors([...activeColors, color]);
+    }
+  };
+
+  const toggleSizeForColor = (color: string, size: string) => {
+    const exists = variants.find((v) => v.color === color && v.size === size);
+    if (exists) {
+      setVariants(variants.filter((v) => !(v.color === color && v.size === size)));
+    } else {
+      setVariants([...variants, { size, color, stock: 0 }]);
+    }
+  };
+
+  const updateStockForColorSize = (color: string, size: string, stock: number) => {
+    setVariants(
+      variants.map((v) => (v.color === color && v.size === size ? { ...v, stock } : v))
+    );
   };
 
   const handleSave = async () => {
@@ -553,7 +655,12 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
-      onClose();
+      if (!product) {
+        const created = await res.json();
+        onCreated(created);
+      } else {
+        onClose();
+      }
     } catch {
       alert("Ошибка сохранения");
     } finally {
@@ -564,21 +671,24 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
   const [imageColor, setImageColor] = useState("");
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!product || !e.target.files?.[0]) return;
+    if (!product || !e.target.files?.length) return;
     setUploadingImage(true);
-    const formData = new FormData();
-    formData.append("file", e.target.files[0]);
+    const files = Array.from(e.target.files);
+    const url = imageColor
+      ? `${API}/upload/product-image/${product.id}?color=${encodeURIComponent(imageColor)}`
+      : `${API}/upload/product-image/${product.id}`;
     try {
-      const url = imageColor
-        ? `${API}/upload/product-image/${product.id}?color=${encodeURIComponent(imageColor)}`
-        : `${API}/upload/product-image/${product.id}`;
-      const res = await authFetch(url, {
-        method: "POST",
-        body: formData,
-      });
-      if (res.ok) {
-        const newImage = await res.json();
-        setProductImages((prev: any[]) => [...prev, newImage]);
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await authFetch(url, {
+          method: "POST",
+          body: formData,
+        });
+        if (res.ok) {
+          const newImage = await res.json();
+          setProductImages((prev: any[]) => [...prev, newImage]);
+        }
       }
       setImageColor("");
       e.target.value = "";
@@ -608,9 +718,20 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
         <input type="number" placeholder={t.price} value={form.price} onChange={(e) => updateField("price", e.target.value)} style={inputStyle} />
         <select value={form.category_id} onChange={(e) => updateField("category_id", Number(e.target.value))} style={inputStyle}>
-          {categories.map((c: Category) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
+          {categories.filter((c: Category) => !c.parent_id).map((parent: Category) => {
+            const children = categories.filter((c: Category) => c.parent_id === parent.id);
+            if (children.length === 0) {
+              return <option key={parent.id} value={parent.id}>{parent.name}</option>;
+            }
+            return (
+              <optgroup key={parent.id} label={parent.name}>
+                <option value={parent.id}>{parent.name} (общее)</option>
+                {children.map((child: Category) => (
+                  <option key={child.id} value={child.id}>{child.name}</option>
+                ))}
+              </optgroup>
+            );
+          })}
         </select>
       </div>
 
@@ -680,28 +801,135 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
       </div>
 
       <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 12 }}>{t.variants}</div>
-      {variants.map((v, idx) => (
-        <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
-          <input placeholder={t.size} value={v.size} onChange={(e) => updateVariant(idx, "size", e.target.value)} style={inputStyle} />
-          <input placeholder={t.color} value={v.color} onChange={(e) => updateVariant(idx, "color", e.target.value)} style={inputStyle} />
-          <input type="number" placeholder={t.stock} value={v.stock} onChange={(e) => updateVariant(idx, "stock", Number(e.target.value))} style={inputStyle} />
-        </div>
-      ))}
-      <span onClick={addVariant} style={{ cursor: "pointer", color: "var(--accent)", fontSize: 13, display: "block", marginBottom: 24 }}>
-        + {t.addVariant}
-      </span>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+        {COLOR_OPTIONS.map((color) => {
+          const active = activeColors.includes(color);
+          const hex = getColorHex(color);
+          return (
+            <button
+              key={color}
+              type="button"
+              onClick={() => toggleColorActive(color)}
+              style={{
+                minWidth: 44,
+                height: 36,
+                padding: "0 12px",
+                background: hex,
+                color: getContrastText(hex),
+                border: "1px solid var(--line)",
+                boxShadow: active ? "0 0 0 2px var(--text)" : "none",
+                fontFamily: "var(--font-label)",
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              {color}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeColors.map((color) => {
+        const sizeType = sizeTypeByColor[color] ?? "letter";
+        const sizes = sizeType === "numeric" ? NUMERIC_SIZES : LETTER_SIZES;
+        return (
+          <div key={color} style={{ border: "1px solid var(--line)", padding: 16, marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ fontFamily: "var(--font-label)", fontSize: 13 }}>{color}</span>
+              <span
+                onClick={() => toggleColorActive(color)}
+                style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: 12 }}
+              >
+                Убрать цвет
+              </span>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <button
+                type="button"
+                onClick={() => setSizeTypeByColor({ ...sizeTypeByColor, [color]: "letter" })}
+                style={{
+                  padding: "6px 12px",
+                  background: sizeType === "letter" ? "var(--text)" : "var(--surface)",
+                  color: sizeType === "letter" ? "var(--bg)" : "var(--text)",
+                  border: "1px solid var(--line)",
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                Буквенный (XL)
+              </button>
+              <button
+                type="button"
+                onClick={() => setSizeTypeByColor({ ...sizeTypeByColor, [color]: "numeric" })}
+                style={{
+                  padding: "6px 12px",
+                  background: sizeType === "numeric" ? "var(--text)" : "var(--surface)",
+                  color: sizeType === "numeric" ? "var(--bg)" : "var(--text)",
+                  border: "1px solid var(--line)",
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                Числовой (34)
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+              {sizes.map((size) => {
+                const variant = variants.find((v) => v.color === color && v.size === size);
+                const active = !!variant;
+                return (
+                  <div key={size} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleSizeForColor(color, size)}
+                      style={{
+                        minWidth: 40,
+                        height: 36,
+                        padding: "0 10px",
+                        background: active ? "var(--accent)" : "var(--surface)",
+                        color: active ? "var(--bg)" : "var(--text)",
+                        border: active ? "1px solid var(--accent)" : "1px solid var(--line)",
+                        fontFamily: "var(--font-label)",
+                        fontSize: 13,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {size}
+                    </button>
+                    {active && (
+                      <input
+                        type="number"
+                        value={variant!.stock}
+                        onChange={(e) => updateStockForColorSize(color, size, Number(e.target.value))}
+                        placeholder="Остаток"
+                        style={{ width: 60, padding: 6, fontSize: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
 
       {product && (
         <div style={{ marginBottom: 24 }}>
           <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 12 }}>{t.uploadImage}</div>
-          <input
-            type="text"
-            placeholder="Цвет фото (например: Серый) — необязательно"
+          <select
             value={imageColor}
             onChange={(e) => setImageColor(e.target.value)}
             style={{ ...inputStyle, marginBottom: 10 }}
-          />
-          <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
+          >
+            <option value="">Без привязки к цвету</option>
+            {activeColors.map((color) => (
+              <option key={color} value={color}>{color}</option>
+            ))}
+          </select>
+          <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={uploadingImage} />
         </div>
       )}
 
@@ -719,16 +947,19 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
 function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, authFetch, refreshCategories }: any) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [parentId, setParentId] = useState("");
+  const topLevel = categories.filter((c: Category) => !c.parent_id);
 
   const handleSave = async () => {
     await authFetch(`${API}/categories/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, slug, parent_id: null }),
+      body: JSON.stringify({ name, slug, parent_id: parentId ? Number(parentId) : null }),
     });
     setCreatingCategory(false);
     setName("");
     setSlug("");
+    setParentId("");
     refreshCategories();
   };
 
@@ -742,18 +973,34 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
           + {t.addCategory}
         </button>
       ) : (
-        <div style={{ display: "flex", gap: 10, marginBottom: 24, maxWidth: 500 }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 24, maxWidth: 640, flexWrap: "wrap" }}>
           <input placeholder={t.name} value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }} />
           <input placeholder={t.slug} value={slug} onChange={(e) => setSlug(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }} />
+          <select value={parentId} onChange={(e) => setParentId(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }}>
+            <option value="">Без родителя (основная категория)</option>
+            {topLevel.map((c: Category) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
           <button onClick={handleSave} style={{ padding: "10px 16px", background: "var(--text)", color: "var(--bg)", border: "none", cursor: "pointer" }}>{t.save}</button>
         </div>
       )}
 
-      {categories.map((c: Category) => (
-        <div key={c.id} style={{ padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
-          {c.name} <span style={{ color: "var(--text-muted)" }}>({c.slug})</span>
-        </div>
-      ))}
+      {topLevel.map((parent: Category) => {
+        const children = categories.filter((c: Category) => c.parent_id === parent.id);
+        return (
+          <div key={parent.id}>
+            <div style={{ padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
+              {parent.name} <span style={{ color: "var(--text-muted)" }}>({parent.slug})</span>
+            </div>
+            {children.map((child: Category) => (
+              <div key={child.id} style={{ padding: "10px 0 10px 24px", borderBottom: "1px solid var(--line)", color: "var(--text-muted)" }}>
+                — {child.name} <span style={{ color: "var(--text-muted)" }}>({child.slug})</span>
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
