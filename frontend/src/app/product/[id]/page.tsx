@@ -55,12 +55,50 @@ type Product = {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+const COLOR_MAP: Record<string, string> = {
+  "красный": "#E24B4A",
+  "синий": "#378ADD",
+  "голубой": "#85B7EB",
+  "зелёный": "#639922",
+  "зеленый": "#639922",
+  "жёлтый": "#EF9F27",
+  "желтый": "#EF9F27",
+  "оранжевый": "#D85A30",
+  "фиолетовый": "#7F77DD",
+  "розовый": "#D4537E",
+  "чёрный": "#1A1A1A",
+  "черный": "#1A1A1A",
+  "белый": "#F5F5F0",
+  "серый": "#888780",
+  "бежевый": "#D8CBB8",
+  "коричневый": "#8B5A2B",
+  "хаки": "#7C7A5C",
+  "бордовый": "#7A1F2B",
+  "мятный": "#9FE1CB",
+};
+
+const getColorHex = (name: string): string => {
+  const key = name.trim().toLowerCase();
+  return COLOR_MAP[key] || "var(--surface)";
+};
+
+const getContrastText = (hex: string): string => {
+  if (!hex.startsWith("#")) return "var(--text)";
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? "#1A1A1A" : "#FFFFFF";
+};
+
 export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
   const cart = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState(0);
   const [related, setRelated] = useState<ProductBrief[]>([]);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
@@ -108,7 +146,11 @@ export default function ProductPage() {
       .then((res) => res.json())
       .then((data) => {
         setProduct(data);
-        if (data.variants?.length > 0) setSelectedVariant(data.variants[0].id);
+        if (data.variants?.length > 0) {
+          setSelectedVariant(data.variants[0].id);
+          setSelectedSize(data.variants[0].size);
+          setSelectedColor(data.variants[0].color);
+        }
         if (data.category_id) {
         fetch(`${API_URL}/products/?category_id=${data.category_id}`)
             .then((res) => res.json())
@@ -125,17 +167,46 @@ export default function ProductPage() {
     );
   }
 
+  const uniqueSizes = Array.from(new Set(product.variants.map((v) => v.size)));
+  const sizesToShow = uniqueSizes.filter((size) =>
+    product.variants.some((v) => v.size === size && (selectedColor === null || v.color === selectedColor))
+  );
+  const uniqueColors = Array.from(new Set(product.variants.map((v) => v.color)));
+  const currentVariant =
+    product.variants.find((v) => v.size === selectedSize && v.color === selectedColor) ?? null;
+  const canAddToCart = !!currentVariant && currentVariant.stock > 0;
+  const isSizeAvailable = (size: string) =>
+    product.variants.some(
+      (v) => v.size === size && (selectedColor === null || v.color === selectedColor) && v.stock > 0
+    );
+  const isColorAvailable = (color: string) =>
+    product.variants.some((v) => v.color === color && v.stock > 0);
+  const handleSelectSize = (size: string) => {
+    setSelectedSize(size);
+    const match = product.variants.find((v) => v.size === size && v.color === selectedColor);
+    if (match) {
+      const imgIdx = product.images.findIndex((img) => img.color === match.color);
+      if (imgIdx !== -1) setActiveImage(imgIdx);
+    }
+  };
+  const handleSelectColor = (color: string) => {
+    setSelectedColor(color);
+    const match = product.variants.find((v) => v.color === color && v.size === selectedSize);
+    if (match) {
+      const imgIdx = product.images.findIndex((img) => img.color === match.color);
+      if (imgIdx !== -1) setActiveImage(imgIdx);
+    }
+  };
   const handleAddToCart = () => {
-    const variant = product.variants.find((v) => v.id === selectedVariant);
-    if (!variant) return;
+    if (!currentVariant) return;
     cart.addItem({
-      variantId: variant.id,
+      variantId: currentVariant.id,
       productId: product.id,
       title: localized(product.title_ru, product.title_tj),
       catalogNumber: product.catalog_number,
       price: product.price,
-      size: variant.size,
-      color: variant.color,
+      size: currentVariant.size,
+      color: currentVariant.color,
     });
   };
 
@@ -306,34 +377,77 @@ export default function ProductPage() {
             )}
             {product.variants.length > 0 && (
               <>
-                <select
-                  value={selectedVariant ?? ""}
-                  onChange={(e) => {
-                    const newVariantId = Number(e.target.value);
-                    setSelectedVariant(newVariantId);
-                    const variant = product.variants.find((v) => v.id === newVariantId);
-                    if (variant) {
-                      const imgIdx = product.images.findIndex((img) => img.color === variant.color);
-                      if (imgIdx !== -1) setActiveImage(imgIdx);
-                    }
-                  }}
-                  style={{
-                    width: "100%",
-                    marginBottom: 8,
-                    padding: "10px",
-                    background: "var(--surface)",
-                    color: "var(--text)",
-                    border: "1px solid var(--line)",
-                    fontFamily: "var(--font-label)",
-                    fontSize: 13,
-                  }}
-                >
-                  {product.variants.map((v) => (
-                    <option key={v.id} value={v.id} disabled={v.stock === 0}>
-                      {v.size} / {v.color} {v.stock === 0 ? "— нет в наличии" : ""}
-                    </option>
-                  ))}
-                </select>
+                {uniqueSizes.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontFamily: "var(--font-label)", fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+                      Размер
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {sizesToShow.map((size) => {
+                        const active = selectedSize === size;
+                        const available = isSizeAvailable(size);
+                        return (
+                          <button
+                            key={size}
+                            type="button"
+                            onClick={() => available && handleSelectSize(size)}
+                            disabled={!available}
+                            style={{
+                              minWidth: 37,
+                              height: 40,
+                              padding: "0 12px",
+                              background: active ? "var(--accent)" : "var(--surface)",
+                              color: active ? "var(--bg)" : available ? "var(--text)" : "var(--text-muted)",
+                              border: active ? "1px solid var(--accent)" : "1px solid var(--line)",
+                              fontFamily: "var(--font-label)",
+                              fontSize: 13,
+                              cursor: available ? "pointer" : "not-allowed",
+                              opacity: available ? 1 : 0.5,
+                            }}
+                          >
+                            {size}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {uniqueColors.length > 0 && (
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ fontFamily: "var(--font-label)", fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+                      Цвет
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {uniqueColors.map((color) => {
+                        const active = selectedColor === color;
+                        const available = isColorAvailable(color);
+                        return (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => available && handleSelectColor(color)}
+                            disabled={!available}
+                            style={{
+                              minWidth: 51,
+                              height: 40,
+                              padding: "0 14px",
+                              background: getColorHex(color),
+                              color: getContrastText(getColorHex(color)),
+                              border: "1px solid var(--line)",
+                              boxShadow: active ? "0 0 0 2px var(--text)" : "none",
+                              fontFamily: "var(--font-label)",
+                              fontSize: 13,
+                              cursor: available ? "pointer" : "not-allowed",
+                              opacity: available ? 1 : 0.35,
+                            }}
+                          >
+                            {color}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <span
                   onClick={() => setSizeGuideOpen(true)}
                   style={{
@@ -350,24 +464,43 @@ export default function ProductPage() {
               </>
             )}
 
-            <button
-              onClick={handleAddToCart}
-              style={{
-                width: "100%",
-                padding: "16px",
-                background: "var(--text)",
-                color: "var(--bg)",
-                border: "none",
-                fontFamily: "var(--font-label)",
-                fontSize: 13,
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-                cursor: "pointer",
-                marginBottom: 32,
-              }}
-            >
-              Добавить в корзину
-            </button>
+            <div style={{ display: "flex", gap: 10, marginBottom: 32 }}>
+              <button
+                onClick={handleAddToCart}
+                style={{
+                  flex: "0 0 55%",
+                  padding: "16px",
+                  background: "var(--text)",
+                  color: "var(--bg)",
+                  border: "none",
+                  fontFamily: "var(--font-label)",
+                  fontSize: 13,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                }}
+              >
+                Добавить в корзину
+              </button>
+              <button
+                disabled
+                style={{
+                  flex: 1,
+                  padding: "16px",
+                  background: "transparent",
+                  color: "var(--text-muted)",
+                  border: "1px solid var(--line)",
+                  fontFamily: "var(--font-label)",
+                  fontSize: 13,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  cursor: "not-allowed",
+                  opacity: 0.5,
+                }}
+              >
+                Оформить заказ
+              </button>
+            </div>
 
             <div style={{ borderTop: "1px solid var(--line)", paddingTop: 20 }}>
               {(product.material_ru || product.material_tj) && (

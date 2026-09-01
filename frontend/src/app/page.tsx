@@ -792,30 +792,6 @@ export default function Home() {
                 </span>
               </div>
 
-              {p.variants.length > 0 && (
-                <select
-                  value={selectedSizes[p.id] ?? p.variants[0].id}
-                  onChange={(e) =>
-                    setSelectedSizes({ ...selectedSizes, [p.id]: Number(e.target.value) })
-                  }
-                  style={{
-                    width: "100%",
-                    marginBottom: 10,
-                    padding: "8px",
-                    background: "var(--surface)",
-                    color: "var(--text)",
-                    border: "1px solid var(--line)",
-                    fontFamily: "var(--font-label)",
-                    fontSize: 12,
-                  }}
-                >
-                  {p.variants.map((v) => (
-                    <option key={v.id} value={v.id} disabled={v.stock === 0}>
-                      {v.size} / {v.color} {v.stock === 0 ? "— нет в наличии" : ""}
-                    </option>
-                  ))}
-                </select>
-              )}
             </div>
           ))}
         </div>

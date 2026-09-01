@@ -544,8 +544,8 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
         variants,
       };
       const url = product
-        ? `http://127.0.0.1:8000/products/${product.id}`
-        : "http://127.0.0.1:8000/products/";
+        ? `${API}/products/${product.id}`
+        : `${API}/products/`;
       const method = product ? "PATCH" : "POST";
       const res = await authFetch(url, {
         method,
@@ -570,8 +570,8 @@ function ProductForm({ t, product, categories, authFetch, onClose }: any) {
     formData.append("file", e.target.files[0]);
     try {
       const url = imageColor
-        ? `http://127.0.0.1:8000/upload/product-image/${product.id}?color=${encodeURIComponent(imageColor)}`
-        : `http://127.0.0.1:8000/upload/product-image/${product.id}`;
+        ? `${API}/upload/product-image/${product.id}?color=${encodeURIComponent(imageColor)}`
+        : `${API}/upload/product-image/${product.id}`;
       const res = await authFetch(url, {
         method: "POST",
         body: formData,
@@ -721,7 +721,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
   const [slug, setSlug] = useState("");
 
   const handleSave = async () => {
-    await authFetch("http://127.0.0.1:8000/categories/", {
+    await authFetch(`${API}/categories/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, slug, parent_id: null }),
