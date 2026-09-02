@@ -27,6 +27,19 @@ class OrderItemOut(BaseModel):
         from_attributes = True
 
 
+class OrderStatusUpdate(BaseModel):
+    status: str
+
+
+class CustomerBrief(BaseModel):
+    id: int
+    name: str | None
+    phone: str
+
+    class Config:
+        from_attributes = True
+
+
 class OrderOut(BaseModel):
     id: int
     status: str
@@ -36,6 +49,7 @@ class OrderOut(BaseModel):
     total: float
     created_at: datetime
     items: list[OrderItemOut]
+    customer: CustomerBrief
 
     class Config:
         from_attributes = True

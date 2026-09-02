@@ -80,6 +80,7 @@ const labels = {
 };
 
 type Category = { id: number; name: string; slug: string; parent_id: number | null };
+type Supplier = { id: number; name: string; phone: string | null };
 
 type Variant = { id: number; size: string; color: string; stock: number; sku: string };
 
@@ -118,6 +119,7 @@ type Order = {
   delivery_address: string | null;
   comment: string | null;
   payment_method: string | null;
+  customer: { id: number; name: string | null; phone: string };
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -209,6 +211,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"products" | "categories" | "orders">("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -272,6 +275,7 @@ export default function AdminPage() {
     refreshProducts();
     fetch(`${API}/categories/`).then((r) => r.json()).then(setCategories);
     authFetch(`${API}/orders/`).then((r) => (r.ok ? r.json() : [])).then(setOrders);
+    authFetch(`${API}/suppliers/`).then((r) => (r.ok ? r.json() : [])).then(setSuppliers);
   }, [token]);
 
   const refreshProducts = () =>
@@ -283,6 +287,8 @@ export default function AdminPage() {
       return r.ok ? r.json() : [];
     }).then(setProducts);
   const refreshCategories = () => fetch(`${API}/categories/`).then((r) => r.json()).then(setCategories);
+  const refreshOrders = () => authFetch(`${API}/orders/`).then((r) => (r.ok ? r.json() : [])).then(setOrders);
+  const refreshSuppliers = () => authFetch(`${API}/suppliers/`).then((r) => (r.ok ? r.json() : [])).then(setSuppliers);
 
   if (!token) {
     return (
@@ -355,6 +361,8 @@ export default function AdminPage() {
             t={t}
             products={products}
             categories={categories}
+            suppliers={suppliers}
+            refreshSuppliers={refreshSuppliers}
             selectedProduct={selectedProduct}
             setSelectedProduct={setSelectedProduct}
             creatingProduct={creatingProduct}
@@ -374,7 +382,7 @@ export default function AdminPage() {
             refreshCategories={refreshCategories}
           />
         )}
-        {tab === "orders" && <OrdersTab t={t} orders={orders} authFetch={authFetch} lang={lang} />}
+        {tab === "orders" && <OrdersTab t={t} orders={orders} authFetch={authFetch} refreshOrders={refreshOrders} lang={lang} />}
       </div>
     </div>
   );
@@ -394,7 +402,7 @@ function getAdminBadgeSrc(p: Product): string | null {
   return null;
 }
 
-function ProductsTab({ t, products, categories, selectedProduct, setSelectedProduct, creatingProduct, setCreatingProduct, authFetch, refreshProducts, token }: any) {
+function ProductsTab({ t, products, categories, suppliers, refreshSuppliers, selectedProduct, setSelectedProduct, creatingProduct, setCreatingProduct, authFetch, refreshProducts, token }: any) {
   const productList: Product[] = Array.isArray(products) ? products : [];
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
@@ -404,6 +412,8 @@ function ProductsTab({ t, products, categories, selectedProduct, setSelectedProd
         t={t}
         product={selectedProduct}
         categories={categories}
+        suppliers={suppliers}
+        refreshSuppliers={refreshSuppliers}
         authFetch={authFetch}
         onClose={() => {
           setSelectedProduct(null);
@@ -578,7 +588,7 @@ function ProductsTab({ t, products, categories, selectedProduct, setSelectedProd
     </div>
   );
 }
-function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: any) {
+function ProductForm({ t, product, categories, suppliers, refreshSuppliers, authFetch, onClose, onCreated }: any) {
   const [form, setForm] = useState({
     category_id: product?.category_id ?? categories[0]?.id ?? 1,
     title_ru: product?.title_ru ?? "",
@@ -586,6 +596,8 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
     description_ru: product?.description_ru ?? "",
     description_tj: product?.description_tj ?? "",
     price: product?.price ?? "",
+    cost_price: product?.cost_price ?? "",
+    supplier_id: product?.supplier_id ?? "",
     material_ru: product?.material_ru ?? "",
     material_tj: product?.material_tj ?? "",
     country_of_origin_ru: product?.country_of_origin_ru ?? "",
@@ -684,6 +696,8 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
       const payload = {
         ...restForm,
         price: Number(form.price),
+        cost_price: form.cost_price !== "" ? Number(form.cost_price) : null,
+        supplier_id: form.supplier_id !== "" ? Number(form.supplier_id) : null,
         is_featured: badgeType === "featured",
         is_new: badgeType === "new",
         is_brand: form.is_brand,
@@ -795,6 +809,23 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
             );
           })}
         </select>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+        <input
+          type="number"
+          placeholder="Закупочная цена (себестоимость)"
+          value={form.cost_price}
+          onChange={(e) => updateField("cost_price", e.target.value)}
+          style={inputStyle}
+        />
+        <SupplierPicker
+          suppliers={suppliers}
+          value={form.supplier_id}
+          onChange={(id: number | "") => updateField("supplier_id", id)}
+          authFetch={authFetch}
+          refreshSuppliers={refreshSuppliers}
+          inputStyle={inputStyle}
+        />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
@@ -1100,6 +1131,84 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
   );
 }
 
+function SupplierPicker({ suppliers, value, onChange, authFetch, refreshSuppliers, inputStyle }: any) {
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const list: { id: number; name: string; phone: string | null }[] = Array.isArray(suppliers) ? suppliers : [];
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    const res = await authFetch(`${API}/suppliers/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim(), phone: phone.trim() || null }),
+    });
+    if (res.ok) {
+      const created = await res.json();
+      await refreshSuppliers();
+      onChange(created.id);
+      setCreating(false);
+      setName("");
+      setPhone("");
+    }
+  };
+
+  if (creating) {
+    return (
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          placeholder="Имя поставщика"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={{ ...inputStyle, flex: 1 }}
+        />
+        <input
+          placeholder="Телефон (необязательно)"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          style={{ ...inputStyle, flex: 1 }}
+        />
+        <button
+          type="button"
+          onClick={handleCreate}
+          style={{ padding: "0 16px", background: "var(--text)", color: "var(--bg)", border: "none", cursor: "pointer" }}
+        >
+          ✓
+        </button>
+        <span
+          onClick={() => setCreating(false)}
+          style={{ display: "flex", alignItems: "center", cursor: "pointer", color: "var(--text-muted)", padding: "0 8px" }}
+        >
+          ✕
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", gap: 8 }}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")}
+        style={{ ...inputStyle, flex: 1 }}
+      >
+        <option value="">Без поставщика</option>
+        {list.map((s) => (
+          <option key={s.id} value={s.id}>{s.name}</option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={() => setCreating(true)}
+        style={{ padding: "0 14px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--line)", cursor: "pointer", whiteSpace: "nowrap" }}
+      >
+        + новый
+      </button>
+    </div>
+  );
+}
+
 function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, authFetch, refreshCategories }: any) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -1161,7 +1270,27 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
   );
 }
 
-function OrdersTab({ t, orders }: any) {
+const ORDER_STATUS_LABELS: Record<string, string> = {
+  new: "Новый",
+  awaiting_payment: "Ожидает оплаты",
+  paid: "Оплачен",
+  confirmed: "Подтверждён",
+  shipped: "Отправлен",
+  delivered: "Доставлен",
+  cancelled: "Отменён",
+  returned: "Возврат",
+};
+
+function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
+  const handleStatusChange = async (orderId: number, status: string) => {
+    await authFetch(`${API}/orders/${orderId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    refreshOrders();
+  };
+
   if (orders.length === 0) return <p style={{ color: "var(--text-muted)" }}>{t.noOrders}</p>;
 
   return (
@@ -1173,9 +1302,21 @@ function OrdersTab({ t, orders }: any) {
             <span className="price">{o.total} смн</span>
           </div>
           <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 6 }}>
-            {o.status} · {new Date(o.created_at).toLocaleDateString("ru-RU")}
+            {new Date(o.created_at).toLocaleDateString("ru-RU")}
           </div>
-          {o.delivery_address && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{o.delivery_address}</p>}
+          <div style={{ fontSize: 14, marginBottom: 6 }}>
+            {o.customer?.name || "Без имени"} · {o.customer?.phone}
+          </div>
+          {o.delivery_address && <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 10 }}>{o.delivery_address}</p>}
+          <select
+            value={o.status}
+            onChange={(e) => handleStatusChange(o.id, e.target.value)}
+            style={{ padding: 8, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
+          >
+            {Object.entries(ORDER_STATUS_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
         </div>
       ))}
     </div>

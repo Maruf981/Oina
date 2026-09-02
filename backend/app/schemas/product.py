@@ -54,6 +54,7 @@ class ProductBase(BaseModel):
     description_ru: str | None = None
     description_tj: str | None = None
     price: float
+    cost_price: float | None = None
     material_ru: str | None = None
     material_tj: str | None = None
     country_of_origin_ru: str | None = None

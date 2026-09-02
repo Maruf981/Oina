@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.customer import Customer
 from app.models.order import Order, OrderItem, OrderStatus, PaymentMethod
 from app.models.product import ProductVariant
+from app.repositories.stock_movement import record_movement
 from app.schemas.order import OrderCreate
 
 
@@ -53,6 +54,38 @@ def create_order(db: Session, data: OrderCreate) -> Order:
             price_at_order=price,
         ))
         variant.stock -= quantity
+        record_movement(
+            db,
+            variant_id=variant.id,
+            movement_type="sale",
+            quantity=-quantity,
+            order_id=order.id,
+        )
+
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+def update_status(db: Session, order: Order, new_status: str) -> Order:
+    old_status = order.status
+    restore_statuses = {OrderStatus.CANCELLED, OrderStatus.RETURNED}
+    already_restored = old_status in restore_statuses
+    will_restore = OrderStatus(new_status) in restore_statuses
+
+    order.status = OrderStatus(new_status)
+
+    if will_restore and not already_restored:
+        for item in order.items:
+            item.variant.stock += item.quantity
+            record_movement(
+                db,
+                variant_id=item.product_variant_id,
+                movement_type="return",
+                quantity=item.quantity,
+                order_id=order.id,
+                note=f"Заказ №{order.id} — {new_status}",
+            )
 
     db.commit()
     db.refresh(order)

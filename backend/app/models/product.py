@@ -17,6 +17,7 @@ class Product(Base):
     description_ru: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     description_tj: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     price: Mapped[float] = mapped_column(Numeric(10, 2))
+    cost_price: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     material_ru: Mapped[str | None] = mapped_column(String(200), nullable=True)
     material_tj: Mapped[str | None] = mapped_column(String(200), nullable=True)
     country_of_origin_ru: Mapped[str | None] = mapped_column(String(100), nullable=True)
