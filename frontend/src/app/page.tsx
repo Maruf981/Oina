@@ -722,7 +722,7 @@ export default function Home() {
                   <img
                     src="/badge-brand.png"
                     alt="Бренд"
-                    style={{ position: "absolute", top: -41, left: "50%", transform: "translateX(-50%)", width: 108, height: 108, objectFit: "contain", pointerEvents: "none" }}
+                    style={{ position: "absolute", top: -42, left: "50%", transform: "translateX(-50%)", width: 108, height: 108, objectFit: "contain", pointerEvents: "none" }}
                   />
                 )}
 
@@ -762,7 +762,7 @@ export default function Home() {
                 <div
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (p.variants.length > 0) handleAddToCart(p);
+                    if (p.variants.length > 0) router.push(`/product/${p.id}`);
                   }}
                   style={{
                     position: "absolute",
@@ -1243,6 +1243,25 @@ export default function Home() {
                 : (lang === "ru" ? "Уже есть аккаунт? Войти" : "Ҳисоб доред? Ворид шавед")}
             </span>
           </div>
+        </div>
+      )}
+      {toastMessage && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "var(--text)",
+            color: "var(--bg)",
+            padding: "12px 24px",
+            fontFamily: "var(--font-label)",
+            fontSize: 13,
+            zIndex: 500,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+          }}
+        >
+          {toastMessage}
         </div>
       )}
       <Footer lang={lang} />

@@ -33,7 +33,7 @@ type ServerCartItem = {
 
 type CartContextType = {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, "qty">) => void;
+  addItem: (item: Omit<CartItem, "qty">, qty?: number) => void;
   removeItem: (variantId: number) => void;
   updateQty: (variantId: number, qty: number) => void;
   totalCount: number;
@@ -142,14 +142,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [auth.token]);
 
-  const addItem = async (item: Omit<CartItem, "qty">) => {
+  const addItem = async (item: Omit<CartItem, "qty">, qty: number = 1) => {
     if (!auth.token) {
       setItems((prev) => {
         const existing = prev.find((i) => i.variantId === item.variantId);
         if (existing) {
-          return prev.map((i) => (i.variantId === item.variantId ? { ...i, qty: i.qty + 1 } : i));
+          return prev.map((i) => (i.variantId === item.variantId ? { ...i, qty: i.qty + qty } : i));
         }
-        return [...prev, { ...item, qty: 1 }];
+        return [...prev, { ...item, qty }];
       });
       return;
     }
@@ -157,7 +157,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const res = await fetch(`${API_URL}/cart/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ product_variant_id: item.variantId, quantity: 1 }),
+        body: JSON.stringify({ product_variant_id: item.variantId, quantity: qty }),
       });
       if (res.ok) await loadServerCart();
     } catch {

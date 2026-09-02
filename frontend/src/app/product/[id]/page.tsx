@@ -124,6 +124,8 @@ export default function ProductPage() {
   const [myRating, setMyRating] = useState<number | null>(null);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [submittingRating, setSubmittingRating] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -258,15 +260,21 @@ export default function ProductPage() {
 
   const handleAddToCart = () => {
     if (!currentVariant) return;
-    cart.addItem({
-      variantId: currentVariant.id,
-      productId: product.id,
-      title: localized(product.title_ru, product.title_tj),
-      catalogNumber: product.catalog_number,
-      price: product.price,
-      size: currentVariant.size,
-      color: currentVariant.color,
-    });
+    cart.addItem(
+      {
+        variantId: currentVariant.id,
+        productId: product.id,
+        title: localized(product.title_ru, product.title_tj),
+        catalogNumber: product.catalog_number,
+        price: product.price,
+        size: currentVariant.size,
+        color: currentVariant.color,
+      },
+      quantity
+    );
+    setQuantity(1);
+    setToastMessage(lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд");
+    setTimeout(() => router.push("/"), 900);
   };
 
   return (
@@ -468,7 +476,7 @@ export default function ProductPage() {
               )}
             </div>
 
-            <div className="price" style={{ fontSize: 22, marginBottom: 24 }}>
+            <div className="price" style={{ fontSize: 22, marginBottom: 24, color: "#4CAF50" }}>
               {product.price} смн
             </div>
 
@@ -565,6 +573,29 @@ export default function ProductPage() {
                 </span>
               </>
             )}
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <span style={{ fontFamily: "var(--font-label)", fontSize: 12, color: "var(--text-muted)" }}>
+                {lang === "ru" ? "Количество" : "Миқдор"}
+              </span>
+              <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--line)" }}>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  style={{ width: 36, height: 36, background: "var(--surface)", color: "var(--text)", border: "none", fontSize: 16, cursor: "pointer" }}
+                >
+                  −
+                </button>
+                <span style={{ width: 40, textAlign: "center", fontSize: 14 }}>{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.min(currentVariant?.stock ?? 99, q + 1))}
+                  style={{ width: 36, height: 36, background: "var(--surface)", color: "var(--text)", border: "none", fontSize: 16, cursor: "pointer" }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
 
             <div style={{ display: "flex", gap: 10, marginBottom: 32 }}>
               <button
@@ -725,6 +756,25 @@ export default function ProductPage() {
               Значения примерные, могут отличаться в зависимости от модели.
             </p>
           </div>
+        </div>
+      )}
+      {toastMessage && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "var(--text)",
+            color: "var(--bg)",
+            padding: "12px 24px",
+            fontFamily: "var(--font-label)",
+            fontSize: 13,
+            zIndex: 500,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+          }}
+        >
+          {toastMessage}
         </div>
       )}
     </div>
