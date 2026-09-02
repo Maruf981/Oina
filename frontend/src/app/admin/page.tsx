@@ -1085,7 +1085,7 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
               <option key={color} value={color}>{color}</option>
             ))}
           </select>
-          <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={uploadingImage} />
+          <input type="file" accept="image/*,video/*" multiple onChange={handleImageUpload} disabled={uploadingImage} />
         </div>
       )}
 

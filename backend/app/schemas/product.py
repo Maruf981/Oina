@@ -40,6 +40,7 @@ class ProductImageOut(BaseModel):
     url: str
     color: str | None = None
     sort_order: int
+    media_type: str = "image"
 
     class Config:
         from_attributes = True

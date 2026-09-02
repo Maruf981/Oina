@@ -20,6 +20,7 @@ type ProductImage = {
   id: number;
   url: string;
   sort_order: number;
+  media_type?: string;
 };
 
 type Product = {
@@ -1248,8 +1249,9 @@ export default function Home() {
     </div>
   );
 }
-function AutoSlideImage({ images, onClick }: { images: { url: string }[]; onClick: () => void }) {
+function AutoSlideImage({ images, onClick }: { images: { url: string; media_type?: string }[]; onClick: () => void }) {
   const [index, setIndex] = useState(0);
+  const [muted, setMuted] = useState(true);
 
   useEffect(() => {
     if (images.length <= 1) return;
@@ -1259,19 +1261,61 @@ function AutoSlideImage({ images, onClick }: { images: { url: string }[]; onClic
     return () => clearInterval(interval);
   }, [images.length]);
 
+  const current = images[index];
+  const isVideo = current?.media_type === "video";
+
   return (
-    <div
-      onClick={onClick}
-      style={{
-        position: "absolute",
-        inset: 0,
-        cursor: "pointer",
-        backgroundImage: images[index] ? `url(${images[index].url})` : "none",
-        backgroundSize: "contain",
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "center",
-        transition: "background-image 0.3s ease",
-      }}
-    />
+    <div style={{ position: "absolute", inset: 0 }}>
+      {isVideo ? (
+        <video
+          key={current.url}
+          src={current.url}
+          autoPlay
+          muted={muted}
+          loop
+          playsInline
+          onClick={onClick}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", cursor: "pointer" }}
+        />
+      ) : (
+        <div
+          onClick={onClick}
+          style={{
+            position: "absolute",
+            inset: 0,
+            cursor: "pointer",
+            backgroundImage: current ? `url(${current.url})` : "none",
+            backgroundSize: "contain",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "center",
+            transition: "background-image 0.3s ease",
+          }}
+        />
+      )}
+      {isVideo && (
+        <span
+          onClick={(e) => {
+            e.stopPropagation();
+            setMuted((m) => !m);
+          }}
+          style={{
+            position: "absolute",
+            bottom: 8,
+            right: 8,
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            zIndex: 2,
+          }}
+        >
+          <span style={{ fontSize: 12 }}>{muted ? "🔇" : "🔊"}</span>
+        </span>
+      )}
+    </div>
   );
 }

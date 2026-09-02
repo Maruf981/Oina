@@ -36,19 +36,22 @@ async def upload_product_image(
     result = cloudinary.uploader.upload(
         file.file,
         folder="oina/products",
+        resource_type="auto",
     )
+    media_type = "video" if result.get("resource_type") == "video" else "image"
 
     image = ProductImage(
         product_id=product_id,
         url=result["secure_url"],
         color=color,
         sort_order=image_count,
+        media_type=media_type,
     )
     db.add(image)
     db.commit()
     db.refresh(image)
 
-    return {"id": image.id, "url": image.url, "color": image.color, "sort_order": image.sort_order}
+    return {"id": image.id, "url": image.url, "color": image.color, "sort_order": image.sort_order, "media_type": image.media_type}
 
 @router.post("/avatar")
 async def upload_avatar(

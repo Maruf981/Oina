@@ -21,6 +21,7 @@ type ProductImage = {
   url: string;
   color: string | null;
   sort_order: number;
+  media_type?: string;
 };
 
 type Category = {
@@ -146,6 +147,7 @@ export default function ProductPage() {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState(0);
+  const [mainVideoMuted, setMainVideoMuted] = useState(true);
   const [related, setRelated] = useState<ProductBrief[]>([]);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const { theme } = useTheme();
@@ -314,19 +316,61 @@ export default function ProductPage() {
             <div
               className="product-detail-image"
               style={{
+                position: "relative",
                 aspectRatio: "3/4",
                 maxWidth: "75%",
                 background: "var(--surface)",
                 border: "1px solid var(--line)",
                 marginBottom: 10,
-                backgroundImage: product.images[activeImage]
-                  ? `url(${product.images[activeImage].url})`
-                  : "none",
-                backgroundSize: "contain",
-                backgroundRepeat: "no-repeat",
-                backgroundPosition: "center",
+                overflow: "hidden",
               }}
-            />
+            >
+              {product.images[activeImage]?.media_type === "video" ? (
+                <video
+                  key={product.images[activeImage].url}
+                  src={product.images[activeImage].url}
+                  autoPlay
+                  muted={mainVideoMuted}
+                  loop
+                  playsInline
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }}
+                />
+              ) : (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    backgroundImage: product.images[activeImage]
+                      ? `url(${product.images[activeImage].url})`
+                      : "none",
+                    backgroundSize: "contain",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "center",
+                  }}
+                />
+              )}
+              {product.images[activeImage]?.media_type === "video" && (
+                <span
+                  onClick={() => setMainVideoMuted((m) => !m)}
+                  style={{
+                    position: "absolute",
+                    bottom: 10,
+                    right: 10,
+                    width: 30,
+                    height: 30,
+                    borderRadius: "50%",
+                    background: "rgba(0,0,0,0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    zIndex: 2,
+                  }}
+                >
+                  <span style={{ fontSize: 15 }}>{mainVideoMuted ? "🔇" : "🔊"}</span>
+                </span>
+              )}
+            </div>
             {product.images.length > 1 && (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {product.images.map((img, idx) => (
@@ -334,15 +378,40 @@ export default function ProductPage() {
                     key={img.id}
                     onClick={() => setActiveImage(idx)}
                     style={{
+                      position: "relative",
                       width: 60,
                       height: 60,
-                      backgroundImage: `url(${img.url})`,
+                      backgroundImage: img.media_type === "video" ? "none" : `url(${img.url})`,
                       backgroundSize: "cover",
                       backgroundPosition: "center",
                       border: idx === activeImage ? "2px solid var(--accent)" : "1px solid var(--line)",
                       cursor: "pointer",
+                      overflow: "hidden",
                     }}
-                  />
+                  >
+                    {img.media_type === "video" && (
+                      <>
+                        <video
+                          src={img.url}
+                          muted
+                          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                        <span
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "rgba(0,0,0,0.25)",
+                            fontSize: 16,
+                          }}
+                        >
+                          ▶
+                        </span>
+                      </>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -702,9 +771,9 @@ export default function ProductPage() {
         {related.length > 0 && (
           <div style={{ marginTop: 60, borderTop: "1px solid var(--line)", paddingTop: 40 }}>
             <h2 className="product-title" style={{ fontSize: 22, marginBottom: 24 }}>
-              Похожие товары
+              {lang === "ru" ? "Похожие товары" : "Монанд ба ин"}
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 20 }}>
+            <div className="related-products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 20 }}>
               {related.map((p) => (
                 <div
                   key={p.id}

@@ -64,6 +64,7 @@ class ProductImage(Base):
     url: Mapped[str] = mapped_column(String(500))
     color: Mapped[str | None] = mapped_column(String(50), nullable=True)
     sort_order: Mapped[int] = mapped_column(default=0)
+    media_type: Mapped[str] = mapped_column(String(10), default="image")
 
     product: Mapped["Product"] = relationship(back_populates="images")
 

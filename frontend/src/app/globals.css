@@ -51,6 +51,10 @@ html, body {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px !important;
   }
+  .related-products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
   .favorites-container {
     padding: 20px 16px !important;
   }
