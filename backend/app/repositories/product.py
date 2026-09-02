@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.product import Product, ProductVariant
 from app.schemas.product import ProductCreate
 from app.services.translate import translate_to_tj
+from app.repositories.stock_movement import record_movement
 
 
 def get_all(
@@ -73,17 +74,40 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
         key = (variant.size, variant.color)
         existing = existing_by_key.get(key)
         if existing:
+            delta = variant.stock - existing.stock
+            if delta != 0:
+                record_movement(
+                    db,
+                    variant_id=existing.id,
+                    movement_type="incoming" if delta > 0 else "adjustment",
+                    quantity=delta,
+                    cost_price_at_time=product.cost_price if delta > 0 else None,
+                    supplier_id=product.supplier_id if delta > 0 else None,
+                    note=f"Изменение остатка через форму товара" if delta > 0 else "Ручная корректировка остатка",
+                )
             existing.stock = variant.stock
         else:
             generated_sku = f"{product.catalog_number}-{next_idx}"
             next_idx += 1
-            db.add(ProductVariant(
+            new_variant = ProductVariant(
                 product_id=product.id,
                 sku=generated_sku,
                 size=variant.size,
                 color=variant.color,
                 stock=variant.stock,
-            ))
+            )
+            db.add(new_variant)
+            if variant.stock > 0:
+                db.flush()
+                record_movement(
+                    db,
+                    variant_id=new_variant.id,
+                    movement_type="incoming",
+                    quantity=variant.stock,
+                    cost_price_at_time=product.cost_price,
+                    supplier_id=product.supplier_id,
+                    note="Новый вариант добавлен через форму товара",
+                )
 
     for key, existing in existing_by_key.items():
         if key not in incoming_keys:
@@ -128,7 +152,19 @@ def create(db: Session, data: ProductCreate) -> Product:
     for idx, variant in enumerate(variants_data, start=1):
         variant_data = variant.model_dump(exclude={"sku"})
         generated_sku = f"{product.catalog_number}-{idx}"
-        db.add(ProductVariant(product_id=product.id, sku=generated_sku, **variant_data))
+        new_variant = ProductVariant(product_id=product.id, sku=generated_sku, **variant_data)
+        db.add(new_variant)
+        if variant_data.get("stock", 0) > 0:
+            db.flush()
+            record_movement(
+                db,
+                variant_id=new_variant.id,
+                movement_type="incoming",
+                quantity=variant_data["stock"],
+                cost_price_at_time=product.cost_price,
+                supplier_id=product.supplier_id,
+                note="Начальный остаток при создании товара",
+            )
     db.commit()
     db.refresh(product)
     return product
