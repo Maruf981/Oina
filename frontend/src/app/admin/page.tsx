@@ -14,6 +14,7 @@ const labels = {
     categories: "Категории",
     orders: "Заказы",
     warehouse: "Склад",
+    finance: "Финансы",
     logout: "Выйти",
     addProduct: "Добавить товар",
     addCategory: "Добавить категорию",
@@ -51,6 +52,7 @@ const labels = {
     categories: "Категорияҳо",
     orders: "Фармоишҳо",
     warehouse: "Анбор",
+    finance: "Молия",
     logout: "Баромадан",
     addProduct: "Иловаи мол",
     addCategory: "Иловаи категория",
@@ -124,6 +126,7 @@ type Order = {
   comment: string | null;
   payment_method: string | null;
   customer: { id: number; name: string | null; phone: string };
+  items: { id: number; product_variant_id: number; quantity: number; price_at_order: number }[];
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -212,7 +215,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance">("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -341,7 +344,7 @@ export default function AdminPage() {
       </nav>
 
       <div style={{ display: "flex", gap: 30, padding: "20px 40px", borderBottom: "1px solid var(--line)" }}>
-        {(["products", "categories", "orders", "warehouse"] as const).map((tabName) => (
+        {(["products", "categories", "orders", "warehouse", "finance"] as const).map((tabName) => (
           <span
             key={tabName}
             onClick={() => setTab(tabName)}
@@ -390,6 +393,7 @@ export default function AdminPage() {
         )}
         {tab === "orders" && <OrdersTab t={t} orders={orders} authFetch={authFetch} refreshOrders={refreshOrders} lang={lang} />}
         {tab === "warehouse" && <WarehouseTab products={products} suppliers={suppliers} incomingMovements={incomingMovements} />}
+        {tab === "finance" && <FinanceTab orders={orders} products={products} suppliers={suppliers} authFetch={authFetch} />}
       </div>
     </div>
   );
@@ -1277,9 +1281,212 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
   );
 }
 
+function FinanceTab({ orders, products, suppliers, authFetch }: any) {
+  const [unlocked, setUnlocked] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [periodFilter, setPeriodFilter] = useState<"all" | "today" | "week" | "month">("all");
+  const [supplierFilter, setSupplierFilter] = useState<number | "">("");
+
+  const handleUnlock = async () => {
+    setPinError("");
+    const res = await authFetch(`${API}/auth/verify-finance-pin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin }),
+    });
+    if (res.ok) {
+      setUnlocked(true);
+    } else {
+      setPinError("Неверный PIN");
+    }
+    setPin("");
+  };
+
+  if (!unlocked) {
+    return (
+      <div style={{ maxWidth: 320, margin: "60px auto", textAlign: "center" }}>
+        <div className="product-title" style={{ fontSize: 18, marginBottom: 20 }}>
+          Введите PIN для доступа
+        </div>
+        <input
+          type="password"
+          inputMode="numeric"
+          maxLength={6}
+          value={pin}
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+          onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+          placeholder="••••••"
+          style={{
+            width: "100%",
+            padding: 14,
+            fontSize: 20,
+            textAlign: "center",
+            letterSpacing: "0.4em",
+            background: "var(--surface)",
+            border: "1px solid var(--line)",
+            color: "var(--text)",
+            marginBottom: 14,
+          }}
+        />
+        {pinError && <div style={{ color: "#E24B4A", fontSize: 13, marginBottom: 14 }}>{pinError}</div>}
+        <button
+          onClick={handleUnlock}
+          disabled={pin.length !== 6}
+          style={{
+            width: "100%",
+            padding: 14,
+            background: pin.length === 6 ? "var(--text)" : "var(--surface)",
+            color: pin.length === 6 ? "var(--bg)" : "var(--text-muted)",
+            border: "1px solid var(--line)",
+            cursor: pin.length === 6 ? "pointer" : "not-allowed",
+            fontSize: 13,
+          }}
+        >
+          Войти
+        </button>
+      </div>
+    );
+  }
+
+  // build variantId -> { costPrice, supplierId, productTitle }
+  const variantInfo = new Map<number, { costPrice: number | null; supplierId: number | null; title: string }>();
+  (Array.isArray(products) ? products : []).forEach((p: Product) => {
+    p.variants.forEach((v: any) => {
+      variantInfo.set(v.id, { costPrice: p.cost_price, supplierId: p.supplier_id, title: p.title_ru });
+    });
+  });
+
+  const supplierList: { id: number; name: string }[] = Array.isArray(suppliers) ? suppliers : [];
+  const supplierName = (id: number | null) => {
+    if (!id) return "Без поставщика";
+    return supplierList.find((s) => s.id === id)?.name ?? "Без поставщика";
+  };
+
+  const isWithinPeriod = (iso: string): boolean => {
+    if (periodFilter === "all") return true;
+    const date = new Date(iso);
+    const now = new Date();
+    if (periodFilter === "today") return date.toDateString() === now.toDateString();
+    if (periodFilter === "week") {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(now.getDate() - 7);
+      return date >= weekAgo;
+    }
+    if (periodFilter === "month") {
+      const monthAgo = new Date(now);
+      monthAgo.setMonth(now.getMonth() - 1);
+      return date >= monthAgo;
+    }
+    return true;
+  };
+
+  const excludedStatuses = new Set(["cancelled", "returned"]);
+  const validOrders = (Array.isArray(orders) ? orders : []).filter(
+    (o: Order) => !excludedStatuses.has(o.status) && isWithinPeriod(o.created_at)
+  );
+
+  type SupplierAgg = { revenue: number; cost: number; profit: number };
+  const bySupplier = new Map<string, SupplierAgg>();
+  let totalRevenue = 0;
+  let totalCost = 0;
+
+  validOrders.forEach((o: Order) => {
+    o.items.forEach((item) => {
+      const info = variantInfo.get(item.product_variant_id);
+      if (supplierFilter !== "" && info?.supplierId !== supplierFilter) return;
+
+      const revenue = item.price_at_order * item.quantity;
+      const cost = (info?.costPrice ?? 0) * item.quantity;
+      totalRevenue += revenue;
+      totalCost += cost;
+
+      const key = supplierName(info?.supplierId ?? null);
+      const agg = bySupplier.get(key) ?? { revenue: 0, cost: 0, profit: 0 };
+      agg.revenue += revenue;
+      agg.cost += cost;
+      agg.profit = agg.revenue - agg.cost;
+      bySupplier.set(key, agg);
+    });
+  });
+
+  const totalProfit = totalRevenue - totalCost;
+  const supplierRows = Array.from(bySupplier.entries()).sort((a, b) => b[1].revenue - a[1].revenue);
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 20, marginBottom: 24, alignItems: "center" }}>
+        <select
+          value={periodFilter}
+          onChange={(e) => setPeriodFilter(e.target.value as "all" | "today" | "week" | "month")}
+          style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
+        >
+          <option value="all">Период: всё время</option>
+          <option value="today">Период: сегодня</option>
+          <option value="week">Период: эта неделя</option>
+          <option value="month">Период: этот месяц</option>
+        </select>
+        <select
+          value={supplierFilter}
+          onChange={(e) => setSupplierFilter(e.target.value ? Number(e.target.value) : "")}
+          style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
+        >
+          <option value="">Все поставщики</option>
+          {supplierList.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+          Заказов учтено: {validOrders.length} (без отменённых/возвратов)
+        </span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 30 }}>
+        <div style={{ border: "1px solid var(--line)", padding: 20 }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Выручка</div>
+          <div className="price" style={{ fontSize: 22 }}>{totalRevenue.toFixed(0)} смн</div>
+        </div>
+        <div style={{ border: "1px solid var(--line)", padding: 20 }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Себестоимость проданного</div>
+          <div className="price" style={{ fontSize: 22, color: "var(--text-muted)" }}>{totalCost.toFixed(0)} смн</div>
+        </div>
+        <div style={{ border: "1px solid var(--accent)", padding: 20 }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Прибыль</div>
+          <div className="price" style={{ fontSize: 22, color: totalProfit >= 0 ? "#4CAF50" : "#E24B4A" }}>{totalProfit.toFixed(0)} смн</div>
+        </div>
+      </div>
+
+      <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 14 }}>
+        По поставщикам
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr style={{ borderBottom: "1px solid var(--line)" }}>
+            <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Поставщик</th>
+            <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Выручка</th>
+            <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Себестоимость</th>
+            <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Прибыль</th>
+          </tr>
+        </thead>
+        <tbody>
+          {supplierRows.map(([name, agg]) => (
+            <tr key={name} style={{ borderBottom: "1px solid var(--line)" }}>
+              <td style={{ padding: "8px" }}>{name}</td>
+              <td style={{ padding: "8px" }}>{agg.revenue.toFixed(0)} смн</td>
+              <td style={{ padding: "8px", color: "var(--text-muted)" }}>{agg.cost.toFixed(0)} смн</td>
+              <td style={{ padding: "8px", color: agg.profit >= 0 ? "#4CAF50" : "#E24B4A" }}>{agg.profit.toFixed(0)} смн</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function WarehouseTab({ products, suppliers, incomingMovements }: any) {
   const [supplierFilter, setSupplierFilter] = useState<number | "">("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [periodFilter, setPeriodFilter] = useState<"all" | "today" | "week" | "month">("all");
   const [sortMode, setSortMode] = useState<"stock" | "date" | "name">("stock");
 
   const supplierList: { id: number; name: string }[] = Array.isArray(suppliers) ? suppliers : [];
@@ -1328,9 +1535,31 @@ function WarehouseTab({ products, suppliers, incomingMovements }: any) {
     });
   });
 
+  const isWithinPeriod = (iso: string | null): boolean => {
+    if (periodFilter === "all") return true;
+    if (!iso) return false;
+    const date = new Date(iso);
+    const now = new Date();
+    if (periodFilter === "today") {
+      return date.toDateString() === now.toDateString();
+    }
+    if (periodFilter === "week") {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(now.getDate() - 7);
+      return date >= weekAgo;
+    }
+    if (periodFilter === "month") {
+      const monthAgo = new Date(now);
+      monthAgo.setMonth(now.getMonth() - 1);
+      return date >= monthAgo;
+    }
+    return true;
+  };
+
   const filteredVariantRows = variantRows
     .filter((r) => (supplierFilter === "" ? true : r.supplierId === supplierFilter))
-    .filter((r) => (lowStockOnly ? r.stock <= 2 : true));
+    .filter((r) => (lowStockOnly ? r.stock <= 2 : true))
+    .filter((r) => isWithinPeriod(r.lastIncoming));
 
   // Grouped-by-product view (used when sorting by name): one row per product, stock summed across variants
   const groupedRows: {
@@ -1434,6 +1663,16 @@ function WarehouseTab({ products, suppliers, incomingMovements }: any) {
           <input type="checkbox" checked={lowStockOnly} onChange={(e) => setLowStockOnly(e.target.checked)} />
           Только с низким остатком (≤2)
         </label>
+        <select
+          value={periodFilter}
+          onChange={(e) => setPeriodFilter(e.target.value as "all" | "today" | "week" | "month")}
+          style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
+        >
+          <option value="all">Период: всё время</option>
+          <option value="today">Период: сегодня</option>
+          <option value="week">Период: эта неделя</option>
+          <option value="month">Период: этот месяц</option>
+        </select>
         <button
           onClick={handleExportExcel}
           style={{ padding: "10px 16px", background: "var(--text)", color: "var(--bg)", border: "none", cursor: "pointer", fontSize: 13 }}

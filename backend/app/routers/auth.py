@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.deps import get_current_customer
+from app.core.deps import get_current_customer, get_current_admin
 from app.core.security import hash_password, verify_password, create_access_token
 from app.models.customer import Customer
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, CustomerOut, UpdateProfileRequest, ChangePasswordRequest
@@ -93,3 +93,10 @@ def admin_login(data: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid admin password")
     token = create_access_token(0)
     return {"access_token": token, "token_type": "bearer"}
+
+@router.post("/verify-finance-pin")
+def verify_finance_pin(data: dict, _: bool = Depends(get_current_admin)):
+    pin = str(data.get("pin", ""))
+    if pin != settings.FINANCE_PIN:
+        raise HTTPException(status_code=401, detail="Invalid PIN")
+    return {"ok": True}
