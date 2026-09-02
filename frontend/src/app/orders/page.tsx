@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../auth-context";
+import { SiteHeader } from "../site-header";
+import { useTheme } from "../theme-context";
+import { useLang } from "../lang-context";
 
 type OrderItem = {
   id: number;
@@ -38,15 +41,8 @@ export default function OrdersPage() {
   const auth = useAuth();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [lang, setLang] = useState<"ru" | "tj">("ru");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("theme") as "dark" | "light" | null;
-    if (saved) setTheme(saved);
-    const savedLang = localStorage.getItem("lang") as "ru" | "tj" | null;
-    if (savedLang) setLang(savedLang);
-  }, []);
+  const { theme } = useTheme();
+  const { lang } = useLang();
 
   useEffect(() => {
     if (!auth.token) {
@@ -71,7 +67,8 @@ export default function OrdersPage() {
 
   return (
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 700, margin: "0 auto", padding: 40 }}>
+      <SiteHeader />
+      <div style={{ maxWidth: 700, margin: "0 auto", padding: 40, paddingTop: 106 }}>
         <span
           onClick={() => router.push("/")}
           style={{ cursor: "pointer", fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)" }}

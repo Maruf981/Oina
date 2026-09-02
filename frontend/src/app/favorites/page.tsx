@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../auth-context";
+import { SiteHeader } from "../site-header";
+import { useTheme } from "../theme-context";
+import { useLang } from "../lang-context";
 
 type ProductImage = { url: string };
 type ProductVariant = { id: number; size: string; color: string; stock: number };
@@ -46,15 +49,8 @@ export default function FavoritesPage() {
   const auth = useAuth();
   const router = useRouter();
   const [favorites, setFavorites] = useState<FavoriteEntry[]>([]);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [lang, setLang] = useState<"ru" | "tj">("ru");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("theme") as "dark" | "light" | null;
-    if (saved) setTheme(saved);
-    const savedLang = localStorage.getItem("lang") as "ru" | "tj" | null;
-    if (savedLang) setLang(savedLang);
-  }, []);
+  const { theme } = useTheme();
+  const { lang } = useLang();
 
   const load = () => {
     if (!auth.token) return;
@@ -93,7 +89,8 @@ export default function FavoritesPage() {
 
   return (
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
-      <div className="favorites-container" style={{ maxWidth: 900, margin: "0 auto", padding: 40 }}>
+      <SiteHeader />
+      <div className="favorites-container" style={{ maxWidth: 900, margin: "0 auto", padding: 40, paddingTop: 106 }}>
         <span
           onClick={() => router.push("/")}
           style={{ cursor: "pointer", fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)" }}

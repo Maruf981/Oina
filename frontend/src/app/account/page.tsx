@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../auth-context";
+import { SiteHeader } from "../site-header";
+import { useTheme } from "../theme-context";
+import { useLang } from "../lang-context";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -39,8 +42,8 @@ type Tab = "profile" | "orders" | "password";
 export default function AccountPage() {
   const auth = useAuth();
   const router = useRouter();
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [lang, setLang] = useState<"ru" | "tj">("ru");
+  const { theme } = useTheme();
+  const { lang } = useLang();
   const [tab, setTab] = useState<Tab>("profile");
 
   const [name, setName] = useState("");
@@ -57,12 +60,6 @@ export default function AccountPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("theme") as "dark" | "light" | null;
-    if (saved) setTheme(saved);
-    const savedLang = localStorage.getItem("lang") as "ru" | "tj" | null;
-    if (savedLang) setLang(savedLang);
-  }, []);
 
   useEffect(() => {
     if (!auth.token) {
@@ -212,7 +209,8 @@ export default function AccountPage() {
 
   return (
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 500, margin: "0 auto", padding: 40 }}>
+      <SiteHeader />
+      <div style={{ maxWidth: 500, margin: "0 auto", padding: 40, paddingTop: 106 }}>
         <span
           onClick={() => router.push("/")}
           style={{ cursor: "pointer", fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)" }}

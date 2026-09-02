@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { CartProvider } from "./cart-context";
 import { AuthProvider } from "./auth-context";
+import { ThemeProvider } from "./theme-context";
+import { LangProvider } from "./lang-context";
 import { ThemeSync } from "./theme-sync";
 import { BottomNav } from "./bottom-nav";
 import Script from "next/script";
@@ -23,12 +25,16 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeSync />
-        <AuthProvider>
-          <CartProvider>
-            {children}
-            <BottomNav />
-          </CartProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <LangProvider>
+            <AuthProvider>
+              <CartProvider>
+                {children}
+                <BottomNav />
+              </CartProvider>
+            </AuthProvider>
+          </LangProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

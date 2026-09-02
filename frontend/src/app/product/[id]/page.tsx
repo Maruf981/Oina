@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useCart } from "../../cart-context";
 import { useAuth } from "../../auth-context";
+import { SiteHeader } from "../../site-header";
+import { useTheme } from "../../theme-context";
+import { useLang } from "../../lang-context";
 import { translations, Lang } from "../../translations";
 
 type Variant = {
@@ -145,8 +148,8 @@ export default function ProductPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [related, setRelated] = useState<ProductBrief[]>([]);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [lang, setLang] = useState<Lang>("ru");
+  const { theme } = useTheme();
+  const { lang } = useLang();
   const [shareCopied, setShareCopied] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
 
@@ -177,12 +180,6 @@ export default function ProductPage() {
 
   const localized = (ru: string, tj: string | null) => (lang === "tj" && tj ? tj : ru);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("theme") as "dark" | "light" | null;
-    if (saved) setTheme(saved);
-    const savedLang = localStorage.getItem("lang") as Lang | null;
-    if (savedLang) setLang(savedLang);
-  }, []);
 
   useEffect(() => {
     fetch(`${API_URL}/products/${params.id}`)
@@ -294,7 +291,8 @@ export default function ProductPage() {
       data-theme={theme}
       style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}
     >
-      <div className="product-detail-container" style={{ maxWidth: 1000, margin: "0 auto", padding: "40px" }}>
+      <SiteHeader />
+      <div className="product-detail-container" style={{ maxWidth: 1000, margin: "0 auto", padding: "40px", paddingTop: 106 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>
           <span onClick={() => router.push("/")} style={{ cursor: "pointer" }}>
             Главная

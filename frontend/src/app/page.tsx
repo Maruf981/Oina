@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { translations, Lang } from "./translations";
 import { useCart } from "./cart-context";
 import { useAuth } from "./auth-context";
+import { useTheme } from "./theme-context";
+import { useLang } from "./lang-context";
 import { Footer } from "./footer";
 import { useRouter } from "next/navigation";
 
@@ -105,8 +107,8 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [lang, setLang] = useState<Lang>("ru");
+  const { theme, toggleTheme } = useTheme();
+  const { lang, toggleLang } = useLang();
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<Record<number, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -262,28 +264,6 @@ export default function Home() {
       .then(setProducts)
       .catch(() => setProducts([]));
   }, [searchQuery, minPrice, maxPrice, filterSize, filterColor]);
-
-  useEffect(() => {
-    const savedLang = localStorage.getItem("lang") as Lang | null;
-    if (savedLang) setLang(savedLang);
-  }, []);
-
-  const toggleLang = () => {
-    const next = lang === "ru" ? "tj" : "ru";
-    setLang(next);
-    localStorage.setItem("lang", next);
-  };
-
-  useEffect(() => {
-    const saved = localStorage.getItem("theme") as "dark" | "light" | null;
-    if (saved) setTheme(saved);
-  }, []);
-
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    localStorage.setItem("theme", next);
-  };
 
   return (
     <div data-theme={theme} style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh", paddingTop: 90 }}>
