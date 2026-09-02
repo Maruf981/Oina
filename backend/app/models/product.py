@@ -1,9 +1,8 @@
 from datetime import datetime, date
-
-from sqlalchemy import String, Numeric, ForeignKey, Boolean, DateTime, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from sqlalchemy import String, Numeric, ForeignKey, Boolean, DateTime, func, select
+from sqlalchemy.orm import Mapped, mapped_column, relationship, column_property
 from app.core.database import Base
+from app.models.review import ProductReview
 
 
 class Product(Base):
@@ -62,3 +61,16 @@ class ProductImage(Base):
     sort_order: Mapped[int] = mapped_column(default=0)
 
     product: Mapped["Product"] = relationship(back_populates="images")
+
+Product.avg_rating = column_property(
+    select(func.avg(ProductReview.rating))
+    .where(ProductReview.product_id == Product.id)
+    .correlate_except(ProductReview)
+    .scalar_subquery()
+)
+Product.review_count = column_property(
+    select(func.count(ProductReview.id))
+    .where(ProductReview.product_id == Product.id)
+    .correlate_except(ProductReview)
+    .scalar_subquery()
+)

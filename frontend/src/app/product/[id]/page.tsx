@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useCart } from "../../cart-context";
+import { useAuth } from "../../auth-context";
 import { translations, Lang } from "../../translations";
 
 type Variant = {
@@ -51,6 +52,8 @@ type Product = {
   description_tj: string | null;
   variants: Variant[];
   images: ProductImage[];
+  avg_rating: number | null;
+  review_count: number;
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -117,6 +120,10 @@ export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
   const cart = useCart();
+  const auth = useAuth();
+  const [myRating, setMyRating] = useState<number | null>(null);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [submittingRating, setSubmittingRating] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -173,6 +180,16 @@ export default function ProductPage() {
           setSelectedSize(data.variants[0].size);
           setSelectedColor(data.variants[0].color);
         }
+        if (auth.token) {
+          fetch(`${API_URL}/products/${data.id}/reviews/me`, {
+            headers: { Authorization: `Bearer ${auth.token}` },
+          })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((review) => {
+              if (review) setMyRating(review.rating);
+            })
+            .catch(() => {});
+        }
         if (data.category_id) {
         fetch(`${API_URL}/products/?category_id=${data.category_id}`)
             .then((res) => res.json())
@@ -219,6 +236,26 @@ export default function ProductPage() {
       if (imgIdx !== -1) setActiveImage(imgIdx);
     }
   };
+  const handleSubmitRating = async (rating: number) => {
+    if (!auth.token || submittingRating) return;
+    setSubmittingRating(true);
+    try {
+      const res = await fetch(`${API_URL}/products/${product.id}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth.token}` },
+        body: JSON.stringify({ rating }),
+      });
+      if (res.ok) {
+        setMyRating(rating);
+        fetch(`${API_URL}/products/${product.id}`)
+          .then((r) => r.json())
+          .then((data) => setProduct(data));
+      }
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
   const handleAddToCart = () => {
     if (!currentVariant) return;
     cart.addItem({
@@ -296,7 +333,7 @@ export default function ProductPage() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div className="catalog-label" style={{ border: "none", padding: 0 }}>
-                Кат. № {product.catalog_number}
+                Артикул {product.catalog_number}
               </div>
               <span
                 onClick={() => setShareMenuOpen(!shareMenuOpen)}
@@ -388,6 +425,49 @@ export default function ProductPage() {
                 ? (lang === "ru" ? "Есть в наличии" : "Мавчуд ҳаст")
                 : (lang === "ru" ? "Нет в наличии" : "Мавчуд нест")}
             </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+              <div style={{ display: "flex", gap: 2 }}>
+                {[1, 2, 3, 4, 5].map((n) => {
+                  const displayRating = hoverRating ?? myRating ?? 0;
+                  const filled = displayRating >= n;
+                  return (
+                    <svg
+                      key={n}
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      onMouseEnter={() => auth.token && setHoverRating(n)}
+                      onMouseLeave={() => setHoverRating(null)}
+                      onClick={() => handleSubmitRating(n)}
+                      style={{ cursor: auth.token ? "pointer" : "default" }}
+                    >
+                      <path
+                        d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7-5.4-4.7 7.1-.6z"
+                        fill={filled ? "var(--accent)" : "none"}
+                        stroke="var(--accent)"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                  );
+                })}
+              </div>
+              {product.avg_rating ? (
+                <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                  {product.avg_rating.toFixed(1)} ({product.review_count})
+                </span>
+              ) : (
+                <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                  {lang === "ru" ? "Пока нет оценок" : "Ҳанӯз баҳо нест"}
+                </span>
+              )}
+              {!auth.token && (
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  {lang === "ru" ? "— войдите, чтобы оценить" : "— барои баҳодиҳӣ ворид шавед"}
+                </span>
+              )}
+            </div>
+
             <div className="price" style={{ fontSize: 22, marginBottom: 24 }}>
               {product.price} смн
             </div>
@@ -415,9 +495,9 @@ export default function ProductPage() {
                             onClick={() => available && handleSelectSize(size)}
                             disabled={!available}
                             style={{
-                              minWidth: 37,
-                              height: 40,
-                              padding: "0 12px",
+                              minWidth: 26,
+                              height: 28,
+                              padding: "0 8px",
                               background: active ? "var(--accent)" : "var(--surface)",
                               color: active ? "var(--bg)" : available ? "var(--text)" : "var(--text-muted)",
                               border: active ? "1px solid var(--accent)" : "1px solid var(--line)",
@@ -450,9 +530,9 @@ export default function ProductPage() {
                             onClick={() => available && handleSelectColor(color)}
                             disabled={!available}
                             style={{
-                              minWidth: 51,
-                              height: 40,
-                              padding: "0 14px",
+                              minWidth: 36,
+                              height: 28,
+                              padding: "0 10px",
                               background: getColorHex(color),
                               color: getContrastText(getColorHex(color)),
                               border: "1px solid var(--line)",

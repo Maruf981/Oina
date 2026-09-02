@@ -71,6 +71,8 @@ class ProductOut(ProductBase):
     variants: list[ProductVariantOut] = []
     images: list[ProductImageOut] = []
     category: CategoryBrief | None = None
+    avg_rating: float | None = None
+    review_count: int = 0
 
     class Config:
         from_attributes = True

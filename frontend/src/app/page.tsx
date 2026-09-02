@@ -37,6 +37,8 @@ type Product = {
   is_featured: boolean;
   is_new: boolean;
   is_brand: boolean;
+  avg_rating: number | null;
+  review_count: number;
   discount_percent: number | null;
   discount_from: string | null;
   discount_to: string | null;
@@ -61,6 +63,39 @@ function getDiscountBadgeSrc(percent: number | null): string | null {
     if (step <= percent) closest = step;
   }
   return `/badge-discount-${closest}.png`;
+}
+
+function StarRating({ avgRating, reviewCount }: { avgRating: number | null; reviewCount: number }) {
+  if (!avgRating || reviewCount === 0) return null;
+  const rounded = Math.round(avgRating * 2) / 2;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+      <div style={{ display: "flex", gap: 1 }}>
+        {[1, 2, 3, 4, 5].map((n) => {
+          const fill = rounded >= n ? 1 : rounded >= n - 0.5 ? 0.5 : 0;
+          return (
+            <svg key={n} width="13" height="13" viewBox="0 0 24 24">
+              <defs>
+                <linearGradient id={`star-fill-${n}-${avgRating}`}>
+                  <stop offset={`${fill * 100}%`} stopColor="var(--accent)" />
+                  <stop offset={`${fill * 100}%`} stopColor="transparent" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7-5.4-4.7 7.1-.6z"
+                fill={`url(#star-fill-${n}-${avgRating})`}
+                stroke="var(--accent)"
+                strokeWidth="1"
+              />
+            </svg>
+          );
+        })}
+      </div>
+      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+        {avgRating.toFixed(1)} ({reviewCount})
+      </span>
+    </div>
+  );
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -799,7 +834,7 @@ export default function Home() {
                   <span className="price" style={{ color: "#4CAF50" }}>{p.price} смн</span>
                 </span>
               </div>
-
+              <StarRating avgRating={p.avg_rating} reviewCount={p.review_count} />
             </div>
           ))}
         </div>
