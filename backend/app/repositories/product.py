@@ -55,6 +55,10 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
         product_data["country_of_origin_tj"] = translate_to_tj(product_data.get("country_of_origin_ru"))
     if not product_data.get("care_instructions_tj"):
         product_data["care_instructions_tj"] = translate_to_tj(product_data.get("care_instructions_ru"))
+    if not product_data.get("season_tj"):
+        product_data["season_tj"] = translate_to_tj(product_data.get("season_ru"))
+    if not product_data.get("pattern_tj"):
+        product_data["pattern_tj"] = translate_to_tj(product_data.get("pattern_ru"))
 
     for key, value in product_data.items():
         setattr(product, key, value)
@@ -113,6 +117,10 @@ def create(db: Session, data: ProductCreate) -> Product:
         product_data["country_of_origin_tj"] = translate_to_tj(product_data.get("country_of_origin_ru"))
     if not product_data.get("care_instructions_tj"):
         product_data["care_instructions_tj"] = translate_to_tj(product_data.get("care_instructions_ru"))
+    if not product_data.get("season_tj"):
+        product_data["season_tj"] = translate_to_tj(product_data.get("season_ru"))
+    if not product_data.get("pattern_tj"):
+        product_data["pattern_tj"] = translate_to_tj(product_data.get("pattern_ru"))
 
     product = Product(**product_data)
     db.add(product)

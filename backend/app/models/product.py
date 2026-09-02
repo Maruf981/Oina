@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from sqlalchemy import String, Numeric, ForeignKey, Boolean, DateTime, func, select
+from sqlalchemy import String, Numeric, ForeignKey, Boolean, DateTime, JSON, func, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship, column_property
 from app.core.database import Base
 from app.models.review import ProductReview
@@ -23,10 +23,15 @@ class Product(Base):
     country_of_origin_tj: Mapped[str | None] = mapped_column(String(100), nullable=True)
     care_instructions_ru: Mapped[str | None] = mapped_column(String(500), nullable=True)
     care_instructions_tj: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    season_ru: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    season_tj: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    pattern_ru: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    pattern_tj: Mapped[str | None] = mapped_column(String(100), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
     is_new: Mapped[bool] = mapped_column(Boolean, default=False)
     is_brand: Mapped[bool] = mapped_column(Boolean, default=False)
+    size_guide: Mapped[list | None] = mapped_column(JSON, nullable=True)
     discount_percent: Mapped[int | None] = mapped_column(nullable=True)
     discount_from: Mapped["date | None"] = mapped_column(nullable=True)
     discount_to: Mapped["date | None"] = mapped_column(nullable=True)

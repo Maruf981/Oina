@@ -1,5 +1,12 @@
 from datetime import datetime, date
 from pydantic import BaseModel
+class SizeGuideRow(BaseModel):
+    size: str
+    chest: str | None = None
+    waist: str | None = None
+    garment_length: str | None = None
+    sleeve_length: str | None = None
+    shoulder_width: str | None = None
 
 class CategoryBrief(BaseModel):
     id: int
@@ -52,10 +59,15 @@ class ProductBase(BaseModel):
     country_of_origin_tj: str | None = None
     care_instructions_ru: str | None = None
     care_instructions_tj: str | None = None
+    season_ru: str | None = None
+    season_tj: str | None = None
+    pattern_ru: str | None = None
+    pattern_tj: str | None = None
     is_active: bool = True
     is_featured: bool = False
     is_new: bool = False
     is_brand: bool = False
+    size_guide: list[SizeGuideRow] | None = None
     discount_percent: int | None = None
     discount_from: date | None = None
     discount_to: date | None = None

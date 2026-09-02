@@ -592,6 +592,10 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
     country_of_origin_tj: product?.country_of_origin_tj ?? "",
     care_instructions_ru: product?.care_instructions_ru ?? "",
     care_instructions_tj: product?.care_instructions_tj ?? "",
+    season_ru: product?.season_ru ?? "",
+    season_tj: product?.season_tj ?? "",
+    pattern_ru: product?.pattern_ru ?? "",
+    pattern_tj: product?.pattern_tj ?? "",
     badgeType: (product?.discount_percent ? "discount" : product?.is_new ? "new" : product?.is_featured ? "featured" : "none") as "none" | "featured" | "new" | "discount",
     is_brand: product?.is_brand ?? false,
     discount_percent: product?.discount_percent ?? "",
@@ -601,6 +605,39 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
   const [variants, setVariants] = useState<{ size: string; color: string; stock: number }[]>(
     product?.variants ?? []
   );
+  type GuideFields = {
+    chest: string;
+    waist: string;
+    garment_length: string;
+    sleeve_length: string;
+    shoulder_width: string;
+  };
+  const EMPTY_GUIDE_ROW: GuideFields = { chest: "", waist: "", garment_length: "", sleeve_length: "", shoulder_width: "" };
+  const [sizeGuide, setSizeGuide] = useState<Record<string, GuideFields>>(() => {
+    const initial: Record<string, GuideFields> = {};
+    (product?.size_guide ?? []).forEach((row: any) => {
+      initial[row.size] = {
+        chest: row.chest ?? "",
+        waist: row.waist ?? "",
+        garment_length: row.garment_length ?? "",
+        sleeve_length: row.sleeve_length ?? "",
+        shoulder_width: row.shoulder_width ?? "",
+      };
+    });
+    return initial;
+  });
+  const updateSizeGuideField = (size: string, field: keyof GuideFields, value: string) => {
+    setSizeGuide((prev) => ({
+      ...prev,
+      [size]: { ...(prev[size] ?? EMPTY_GUIDE_ROW), [field]: value },
+    }));
+  };
+  const guideSizesOrder = [...LETTER_SIZES, ...NUMERIC_SIZES];
+  const allSizesForGuide = Array.from(new Set(variants.map((v) => v.size))).sort(
+    (a, b) => guideSizesOrder.indexOf(a) - guideSizesOrder.indexOf(b)
+  );
+  const letterSizesForGuide = allSizesForGuide.filter((s) => LETTER_SIZES.includes(s));
+  const numericSizesForGuide = allSizesForGuide.filter((s) => NUMERIC_SIZES.includes(s));
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -654,6 +691,17 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
         discount_to: badgeType === "discount" && form.discount_to !== "" ? form.discount_to : null,
         is_active: product ? product.is_active : false,
         variants,
+        size_guide:
+          allSizesForGuide.length > 0
+            ? allSizesForGuide.map((size) => ({
+                size,
+                chest: sizeGuide[size]?.chest || null,
+                waist: sizeGuide[size]?.waist || null,
+                garment_length: sizeGuide[size]?.garment_length || null,
+                sleeve_length: sizeGuide[size]?.sleeve_length || null,
+                shoulder_width: sizeGuide[size]?.shoulder_width || null,
+              }))
+            : null,
       };
       const url = product
         ? `${API}/products/${product.id}`
@@ -721,11 +769,6 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <textarea placeholder={`${t.description} (RU)`} value={form.description_ru} onChange={(e) => updateField("description_ru", e.target.value)} rows={3} style={inputStyle} />
-        <textarea placeholder={`${t.description} (TJ)`} value={form.description_tj} onChange={(e) => updateField("description_tj", e.target.value)} rows={3} style={inputStyle} />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
         <input type="number" placeholder={t.price} value={form.price} onChange={(e) => updateField("price", e.target.value)} style={inputStyle} />
         <select value={form.category_id} onChange={(e) => updateField("category_id", Number(e.target.value))} style={inputStyle}>
           {categories.filter((c: Category) => !c.parent_id).map((parent: Category) => {
@@ -755,9 +798,24 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
         <input placeholder={`${t.country} (TJ)`} value={form.country_of_origin_tj} onChange={(e) => updateField("country_of_origin_tj", e.target.value)} style={inputStyle} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
         <input placeholder={`${t.care} (RU)`} value={form.care_instructions_ru} onChange={(e) => updateField("care_instructions_ru", e.target.value)} style={inputStyle} />
         <input placeholder={`${t.care} (TJ)`} value={form.care_instructions_tj} onChange={(e) => updateField("care_instructions_tj", e.target.value)} style={inputStyle} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+        <input placeholder="Сезон (RU)" value={form.season_ru} onChange={(e) => updateField("season_ru", e.target.value)} style={inputStyle} />
+        <input placeholder="Сезон (TJ)" value={form.season_tj} onChange={(e) => updateField("season_tj", e.target.value)} style={inputStyle} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+        <input placeholder="Рисунок (RU)" value={form.pattern_ru} onChange={(e) => updateField("pattern_ru", e.target.value)} style={inputStyle} />
+        <input placeholder="Рисунок (TJ)" value={form.pattern_tj} onChange={(e) => updateField("pattern_tj", e.target.value)} style={inputStyle} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 24 }}>
+        <textarea placeholder={`${t.description} (RU)`} value={form.description_ru} onChange={(e) => updateField("description_ru", e.target.value)} rows={3} style={inputStyle} />
+        <textarea placeholder={`${t.description} (TJ)`} value={form.description_tj} onChange={(e) => updateField("description_tj", e.target.value)} rows={3} style={inputStyle} />
       </div>
 
       <div style={{ marginBottom: 24 }}>
@@ -933,6 +991,63 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
           </div>
         );
       })}
+
+      {[
+        { label: "Гид по размерам (буквенные)", sizes: letterSizesForGuide },
+        { label: "Гид по размерам (числовые)", sizes: numericSizesForGuide },
+      ].map(
+        ({ label, sizes }) =>
+          sizes.length > 0 && (
+            <div key={label} style={{ marginBottom: 24 }}>
+              <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 12 }}>
+                {label}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "50px repeat(5, 1fr)", gap: 8, marginBottom: 8 }}>
+                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Размер</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Грудь, см</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Талия, см</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Длина одежды, см</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Длина рукава, см</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Ширина плеч, см</div>
+              </div>
+              {sizes.map((size) => (
+                <div key={size} style={{ display: "grid", gridTemplateColumns: "50px repeat(5, 1fr)", gap: 8, marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", fontSize: 13 }}>{size}</div>
+                  <input
+                    placeholder="88-92"
+                    value={sizeGuide[size]?.chest ?? ""}
+                    onChange={(e) => updateSizeGuideField(size, "chest", e.target.value)}
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="72-76"
+                    value={sizeGuide[size]?.waist ?? ""}
+                    onChange={(e) => updateSizeGuideField(size, "waist", e.target.value)}
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="70"
+                    value={sizeGuide[size]?.garment_length ?? ""}
+                    onChange={(e) => updateSizeGuideField(size, "garment_length", e.target.value)}
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="62"
+                    value={sizeGuide[size]?.sleeve_length ?? ""}
+                    onChange={(e) => updateSizeGuideField(size, "sleeve_length", e.target.value)}
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="46"
+                    value={sizeGuide[size]?.shoulder_width ?? ""}
+                    onChange={(e) => updateSizeGuideField(size, "shoulder_width", e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+              ))}
+            </div>
+          )
+      )}
 
       {product && (
         <div style={{ marginBottom: 24 }}>

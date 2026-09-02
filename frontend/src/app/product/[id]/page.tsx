@@ -44,6 +44,10 @@ type Product = {
   price: number;
   material_ru: string | null;
   material_tj: string | null;
+  season_ru: string | null;
+  season_tj: string | null;
+  pattern_ru: string | null;
+  pattern_tj: string | null;
   country_of_origin_ru: string | null;
   country_of_origin_tj: string | null;
   care_instructions_ru: string | null;
@@ -54,6 +58,14 @@ type Product = {
   images: ProductImage[];
   avg_rating: number | null;
   review_count: number;
+  size_guide: {
+    size: string;
+    chest: string | null;
+    waist: string | null;
+    garment_length: string | null;
+    sleeve_length: string | null;
+    shoulder_width: string | null;
+  }[] | null;
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -480,11 +492,6 @@ export default function ProductPage() {
               {product.price} смн
             </div>
 
-            {(product.description_ru || product.description_tj) && (
-              <p style={{ color: "var(--text-muted)", marginBottom: 24, lineHeight: 1.6 }}>
-                {localized(product.description_ru ?? "", product.description_tj)}
-              </p>
-            )}
             {product.variants.length > 0 && (
               <>
                 {uniqueSizes.length > 0 && (
@@ -558,19 +565,21 @@ export default function ProductPage() {
                     </div>
                   </div>
                 )}
-                <span
-                  onClick={() => setSizeGuideOpen(true)}
-                  style={{
-                    display: "block",
-                    cursor: "pointer",
-                    fontFamily: "var(--font-label)",
-                    fontSize: 12,
-                    color: "var(--accent)",
-                    marginBottom: 16,
-                  }}
-                >
-                  Гид по размерам
-                </span>
+                {product.size_guide && product.size_guide.length > 0 && (
+                  <span
+                    onClick={() => setSizeGuideOpen(true)}
+                    style={{
+                      display: "block",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-label)",
+                      fontSize: 12,
+                      color: "var(--accent)",
+                      marginBottom: 16,
+                    }}
+                  >
+                    Гид по размерам
+                  </span>
+                )}
               </>
             )}
 
@@ -644,6 +653,22 @@ export default function ProductPage() {
                   <span style={{ fontSize: 14 }}>{localized(product.material_ru ?? "", product.material_tj)}</span>
                 </div>
               )}
+              {(product.season_ru || product.season_tj) && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
+                  <span className="catalog-label" style={{ border: "none", padding: 0 }}>
+                    {lang === "ru" ? "Сезон" : "Мавсим"}
+                  </span>
+                  <span style={{ fontSize: 14 }}>{localized(product.season_ru ?? "", product.season_tj)}</span>
+                </div>
+              )}
+              {(product.pattern_ru || product.pattern_tj) && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
+                  <span className="catalog-label" style={{ border: "none", padding: 0 }}>
+                    {lang === "ru" ? "Рисунок" : "Нақш"}
+                  </span>
+                  <span style={{ fontSize: 14 }}>{localized(product.pattern_ru ?? "", product.pattern_tj)}</span>
+                </div>
+              )}
               {(product.country_of_origin_ru || product.country_of_origin_tj) && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
                   <span className="catalog-label" style={{ border: "none", padding: 0 }}>
@@ -663,6 +688,16 @@ export default function ProductPage() {
                 </div>
               )}
             </div>
+            {(product.description_ru || product.description_tj) && (
+              <div style={{ borderTop: "1px solid var(--line)", paddingTop: 20, marginTop: 20 }}>
+                <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 10 }}>
+                  {lang === "ru" ? "Описание" : "Тавсиф"}
+                </div>
+                <p style={{ color: "var(--text-muted)", lineHeight: 1.6 }}>
+                  {localized(product.description_ru ?? "", product.description_tj)}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -729,31 +764,47 @@ export default function ProductPage() {
               <span className="product-title" style={{ fontSize: 18 }}>Гид по размерам</span>
               <span onClick={() => setSizeGuideOpen(false)} style={{ cursor: "pointer", fontSize: 20 }}>×</span>
             </div>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--line)" }}>
-                  <th style={{ textAlign: "left", padding: "8px 0", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Размер</th>
-                  <th style={{ textAlign: "left", padding: "8px 0", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Грудь, см</th>
-                  <th style={{ textAlign: "left", padding: "8px 0", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Талия, см</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ["S", "88-92", "72-76"],
-                  ["M", "92-96", "76-80"],
-                  ["L", "96-100", "80-84"],
-                  ["XL", "100-104", "84-88"],
-                ].map(([size, chest, waist]) => (
-                  <tr key={size} style={{ borderBottom: "1px solid var(--line)" }}>
-                    <td style={{ padding: "8px 0" }}>{size}</td>
-                    <td style={{ padding: "8px 0", color: "var(--text-muted)" }}>{chest}</td>
-                    <td style={{ padding: "8px 0", color: "var(--text-muted)" }}>{waist}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {[
+              { label: lang === "ru" ? "Буквенные размеры" : "Андозаҳои ҳарфӣ", rows: (product.size_guide ?? []).filter((r) => !/^\d+$/.test(r.size)) },
+              { label: lang === "ru" ? "Числовые размеры" : "Андозаҳои рақамӣ", rows: (product.size_guide ?? []).filter((r) => /^\d+$/.test(r.size)) },
+            ].map(
+              ({ label, rows }) =>
+                rows.length > 0 && (
+                  <div key={label} style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8, fontFamily: "var(--font-label)" }}>
+                      {label}
+                    </div>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid var(--line)" }}>
+                          <th style={{ textAlign: "left", padding: "6px 4px 6px 0", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Размер</th>
+                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Грудь</th>
+                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Талия</th>
+                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Длина</th>
+                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Рукав</th>
+                          <th style={{ textAlign: "left", padding: "6px 0", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Плечи</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((row) => (
+                          <tr key={row.size} style={{ borderBottom: "1px solid var(--line)" }}>
+                            <td style={{ padding: "6px 4px 6px 0" }}>{row.size}</td>
+                            <td style={{ padding: "6px 4px", color: "var(--text-muted)" }}>{row.chest || "—"}</td>
+                            <td style={{ padding: "6px 4px", color: "var(--text-muted)" }}>{row.waist || "—"}</td>
+                            <td style={{ padding: "6px 4px", color: "var(--text-muted)" }}>{row.garment_length || "—"}</td>
+                            <td style={{ padding: "6px 4px", color: "var(--text-muted)" }}>{row.sleeve_length || "—"}</td>
+                            <td style={{ padding: "6px 0", color: "var(--text-muted)" }}>{row.shoulder_width || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+            )}
             <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 16 }}>
-              Значения примерные, могут отличаться в зависимости от модели.
+              {lang === "ru"
+                ? "Значения примерные — точные параметры могут отличаться в зависимости от вашего роста и веса."
+                : "Андозахо тахминӣ мебошанд — андозаҳои дақиқ метавонанд вобаста ба қаду вазни шумо фарқ кунанд."}
             </p>
           </div>
         </div>
