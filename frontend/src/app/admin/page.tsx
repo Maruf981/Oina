@@ -639,6 +639,7 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
   const letterSizesForGuide = allSizesForGuide.filter((s) => LETTER_SIZES.includes(s));
   const numericSizesForGuide = allSizesForGuide.filter((s) => NUMERIC_SIZES.includes(s));
   const [saving, setSaving] = useState(false);
+  const [createdNotice, setCreatedNotice] = useState(false);
   const savingRef = useRef(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [productImages, setProductImages] = useState(product?.images ?? []);
@@ -648,7 +649,7 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
   const [activeColors, setActiveColors] = useState<string[]>(
     Array.from(new Set((product?.variants ?? []).map((v: any) => v.color)))
   );
-  const [sizeTypeByColor, setSizeTypeByColor] = useState<Record<string, "letter" | "numeric">>({});
+  const [sizeTypeByColor, setSizeTypeByColor] = useState<Record<string, "letter" | "numeric" | "onesize">>({});
 
   const toggleColorActive = (color: string) => {
     if (activeColors.includes(color)) {
@@ -716,6 +717,8 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
       if (!product) {
         const created = await res.json();
         onCreated(created);
+        setCreatedNotice(true);
+        setTimeout(() => setCreatedNotice(false), 4000);
       } else {
         onClose();
       }
@@ -723,6 +726,7 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
       alert("Ошибка сохранения");
     } finally {
       setSaving(false);
+      savingRef.current = false;
     }
   };
 
@@ -762,6 +766,11 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
       <span onClick={onClose} style={{ cursor: "pointer", fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)", display: "block", marginBottom: 20 }}>
         ← {t.cancel}
       </span>
+      {createdNotice && (
+        <div style={{ background: "var(--accent)", color: "var(--bg)", padding: "10px 14px", fontSize: 13, marginBottom: 20 }}>
+          Товар создан, теперь можно загрузить фото
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
         <input placeholder={`${t.name} (RU)`} value={form.title_ru} onChange={(e) => updateField("title_ru", e.target.value)} style={inputStyle} />
@@ -908,7 +917,7 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
 
       {activeColors.map((color) => {
         const sizeType = sizeTypeByColor[color] ?? "letter";
-        const sizes = sizeType === "numeric" ? NUMERIC_SIZES : LETTER_SIZES;
+        const sizes = sizeType === "numeric" ? NUMERIC_SIZES : sizeType === "onesize" ? ["Безразмерный"] : LETTER_SIZES;
         return (
           <div key={color} style={{ border: "1px solid var(--line)", padding: 16, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -949,6 +958,20 @@ function ProductForm({ t, product, categories, authFetch, onClose, onCreated }: 
                 }}
               >
                 Числовой (34)
+              </button>
+              <button
+                type="button"
+                onClick={() => setSizeTypeByColor({ ...sizeTypeByColor, [color]: "onesize" })}
+                style={{
+                  padding: "6px 12px",
+                  background: sizeType === "onesize" ? "var(--text)" : "var(--surface)",
+                  color: sizeType === "onesize" ? "var(--bg)" : "var(--text)",
+                  border: "1px solid var(--line)",
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                Безразмерный
               </button>
             </div>
 

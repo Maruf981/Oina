@@ -48,7 +48,7 @@ class ProductVariant(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
-    size: Mapped[str] = mapped_column(String(10))
+    size: Mapped[str] = mapped_column(String(20))
     color: Mapped[str] = mapped_column(String(50))
     stock: Mapped[int] = mapped_column(default=0)
     sku: Mapped[str] = mapped_column(String(50), unique=True)

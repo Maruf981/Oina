@@ -522,7 +522,7 @@ export default function ProductPage() {
                               opacity: available ? 1 : 0.5,
                             }}
                           >
-                            {size}
+                            {size === "Безразмерный" ? (lang === "ru" ? "Безразмерный" : "Беандоза") : size}
                           </button>
                         );
                       })}
