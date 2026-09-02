@@ -13,6 +13,7 @@ const labels = {
     products: "Товары",
     categories: "Категории",
     orders: "Заказы",
+    warehouse: "Склад",
     logout: "Выйти",
     addProduct: "Добавить товар",
     addCategory: "Добавить категорию",
@@ -49,6 +50,7 @@ const labels = {
     products: "Молҳо",
     categories: "Категорияҳо",
     orders: "Фармоишҳо",
+    warehouse: "Анбор",
     logout: "Баромадан",
     addProduct: "Иловаи мол",
     addCategory: "Иловаи категория",
@@ -109,6 +111,8 @@ type Product = {
   is_new: boolean;
   is_brand: boolean;
   discount_percent: number | null;
+  cost_price: number | null;
+  supplier_id: number | null;
 };
 
 type Order = {
@@ -208,10 +212,11 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [tab, setTab] = useState<"products" | "categories" | "orders">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse">("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [incomingMovements, setIncomingMovements] = useState<any[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -276,6 +281,7 @@ export default function AdminPage() {
     fetch(`${API}/categories/`).then((r) => r.json()).then(setCategories);
     authFetch(`${API}/orders/`).then((r) => (r.ok ? r.json() : [])).then(setOrders);
     authFetch(`${API}/suppliers/`).then((r) => (r.ok ? r.json() : [])).then(setSuppliers);
+    authFetch(`${API}/stock-movements/?movement_type=incoming`).then((r) => (r.ok ? r.json() : [])).then(setIncomingMovements);
   }, [token]);
 
   const refreshProducts = () =>
@@ -335,7 +341,7 @@ export default function AdminPage() {
       </nav>
 
       <div style={{ display: "flex", gap: 30, padding: "20px 40px", borderBottom: "1px solid var(--line)" }}>
-        {(["products", "categories", "orders"] as const).map((tabName) => (
+        {(["products", "categories", "orders", "warehouse"] as const).map((tabName) => (
           <span
             key={tabName}
             onClick={() => setTab(tabName)}
@@ -383,6 +389,7 @@ export default function AdminPage() {
           />
         )}
         {tab === "orders" && <OrdersTab t={t} orders={orders} authFetch={authFetch} refreshOrders={refreshOrders} lang={lang} />}
+        {tab === "warehouse" && <WarehouseTab products={products} suppliers={suppliers} incomingMovements={incomingMovements} />}
       </div>
     </div>
   );
@@ -1266,6 +1273,237 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function WarehouseTab({ products, suppliers, incomingMovements }: any) {
+  const [supplierFilter, setSupplierFilter] = useState<number | "">("");
+  const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [sortMode, setSortMode] = useState<"stock" | "date" | "name">("stock");
+
+  const supplierList: { id: number; name: string }[] = Array.isArray(suppliers) ? suppliers : [];
+  const supplierName = (id: number | null) => {
+    if (!id) return "—";
+    return supplierList.find((s) => s.id === id)?.name ?? "—";
+  };
+
+  const movements: { product_variant_id: number; created_at: string }[] = Array.isArray(incomingMovements) ? incomingMovements : [];
+  const lastIncomingDate = (variantId: number): string | null => {
+    const matches = movements.filter((m) => m.product_variant_id === variantId);
+    if (matches.length === 0) return null;
+    return matches.reduce((latest, m) => (m.created_at > latest ? m.created_at : latest), matches[0].created_at);
+  };
+
+  const formatDate = (iso: string | null) => {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("ru-RU");
+  };
+
+  const variantRows: {
+    productId: number;
+    title: string;
+    catalogNumber: string;
+    size: string;
+    color: string;
+    stock: number;
+    costPrice: number | null;
+    supplierId: number | null;
+    lastIncoming: string | null;
+  }[] = [];
+
+  (Array.isArray(products) ? products : []).forEach((p: Product) => {
+    p.variants.forEach((v: any) => {
+      variantRows.push({
+        productId: p.id,
+        title: p.title_ru,
+        catalogNumber: p.catalog_number,
+        size: v.size,
+        color: v.color,
+        stock: v.stock,
+        costPrice: p.cost_price,
+        supplierId: p.supplier_id,
+        lastIncoming: lastIncomingDate(v.id),
+      });
+    });
+  });
+
+  const filteredVariantRows = variantRows
+    .filter((r) => (supplierFilter === "" ? true : r.supplierId === supplierFilter))
+    .filter((r) => (lowStockOnly ? r.stock <= 2 : true));
+
+  // Grouped-by-product view (used when sorting by name): one row per product, stock summed across variants
+  const groupedRows: {
+    productId: number;
+    title: string;
+    catalogNumber: string;
+    stock: number;
+    costPrice: number | null;
+    supplierId: number | null;
+    lastIncoming: string | null;
+  }[] = [];
+  const groupMap = new Map<number, typeof groupedRows[number]>();
+  filteredVariantRows.forEach((r) => {
+    const existing = groupMap.get(r.productId);
+    if (existing) {
+      existing.stock += r.stock;
+      if (r.lastIncoming && (!existing.lastIncoming || r.lastIncoming > existing.lastIncoming)) {
+        existing.lastIncoming = r.lastIncoming;
+      }
+    } else {
+      const entry = {
+        productId: r.productId,
+        title: r.title,
+        catalogNumber: r.catalogNumber,
+        stock: r.stock,
+        costPrice: r.costPrice,
+        supplierId: r.supplierId,
+        lastIncoming: r.lastIncoming,
+      };
+      groupMap.set(r.productId, entry);
+      groupedRows.push(entry);
+    }
+  });
+
+  const isGrouped = sortMode === "name";
+
+  const sortedVariantRows = [...filteredVariantRows].sort((a, b) => {
+    if (sortMode === "stock") return a.stock - b.stock;
+    if (!a.lastIncoming && !b.lastIncoming) return 0;
+    if (!a.lastIncoming) return 1;
+    if (!b.lastIncoming) return -1;
+    return b.lastIncoming.localeCompare(a.lastIncoming);
+  });
+
+  const sortedGroupedRows = [...groupedRows].sort((a, b) => a.title.localeCompare(b.title, "ru"));
+
+  const totalStock = filteredVariantRows.reduce((sum, r) => sum + r.stock, 0);
+  const totalValue = filteredVariantRows.reduce((sum, r) => sum + r.stock * (r.costPrice ?? 0), 0);
+  const positionCount = isGrouped ? sortedGroupedRows.length : sortedVariantRows.length;
+
+  const handleExportExcel = async () => {
+    const XLSX = await import("xlsx");
+    const data = isGrouped
+      ? sortedGroupedRows.map((r) => ({
+          "Товар": r.title,
+          "Артикул": r.catalogNumber,
+          "Остаток (всего)": r.stock,
+          "Себестоимость": r.costPrice ?? "",
+          "Поставщик": supplierName(r.supplierId),
+          "Дата поступления": formatDate(r.lastIncoming),
+        }))
+      : sortedVariantRows.map((r) => ({
+          "Товар": r.title,
+          "Артикул": r.catalogNumber,
+          "Размер": r.size,
+          "Цвет": r.color,
+          "Остаток": r.stock,
+          "Себестоимость": r.costPrice ?? "",
+          "Поставщик": supplierName(r.supplierId),
+          "Дата поступления": formatDate(r.lastIncoming),
+        }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Склад");
+    XLSX.writeFile(wb, `sklad_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 20, marginBottom: 20, alignItems: "center", flexWrap: "wrap" }}>
+        <select
+          value={supplierFilter}
+          onChange={(e) => setSupplierFilter(e.target.value ? Number(e.target.value) : "")}
+          style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
+        >
+          <option value="">Все поставщики</option>
+          {supplierList.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+        <select
+          value={sortMode}
+          onChange={(e) => setSortMode(e.target.value as "stock" | "date" | "name")}
+          style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
+        >
+          <option value="stock">Сортировка: по остатку (по вариантам)</option>
+          <option value="date">Сортировка: по дате поступления (по вариантам)</option>
+          <option value="name">Сортировка: по названию (сумма по товару)</option>
+        </select>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+          <input type="checkbox" checked={lowStockOnly} onChange={(e) => setLowStockOnly(e.target.checked)} />
+          Только с низким остатком (≤2)
+        </label>
+        <button
+          onClick={handleExportExcel}
+          style={{ padding: "10px 16px", background: "var(--text)", color: "var(--bg)", border: "none", cursor: "pointer", fontSize: 13 }}
+        >
+          Экспорт в Excel
+        </button>
+        <span style={{ marginLeft: "auto", fontSize: 13, color: "var(--text-muted)" }}>
+          Позиций: {positionCount} · Штук: {totalStock} · Сумма по себестоимости: {totalValue.toFixed(0)} смн
+        </span>
+      </div>
+
+      {isGrouped ? (
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--line)" }}>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Товар</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Артикул</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Остаток (всего)</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Себестоимость</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Поставщик</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Дата поступления</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedGroupedRows.map((r) => (
+              <tr key={r.productId} style={{ borderBottom: "1px solid var(--line)" }}>
+                <td style={{ padding: "8px" }}>{r.title}</td>
+                <td style={{ padding: "8px", color: "var(--text-muted)" }}>{r.catalogNumber}</td>
+                <td style={{ padding: "8px", color: r.stock <= 2 ? "#E24B4A" : "var(--text)", fontWeight: r.stock <= 2 ? 600 : 400 }}>
+                  {r.stock}
+                </td>
+                <td style={{ padding: "8px", color: "var(--text-muted)" }}>{r.costPrice ?? "—"}</td>
+                <td style={{ padding: "8px", color: "var(--text-muted)" }}>{supplierName(r.supplierId)}</td>
+                <td style={{ padding: "8px", color: "var(--text-muted)" }}>{formatDate(r.lastIncoming)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--line)" }}>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Товар</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Артикул</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Размер</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Цвет</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Остаток</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Себестоимость</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Поставщик</th>
+              <th style={{ textAlign: "left", padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Дата поступления</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedVariantRows.map((r, idx) => (
+              <tr key={idx} style={{ borderBottom: "1px solid var(--line)" }}>
+                <td style={{ padding: "8px" }}>{r.title}</td>
+                <td style={{ padding: "8px", color: "var(--text-muted)" }}>{r.catalogNumber}</td>
+                <td style={{ padding: "8px" }}>{r.size}</td>
+                <td style={{ padding: "8px" }}>{r.color}</td>
+                <td style={{ padding: "8px", color: r.stock <= 2 ? "#E24B4A" : "var(--text)", fontWeight: r.stock <= 2 ? 600 : 400 }}>
+                  {r.stock}
+                </td>
+                <td style={{ padding: "8px", color: "var(--text-muted)" }}>{r.costPrice ?? "—"}</td>
+                <td style={{ padding: "8px", color: "var(--text-muted)" }}>{supplierName(r.supplierId)}</td>
+                <td style={{ padding: "8px", color: "var(--text-muted)" }}>{formatDate(r.lastIncoming)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
