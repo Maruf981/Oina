@@ -648,6 +648,7 @@ function HomeInner() {
 
       {menuOpen && (
         <div
+          onClick={() => setMenuOpen(false)}
           style={{
             position: "fixed",
             inset: 0,
@@ -656,7 +657,7 @@ function HomeInner() {
           }}
         >
           <div
-            onMouseLeave={() => setMenuOpen(false)}
+            onClick={(e) => e.stopPropagation()}
             style={{
               position: "absolute",
               left: 0,
