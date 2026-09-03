@@ -46,7 +46,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!auth.token) {
-      router.push("/");
+      setOrders([]);
       return;
     }
     fetch(`${API_URL}/orders/my`, {
@@ -56,14 +56,6 @@ export default function OrdersPage() {
       .then(setOrders)
       .catch(() => setOrders([]));
   }, [auth.token]);
-
-  if (!auth.customer) {
-    return (
-      <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", padding: 40 }}>
-        Загрузка...
-      </div>
-    );
-  }
 
   return (
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>

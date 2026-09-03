@@ -184,7 +184,8 @@ export default function ProductPage() {
 
 
   useEffect(() => {
-    fetch(`${API_URL}/products/${params.id}`)
+    const adminToken = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+    fetch(`${API_URL}/products/${params.id}`, adminToken ? { headers: { Authorization: `Bearer ${adminToken}` } } : undefined)
       .then((res) => res.json())
       .then((data) => {
         setProduct(data);

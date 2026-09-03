@@ -48,3 +48,13 @@ def get_current_admin(
     if customer_id != 0:
         raise HTTPException(status_code=401, detail="Not an admin")
     return True
+
+
+def get_current_admin_optional(
+    authorization: str | None = Header(default=None),
+) -> bool:
+    if not authorization or not authorization.startswith("Bearer "):
+        return False
+    token = authorization.removeprefix("Bearer ")
+    customer_id = decode_access_token(token)
+    return customer_id == 0

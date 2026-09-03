@@ -101,7 +101,17 @@ export function BottomNav() {
 
   useEffect(() => {
     if (!auth.token) {
-      setFavoritesCount(0);
+      const saved = localStorage.getItem("guest_favorites");
+      if (saved) {
+        try {
+          const ids = JSON.parse(saved);
+          setFavoritesCount(Array.isArray(ids) ? ids.length : 0);
+        } catch {
+          setFavoritesCount(0);
+        }
+      } else {
+        setFavoritesCount(0);
+      }
       setOrdersCount(0);
       return;
     }

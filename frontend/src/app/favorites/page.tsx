@@ -52,26 +52,76 @@ export default function FavoritesPage() {
   const { theme } = useTheme();
   const { lang } = useLang();
 
+  const [loading, setLoading] = useState(true);
+
+  const loadGuestFavorites = async () => {
+    setLoading(true);
+    const saved = localStorage.getItem("guest_favorites");
+    let ids: number[] = [];
+    if (saved) {
+      try {
+        ids = JSON.parse(saved);
+      } catch {
+        ids = [];
+      }
+    }
+    try {
+      const products = await Promise.all(
+        ids.map((id) =>
+          fetch(`${API_URL}/products/${id}`).then((res) => (res.ok ? res.json() : null))
+        )
+      );
+      const entries: FavoriteEntry[] = products
+        .filter((p): p is Product => p !== null)
+        .map((p) => ({ id: p.id, product: p }));
+      setFavorites(entries);
+    } catch {
+      setFavorites([]);
+    }
+    setLoading(false);
+  };
+
   const load = () => {
     if (!auth.token) return;
+    setLoading(true);
     fetch(`${API_URL}/favorites/`, {
       headers: { Authorization: `Bearer ${auth.token}` },
     })
       .then((res) => res.json())
-      .then(setFavorites)
-      .catch(() => setFavorites([]));
+      .then((data) => {
+        setFavorites(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setFavorites([]);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
-    if (!auth.token) {
-      router.push("/");
-      return;
+    if (auth.token) {
+      load();
+    } else {
+      loadGuestFavorites();
     }
-    load();
   }, [auth.token]);
 
   const removeFavorite = async (productId: number) => {
-    if (!auth.token) return;
+    if (!auth.token) {
+      const saved = localStorage.getItem("guest_favorites");
+      let ids: number[] = [];
+      if (saved) {
+        try {
+          ids = JSON.parse(saved);
+        } catch {
+          ids = [];
+        }
+      }
+      ids = ids.filter((id) => id !== productId);
+      localStorage.setItem("guest_favorites", JSON.stringify(ids));
+      setFavorites((prev) => prev.filter((f) => f.product.id !== productId));
+      return;
+    }
     await fetch(`${API_URL}/favorites/${productId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${auth.token}` },
@@ -79,7 +129,7 @@ export default function FavoritesPage() {
     setFavorites((prev) => prev.filter((f) => f.product.id !== productId));
   };
 
-  if (!auth.customer) {
+  if (loading) {
     return (
       <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", padding: 40 }}>
         Загрузка...

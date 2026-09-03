@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { translations, Lang } from "./translations";
 import { useCart } from "./cart-context";
 import { useAuth } from "./auth-context";
 import { useTheme } from "./theme-context";
 import { useLang } from "./lang-context";
 import { Footer } from "./footer";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Variant = {
   id: number;
@@ -103,7 +103,7 @@ function StarRating({ avgRating, reviewCount }: { avgRating: number | null; revi
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-export default function Home() {
+function HomeInner() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
@@ -131,12 +131,17 @@ export default function Home() {
   const auth = useAuth();
   const router = useRouter();
   const [authOpen, setAuthOpen] = useState(false);
+  const handleCloseAuth = () => {
+    setAuthOpen(false);
+    if (searchParams.get("login") === "1") {
+      router.replace("/");
+    }
+  };
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("login") === "1") {
-      setAuthOpen(true);
-    }
-  }, []);
+    setAuthOpen(searchParams.get("login") === "1");
+  }, [searchParams]);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [authName, setAuthName] = useState("");
   const [authPhone, setAuthPhone] = useState("");
@@ -147,27 +152,89 @@ export default function Home() {
 
   const localized = (ru: string, tj: string | null) => (lang === "tj" && tj ? tj : ru);
 
+  const guestFavoritesMergedRef = useRef(false);
+
   useEffect(() => {
     if (!auth.token) {
-      setFavoriteIds(new Set());
-      return;
+      const saved = localStorage.getItem("guest_favorites");
+      if (saved) {
+        try {
+          setFavoriteIds(new Set(JSON.parse(saved)));
+        } catch {
+          // ignore corrupt data
+        }
+      }
     }
-    fetch(`${API_URL}/favorites/`, {
-      headers: { Authorization: `Bearer ${auth.token}` },
-    })
-      .then((res) => (res.ok ? res.json() : []))
-      .then((favs: { product: { id: number } }[]) => {
-        setFavoriteIds(new Set(favs.map((f) => f.product.id)));
+  }, []);
+
+  useEffect(() => {
+    if (!auth.token) {
+      localStorage.setItem("guest_favorites", JSON.stringify(Array.from(favoriteIds)));
+    }
+  }, [favoriteIds, auth.token]);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!auth.token || guestFavoritesMergedRef.current) return;
+      guestFavoritesMergedRef.current = true;
+
+      const saved = localStorage.getItem("guest_favorites");
+      let guestIds: number[] = [];
+      if (saved) {
+        try {
+          guestIds = JSON.parse(saved);
+        } catch {
+          guestIds = [];
+        }
+      }
+
+      for (const productId of guestIds) {
+        try {
+          await fetch(`${API_URL}/favorites/${productId}`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${auth.token}` },
+          });
+        } catch {
+          // skip failed item
+        }
+      }
+
+      localStorage.removeItem("guest_favorites");
+
+      fetch(`${API_URL}/favorites/`, {
+        headers: { Authorization: `Bearer ${auth.token}` },
       })
-      .catch(() => setFavoriteIds(new Set()));
+        .then((res) => (res.ok ? res.json() : []))
+        .then((favs: { product: { id: number } }[]) => {
+          setFavoriteIds(new Set(favs.map((f) => f.product.id)));
+        })
+        .catch(() => {});
+    };
+    run();
+  }, [auth.token]);
+
+  useEffect(() => {
+    if (!auth.token) {
+      guestFavoritesMergedRef.current = false;
+    }
   }, [auth.token]);
 
   const toggleFavorite = async (productId: number) => {
+    const isFav = favoriteIds.has(productId);
+
     if (!auth.token) {
-      setAuthOpen(true);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (isFav) {
+          next.delete(productId);
+        } else {
+          next.add(productId);
+        }
+        return next;
+      });
       return;
     }
-    const isFav = favoriteIds.has(productId);
+
     const method = isFav ? "DELETE" : "POST";
     try {
       const res = await fetch(`${API_URL}/favorites/${productId}`, {
@@ -197,7 +264,7 @@ export default function Home() {
       } else {
         await auth.register(authName, authPhone, authPassword);
       }
-      setAuthOpen(false);
+      handleCloseAuth();
       setAuthName("");
       setAuthPhone("");
       setAuthPassword("");
@@ -346,7 +413,7 @@ export default function Home() {
 
           <span
             className="header-profile-icon"
-            onClick={() => (auth.customer ? router.push("/favorites") : setAuthOpen(true))}
+            onClick={() => router.push("/favorites")}
             style={{ cursor: "pointer", position: "relative", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
             title={lang === "ru" ? "Избранное" : "Интихобҳо"}
           >
@@ -1143,7 +1210,7 @@ export default function Home() {
 
       {authOpen && (
         <div
-          onClick={() => setAuthOpen(false)}
+          onClick={handleCloseAuth}
           style={{
             position: "fixed",
             inset: 0,
@@ -1167,9 +1234,12 @@ export default function Home() {
               gap: 14,
             }}
           >
-            <span className="product-title" style={{ fontSize: 20, marginBottom: 10 }}>
-              {authMode === "login" ? (lang === "ru" ? "Вход" : "Даромадан") : (lang === "ru" ? "Регистрация" : "Бақайдгирӣ")}
-            </span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span className="product-title" style={{ fontSize: 20 }}>
+                {authMode === "login" ? (lang === "ru" ? "Вход" : "Даромадан") : (lang === "ru" ? "Регистрация" : "Бақайдгирӣ")}
+              </span>
+              <span onClick={handleCloseAuth} style={{ cursor: "pointer", fontSize: 20, color: "var(--text-muted)" }}>×</span>
+            </div>
 
             {authMode === "register" && (
               <input
@@ -1317,5 +1387,13 @@ function AutoSlideImage({ images, onClick }: { images: { url: string; media_type
         </span>
       )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeInner />
+    </Suspense>
   );
 }

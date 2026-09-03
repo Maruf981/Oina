@@ -15,6 +15,8 @@ const labels = {
     orders: "Заказы",
     warehouse: "Склад",
     finance: "Финансы",
+    published: "Опубликованные",
+    drafts: "Черновики",
     logout: "Выйти",
     addProduct: "Добавить товар",
     addCategory: "Добавить категорию",
@@ -53,6 +55,8 @@ const labels = {
     orders: "Фармоишҳо",
     warehouse: "Анбор",
     finance: "Молия",
+    published: "Молҳои нашршуда",
+    drafts: "Лоиҳаҳо",
     logout: "Баромадан",
     addProduct: "Иловаи мол",
     addCategory: "Иловаи категория",
@@ -215,7 +219,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts">("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -344,7 +348,7 @@ export default function AdminPage() {
       </nav>
 
       <div style={{ display: "flex", gap: 30, padding: "20px 40px", borderBottom: "1px solid var(--line)" }}>
-        {(["products", "categories", "orders", "warehouse", "finance"] as const).map((tabName) => (
+        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts"] as const).map((tabName) => (
           <span
             key={tabName}
             onClick={() => setTab(tabName)}
@@ -365,9 +369,10 @@ export default function AdminPage() {
       </div>
 
       <div style={{ padding: 40 }}>
-        {tab === "products" && (
+        {(tab === "products" || tab === "published" || tab === "drafts") && (
           <ProductsTab
             t={t}
+            view={tab}
             products={products}
             categories={categories}
             suppliers={suppliers}
@@ -413,7 +418,7 @@ function getAdminBadgeSrc(p: Product): string | null {
   return null;
 }
 
-function ProductsTab({ t, products, categories, suppliers, refreshSuppliers, selectedProduct, setSelectedProduct, creatingProduct, setCreatingProduct, authFetch, refreshProducts, token }: any) {
+function ProductsTab({ t, view, products, categories, suppliers, refreshSuppliers, selectedProduct, setSelectedProduct, creatingProduct, setCreatingProduct, authFetch, refreshProducts, token }: any) {
   const productList: Product[] = Array.isArray(products) ? products : [];
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
@@ -556,16 +561,18 @@ function ProductsTab({ t, products, categories, suppliers, refreshSuppliers, sel
 
   return (
     <div>
-      <button
-        onClick={() => setCreatingProduct(true)}
-        style={{ marginBottom: 24, padding: "10px 20px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
-      >
-        + {t.addProduct}
-      </button>
+      {view === "products" && (
+        <button
+          onClick={() => setCreatingProduct(true)}
+          style={{ marginBottom: 24, padding: "10px 20px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+        >
+          + {t.addProduct}
+        </button>
+      )}
 
-      {productList.length === 0 && <p style={{ color: "var(--text-muted)" }}>{t.noProducts}</p>}
+      {view === "drafts" && draftProducts.length === 0 && <p style={{ color: "var(--text-muted)" }}>Черновиков пока нет</p>}
 
-      {draftProducts.length > 0 && (
+      {view === "drafts" && draftProducts.length > 0 && (
         <div style={{ marginBottom: 40 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div className="catalog-label" style={{ border: "none", padding: 0, color: "var(--text-muted)" }}>
@@ -586,7 +593,9 @@ function ProductsTab({ t, products, categories, suppliers, refreshSuppliers, sel
         </div>
       )}
 
-      {publishedProducts.length > 0 && (
+      {view === "published" && publishedProducts.length === 0 && <p style={{ color: "var(--text-muted)" }}>Опубликованных товаров пока нет</p>}
+
+      {view === "published" && publishedProducts.length > 0 && (
         <div>
           <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 16, color: "var(--text-muted)" }}>
             Опубликовано ({publishedProducts.length})
@@ -1131,13 +1140,23 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
         </div>
       )}
 
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        style={{ padding: "14px 28px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
-      >
-        {t.save}
-      </button>
+      <div style={{ display: "flex", gap: 12 }}>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{ padding: "14px 28px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+        >
+          {t.save}
+        </button>
+        {product && (
+          <button
+            onClick={() => window.open(`/product/${product.id}`, "_blank")}
+            style={{ padding: "14px 28px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+          >
+            Предпросмотр
+          </button>
+        )}
+      </div>
     </div>
   );
 }
