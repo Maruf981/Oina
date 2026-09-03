@@ -18,6 +18,7 @@ const labels = {
     published: "Опубликованные",
     drafts: "Черновики",
     archived: "Архив",
+    quickDrafts: "Быстрые",
     logout: "Выйти",
     addProduct: "Добавить товар",
     addCategory: "Добавить категорию",
@@ -59,6 +60,7 @@ const labels = {
     published: "Молҳои нашршуда",
     drafts: "Лоиҳаҳо",
     archived: "Бойгонӣ",
+    quickDrafts: "Зуд",
     logout: "Баромадан",
     addProduct: "Иловаи мол",
     addCategory: "Иловаи категория",
@@ -221,7 +223,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived" | "quickDrafts">("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -349,7 +351,7 @@ export default function AdminPage() {
         </div>
       </nav>
       <div style={{ display: "flex", gap: 24, padding: "20px 16px", borderBottom: "1px solid var(--line)", overflowX: "auto", whiteSpace: "nowrap", WebkitOverflowScrolling: "touch" }}>
-        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts", "archived"] as const).map((tabName) => (
+        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts", "archived", "quickDrafts"] as const).map((tabName) => (
           <span
             key={tabName}
             onClick={() => setTab(tabName)}
@@ -400,6 +402,7 @@ export default function AdminPage() {
         {tab === "orders" && <OrdersTab t={t} orders={orders} authFetch={authFetch} refreshOrders={refreshOrders} lang={lang} />}
         {tab === "warehouse" && <WarehouseTab products={products} suppliers={suppliers} incomingMovements={incomingMovements} />}
         {tab === "finance" && <FinanceTab orders={orders} products={products} suppliers={suppliers} authFetch={authFetch} />}
+        {tab === "quickDrafts" && <QuickDraftsTab authFetch={authFetch} />}
       </div>
     </div>
   );
@@ -1686,6 +1689,115 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
   );
 }
 
+function QuickDraftsTab({ authFetch }: any) {
+  const [drafts, setDrafts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = () => {
+    authFetch(`${API}/quick-drafts/`)
+      .then((r: any) => r.json())
+      .then((data: any) => {
+        setDrafts(Array.isArray(data) ? data : []);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const handleDelete = (id: number) => {
+    if (!confirm("Удалить этот быстрый черновик?")) return;
+    authFetch(`${API}/quick-drafts/${id}`, { method: "DELETE" }).then(() => {
+      setDrafts((prev) => prev.filter((d) => d.id !== id));
+    });
+  };
+
+  if (loading) return <p style={{ color: "var(--text-muted)" }}>Загрузка...</p>;
+  if (drafts.length === 0) return <p style={{ color: "var(--text-muted)" }}>Быстрых черновиков пока нет</p>;
+
+  return (
+    <div>
+      <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 16, color: "var(--text-muted)" }}>
+        Быстрые черновики ({drafts.length})
+      </div>
+      {drafts.map((d) => (
+        <div key={d.id} style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 16, display: "flex", gap: 20, flexWrap: "wrap" }}>
+          {d.image_url && (
+            <div
+              style={{
+                width: 140,
+                height: 180,
+                flexShrink: 0,
+                backgroundImage: `url(${d.image_url})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                border: "1px solid var(--line)",
+              }}
+            />
+          )}
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span className="product-title" style={{ fontSize: 17 }}>{d.title}</span>
+              <span
+                onClick={() => handleDelete(d.id)}
+                style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: 12, textDecoration: "underline" }}
+              >
+                Удалить
+              </span>
+            </div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>
+              Закуп: {d.cost_price ?? "—"} смн · Цена: {d.price ?? "—"} смн
+            </div>
+            {(d.colors ?? []).map((c: any, idx: number) => {
+              const hex = getColorHex(c.color);
+              return (
+                <div key={idx} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <span
+                      style={{
+                        padding: "3px 10px",
+                        borderRadius: 20,
+                        background: hex,
+                        color: getContrastText(hex),
+                        fontSize: 12,
+                      }}
+                    >
+                      {c.color}
+                    </span>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      ({c.size_type === "letter" ? "буквенный" : c.size_type === "numeric" ? "числовой" : c.size_type === "onesize" ? "безразмерный" : "свой"})
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {(c.sizes ?? []).map((s: any, i: number) => (
+                      <span
+                        key={i}
+                        style={{ padding: "4px 8px", background: "var(--surface)", border: "1px solid var(--line)", fontSize: 12 }}
+                      >
+                        {s.size}: {s.stock} шт
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {(d.size_guide ?? []).length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>Гид по размерам:</div>
+                {d.size_guide.map((g: any, i: number) => (
+                  <div key={i} style={{ fontSize: 12, marginBottom: 4 }}>
+                    <strong>{g.size}</strong>: грудь {g.chest || "—"}, талия {g.waist || "—"}, длина {g.garment_length || "—"}, рукав {g.sleeve_length || "—"}, плечи {g.shoulder_width || "—"}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 function WarehouseTab({ products, suppliers, incomingMovements }: any) {
   const [supplierFilter, setSupplierFilter] = useState<number | "">("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
