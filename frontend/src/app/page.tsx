@@ -144,6 +144,12 @@ function HomeInner() {
     setAuthOpen(searchParams.get("login") === "1");
   }, [searchParams]);
   useEffect(() => {
+    if (searchParams.get("cart") === "1") {
+      setCartOpen(true);
+      router.replace("/");
+    }
+  }, [searchParams]);
+  useEffect(() => {
     if (!auth.customer) return;
     if (!customerName && auth.customer.name) setCustomerName(auth.customer.name);
     if (!customerPhone && auth.customer.phone) setCustomerPhone(auth.customer.phone);

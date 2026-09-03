@@ -155,7 +155,7 @@ export function SiteHeader() {
           </span>
 
           <div
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/?cart=1")}
             style={{ cursor: "pointer", position: "relative", width: 26, height: 26, flexShrink: 0 }}
           >
             <svg width="26" height="26" viewBox="0 0 30 30">

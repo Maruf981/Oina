@@ -223,7 +223,13 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived" | "quickDrafts">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived" | "quickDrafts">(() => {
+    if (typeof window === "undefined") return "products";
+    return (localStorage.getItem("admin_tab") as any) || "products";
+  });
+  useEffect(() => {
+    localStorage.setItem("admin_tab", tab);
+  }, [tab]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
