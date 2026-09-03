@@ -9,8 +9,24 @@ import { BottomNav } from "./bottom-nav";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "Oina.tj",
-  description: "Одежда для повседневной жизни",
+  title: {
+    default: "Oina.tj — Интернет-магазин одежды в Таджикистане",
+    template: "%s — Oina.tj",
+  },
+  description: "Интернет-магазин одежды Oina.tj в Таджикистане. Женская, мужская и детская одежда с доставкой по Душанбе и всей стране.",
+  keywords: ["одежда", "магазин одежды", "Таджикистан", "Душанбе", "интернет-магазин", "Oina"],
+  openGraph: {
+    title: "Oina.tj — Интернет-магазин одежды в Таджикистане",
+    description: "Женская, мужская и детская одежда с доставкой по Душанбе и всей стране.",
+    type: "website",
+    locale: "ru_RU",
+    siteName: "Oina.tj",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Oina.tj — Интернет-магазин одежды в Таджикистане",
+    description: "Женская, мужская и детская одежда с доставкой по Душанбе и всей стране.",
+  },
 };
 
 export default function RootLayout({
