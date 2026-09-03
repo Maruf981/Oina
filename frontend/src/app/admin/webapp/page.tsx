@@ -133,7 +133,7 @@ export default function WebAppPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ init_data: window.Telegram?.WebApp?.initData || initData }),
       });
-      if (!loginRes.ok) { const errText = await loginRes.text(); throw new Error(errText); }
+      if (!loginRes.ok) throw new Error("Login failed");
       const { access_token } = await loginRes.json();
 
       const colorsPayload = activeColors.map((c) => ({
@@ -159,12 +159,12 @@ export default function WebAppPage() {
         headers: { Authorization: `Bearer ${access_token}` },
         body: formData,
       });
-      if (!res.ok) { const errText = await res.text(); throw new Error(errText); }
+      if (!res.ok) throw new Error("Save failed");
 
       setDone(true);
       setTimeout(() => window.Telegram?.WebApp?.close(), 1500);
     } catch (err) {
-      alert(String(err));
+      alert("Ошибка сохранения. Попробуй ещё раз.");
     } finally {
       setSaving(false);
     }
