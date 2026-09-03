@@ -1491,7 +1491,37 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
   const [pinError, setPinError] = useState("");
   const [periodFilter, setPeriodFilter] = useState<"all" | "today" | "week" | "month">("all");
   const [supplierFilter, setSupplierFilter] = useState<number | "">("");
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [expenseTitle, setExpenseTitle] = useState("");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().slice(0, 10));
 
+  useEffect(() => {
+    if (!unlocked) return;
+    authFetch(`${API}/expenses/`)
+      .then((r: any) => r.json())
+      .then(setExpenses);
+  }, [unlocked]);
+  const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const handleAddExpense = () => {
+    if (!expenseTitle || !expenseAmount) return;
+    authFetch(`${API}/expenses/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: expenseTitle, amount: Number(expenseAmount), expense_date: expenseDate }),
+    })
+      .then((r: any) => r.json())
+      .then((newExpense: any) => {
+        setExpenses((prev) => [newExpense, ...prev]);
+        setExpenseTitle("");
+        setExpenseAmount("");
+      });
+  };
+  const handleDeleteExpense = (id: number) => {
+    authFetch(`${API}/expenses/${id}`, { method: "DELETE" }).then(() => {
+      setExpenses((prev) => prev.filter((e) => e.id !== id));
+    });
+  };
   const handleUnlock = async () => {
     setPinError("");
     const res = await authFetch(`${API}/auth/verify-finance-pin`, {
@@ -1614,7 +1644,7 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
     });
   });
 
-  const totalProfit = totalRevenue - totalCost;
+  const totalProfit = totalRevenue - totalCost - totalExpenses;
   const supplierRows = Array.from(bySupplier.entries()).sort((a, b) => b[1].revenue - a[1].revenue);
 
   return (
@@ -1644,8 +1674,7 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
           Заказов учтено: {validOrders.length} (без отменённых/возвратов)
         </span>
       </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 30 }}>
+      <div className="finance-summary-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 30 }}>
         <div style={{ border: "1px solid var(--line)", padding: 20 }}>
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Выручка</div>
           <div className="price" style={{ fontSize: 22 }}>{totalRevenue.toFixed(0)} смн</div>
@@ -1654,10 +1683,66 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Себестоимость проданного</div>
           <div className="price" style={{ fontSize: 22, color: "var(--text-muted)" }}>{totalCost.toFixed(0)} смн</div>
         </div>
+        <div style={{ border: "1px solid var(--line)", padding: 20 }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Расходы</div>
+          <div className="price" style={{ fontSize: 22, color: "var(--text-muted)" }}>{totalExpenses.toFixed(0)} смн</div>
+        </div>
         <div style={{ border: "1px solid var(--accent)", padding: 20 }}>
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Прибыль</div>
           <div className="price" style={{ fontSize: 22, color: totalProfit >= 0 ? "#4CAF50" : "#E24B4A" }}>{totalProfit.toFixed(0)} смн</div>
         </div>
+      </div>
+      <div style={{ marginBottom: 30 }}>
+        <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 14 }}>
+          Расходы
+        </div>
+        <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+          <input
+            placeholder="Название расхода"
+            value={expenseTitle}
+            onChange={(e) => setExpenseTitle(e.target.value)}
+            style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13, flex: 2, minWidth: 160 }}
+          />
+          <input
+            type="number"
+            placeholder="Сумма"
+            value={expenseAmount}
+            onChange={(e) => setExpenseAmount(e.target.value)}
+            style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13, flex: 1, minWidth: 100 }}
+          />
+          <input
+            type="date"
+            value={expenseDate}
+            onChange={(e) => setExpenseDate(e.target.value)}
+            style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
+          />
+          <button
+            onClick={handleAddExpense}
+            style={{ padding: "10px 20px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+          >
+            Добавить
+          </button>
+        </div>
+        {expenses.length === 0 ? (
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Расходов пока нет</p>
+        ) : (
+          <div>
+            {expenses.map((e: any) => (
+              <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
+                <span style={{ fontSize: 13 }}>{e.expense_date} — {e.title}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{Number(e.amount).toFixed(0)} смн</span>
+                  <span
+                    onClick={() => handleDeleteExpense(e.id)}
+                    style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: 12, textDecoration: "underline" }}
+                  >
+                    Удалить
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 14 }}>
