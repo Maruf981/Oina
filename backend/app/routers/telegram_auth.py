@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import sys
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, HTTPException
@@ -25,9 +26,10 @@ def verify_telegram_init_data(init_data: str, bot_token: str) -> dict:
     secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
     calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
-    print(f"DEBUG bot_token_len={len(bot_token)} bot_token_repr={bot_token!r}")
-    print(f"DEBUG calculated_hash={calculated_hash}")
-    print(f"DEBUG received_hash={received_hash}")
+    print(f"DEBUG bot_token_len={len(bot_token)} bot_token_repr={bot_token!r}", file=sys.stderr, flush=True)
+    print(f"DEBUG calculated_hash={calculated_hash}", file=sys.stderr, flush=True)
+    print(f"DEBUG received_hash={received_hash}", file=sys.stderr, flush=True)
+    print(f"DEBUG data_check_string={data_check_string!r}", file=sys.stderr, flush=True)
     if calculated_hash != received_hash:
         raise HTTPException(status_code=401, detail="Invalid Telegram signature")
 
