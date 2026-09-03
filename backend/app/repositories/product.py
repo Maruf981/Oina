@@ -14,7 +14,7 @@ def get_all(
     size: str | None = None,
     color: str | None = None,
 ) -> list[Product]:
-    query = db.query(Product).filter(Product.is_active == True)
+    query = db.query(Product).filter(Product.is_active == True, Product.is_archived == False)
     if category_id is not None:
         query = query.filter(Product.category_id == category_id)
     if search:

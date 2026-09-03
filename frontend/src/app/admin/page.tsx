@@ -17,6 +17,7 @@ const labels = {
     finance: "Финансы",
     published: "Опубликованные",
     drafts: "Черновики",
+    archived: "Архив",
     logout: "Выйти",
     addProduct: "Добавить товар",
     addCategory: "Добавить категорию",
@@ -57,6 +58,7 @@ const labels = {
     finance: "Молия",
     published: "Молҳои нашршуда",
     drafts: "Лоиҳаҳо",
+    archived: "Бойгонӣ",
     logout: "Баромадан",
     addProduct: "Иловаи мол",
     addCategory: "Иловаи категория",
@@ -219,7 +221,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived">("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -347,7 +349,7 @@ export default function AdminPage() {
         </div>
       </nav>
       <div style={{ display: "flex", gap: 24, padding: "20px 16px", borderBottom: "1px solid var(--line)", overflowX: "auto", whiteSpace: "nowrap", WebkitOverflowScrolling: "touch" }}>
-        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts"] as const).map((tabName) => (
+        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts", "archived"] as const).map((tabName) => (
           <span
             key={tabName}
             onClick={() => setTab(tabName)}
@@ -368,7 +370,7 @@ export default function AdminPage() {
       </div>
 
       <div style={{ padding: 40 }}>
-        {(tab === "products" || tab === "published" || tab === "drafts") && (
+        {(tab === "products" || tab === "published" || tab === "drafts" || tab === "archived") && (
           <ProductsTab
             t={t}
             view={tab}
@@ -422,6 +424,19 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [draftPage, setDraftPage] = useState(1);
   const [publishedPage, setPublishedPage] = useState(1);
+  const [archivedProducts, setArchivedProducts] = useState<Product[]>([]);
+  const [archivedPage, setArchivedPage] = useState(1);
+  useEffect(() => {
+    if (view === "archived") {
+      authFetch(`${API}/products/admin/archived`).then((r: any) => r.json()).then(setArchivedProducts);
+    }
+  }, [view]);
+  const handleRestore = (id: number) => {
+    authFetch(`${API}/products/${id}/restore`, { method: "POST" }).then(() => {
+      setArchivedProducts((prev) => prev.filter((p) => p.id !== id));
+      refreshProducts();
+    });
+  };
 
   if (selectedProduct || creatingProduct) {
     return (
@@ -566,7 +581,6 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
       )}
     </div>
   );
-
   return (
     <div>
       {view === "products" && (
@@ -623,6 +637,48 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
               <button onClick={() => setPublishedPage(Math.max(1, currentPublishedPage - 1))} disabled={currentPublishedPage === 1} style={{ padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", cursor: currentPublishedPage === 1 ? "not-allowed" : "pointer", opacity: currentPublishedPage === 1 ? 0.5 : 1 }}>← Назад</button>
               <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Страница {currentPublishedPage} из {publishedTotalPages}</span>
               <button onClick={() => setPublishedPage(Math.min(publishedTotalPages, currentPublishedPage + 1))} disabled={currentPublishedPage === publishedTotalPages} style={{ padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", cursor: currentPublishedPage === publishedTotalPages ? "not-allowed" : "pointer", opacity: currentPublishedPage === publishedTotalPages ? 0.5 : 1 }}>Вперёд →</button>
+            </div>
+          )}
+        </div>
+      )}
+      {view === "archived" && archivedProducts.length === 0 && <p style={{ color: "var(--text-muted)" }}>Архив пуст</p>}
+      {view === "archived" && archivedProducts.length > 0 && (
+        <div>
+          <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 16, color: "var(--text-muted)" }}>
+            В архиве ({archivedProducts.length})
+          </div>
+          <div className="admin-products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>
+            {archivedProducts.slice((archivedPage - 1) * 20, archivedPage * 20).map((p) => (
+              <div key={p.id} style={{ border: "1px solid var(--line)", padding: 16, opacity: 0.7 }}>
+                <div
+                  style={{
+                    position: "relative",
+                    aspectRatio: "3/4",
+                    background: "var(--surface)",
+                    marginBottom: 10,
+                    backgroundImage: p.images[0] ? `url(${p.images[0].url})` : "none",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                />
+                <div className="product-title" style={{ fontSize: 15, marginBottom: 4 }}>{p.title_ru}</div>
+                <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 10 }}>
+                  {t.catalogNumber} {p.catalog_number}
+                </div>
+                <button
+                  onClick={() => handleRestore(p.id)}
+                  style={{ width: "100%", padding: "8px", background: "var(--accent)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+                >
+                  Восстановить
+                </button>
+              </div>
+            ))}
+          </div>
+          {archivedProducts.length > 20 && (
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", marginTop: 20 }}>
+              <button onClick={() => setArchivedPage((p) => Math.max(1, p - 1))} disabled={archivedPage === 1} style={{ padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", cursor: archivedPage === 1 ? "not-allowed" : "pointer", opacity: archivedPage === 1 ? 0.5 : 1 }}>← Назад</button>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Страница {archivedPage} из {Math.ceil(archivedProducts.length / 20)}</span>
+              <button onClick={() => setArchivedPage((p) => Math.min(Math.ceil(archivedProducts.length / 20), p + 1))} disabled={archivedPage >= Math.ceil(archivedProducts.length / 20)} style={{ padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", cursor: archivedPage >= Math.ceil(archivedProducts.length / 20) ? "not-allowed" : "pointer", opacity: archivedPage >= Math.ceil(archivedProducts.length / 20) ? 0.5 : 1 }}>Вперёд →</button>
             </div>
           )}
         </div>
@@ -703,7 +759,8 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
   const [activeColors, setActiveColors] = useState<string[]>(
     Array.from(new Set((product?.variants ?? []).map((v: any) => v.color)))
   );
-  const [sizeTypeByColor, setSizeTypeByColor] = useState<Record<string, "letter" | "numeric" | "onesize">>({});
+  const [sizeTypeByColor, setSizeTypeByColor] = useState<Record<string, "letter" | "numeric" | "onesize" | "custom">>({});
+  const [customSizeInput, setCustomSizeInput] = useState<Record<string, string>>({});
 
   const toggleColorActive = (color: string) => {
     if (activeColors.includes(color)) {
@@ -1018,7 +1075,8 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
 
       {activeColors.map((color) => {
         const sizeType = sizeTypeByColor[color] ?? "letter";
-        const sizes = sizeType === "numeric" ? NUMERIC_SIZES : sizeType === "onesize" ? ["Безразмерный"] : LETTER_SIZES;
+        const customSizesForColor = variants.filter((v) => v.color === color && !LETTER_SIZES.includes(v.size) && !NUMERIC_SIZES.includes(v.size) && v.size !== "Безразмерный").map((v) => v.size);
+        const sizes = sizeType === "numeric" ? NUMERIC_SIZES : sizeType === "onesize" ? ["Безразмерный"] : sizeType === "custom" ? customSizesForColor : LETTER_SIZES;
         return (
           <div key={color} style={{ border: "1px solid var(--line)", padding: 16, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -1074,6 +1132,20 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
               >
                 Безразмерный
               </button>
+              <button
+                type="button"
+                onClick={() => setSizeTypeByColor({ ...sizeTypeByColor, [color]: "custom" })}
+                style={{
+                  padding: "6px 12px",
+                  background: sizeType === "custom" ? "var(--text)" : "var(--surface)",
+                  color: sizeType === "custom" ? "var(--bg)" : "var(--text)",
+                  border: "1px solid var(--line)",
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                Свой размер
+              </button>
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
@@ -1111,6 +1183,29 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
                   </div>
                 );
               })}
+              {sizeType === "custom" && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="text"
+                    value={customSizeInput[color] ?? ""}
+                    onChange={(e) => setCustomSizeInput({ ...customSizeInput, [color]: e.target.value })}
+                    placeholder="Введите размер"
+                    style={{ padding: "6px 10px", fontSize: 13, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", width: 140 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const value = (customSizeInput[color] ?? "").trim();
+                      if (!value) return;
+                      toggleSizeForColor(color, value);
+                      setCustomSizeInput({ ...customSizeInput, [color]: "" });
+                    }}
+                    style={{ padding: "6px 12px", background: "var(--text)", color: "var(--bg)", border: "none", fontSize: 12, cursor: "pointer" }}
+                  >
+                    Добавить
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );

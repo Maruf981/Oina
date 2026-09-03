@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from sqlalchemy import String, Numeric, ForeignKey, Boolean, DateTime, JSON, func, select
+from sqlalchemy import String, Numeric, ForeignKey, Boolean, DateTime, JSON, func, select, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, column_property
 from app.core.database import Base
 from app.models.review import ProductReview
@@ -29,6 +29,7 @@ class Product(Base):
     pattern_ru: Mapped[str | None] = mapped_column(String(100), nullable=True)
     pattern_tj: Mapped[str | None] = mapped_column(String(100), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
     is_new: Mapped[bool] = mapped_column(Boolean, default=False)
     is_brand: Mapped[bool] = mapped_column(Boolean, default=False)

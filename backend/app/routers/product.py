@@ -12,9 +12,22 @@ router = APIRouter(prefix="/products", tags=["products"])
 @router.get("/admin/all", response_model=list[ProductOut])
 def list_all_products_admin(db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     from app.models.product import Product
-    return db.query(Product).order_by(Product.id.desc()).all()
+    return db.query(Product).filter(Product.is_archived == False).order_by(Product.id.desc()).all()
 
 
+@router.get("/admin/archived", response_model=list[ProductOut])
+def list_archived_products_admin(db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    from app.models.product import Product
+    return db.query(Product).filter(Product.is_archived == True).order_by(Product.id.desc()).all()
+@router.post("/{product_id}/restore")
+def restore_product(product_id: int, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    product = product_repo.get_by_id(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    product.is_archived = False
+    product.is_active = False
+    db.commit()
+    return {"status": "restored"}
 @router.get("/", response_model=list[ProductOut])
 def list_products(
     category_id: int | None = None,
@@ -40,6 +53,8 @@ def list_products(
 def get_product(product_id: int, db: Session = Depends(get_db), is_admin: bool = Depends(get_current_admin_optional)):
     product = product_repo.get_by_id(db, product_id)
     if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    if product.is_archived:
         raise HTTPException(status_code=404, detail="Product not found")
     if not product.is_active and not is_admin:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -74,6 +89,7 @@ def delete_product(product_id: int, db: Session = Depends(get_db), _: bool = Dep
     product = product_repo.get_by_id(db, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    db.delete(product)
+    product.is_archived = True
+    product.is_active = False
     db.commit()
-    return {"status": "deleted"}
+    return {"status": "archived"}
