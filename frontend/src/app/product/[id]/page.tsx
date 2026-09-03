@@ -732,7 +732,7 @@ export default function ProductPage() {
               {(product.pattern_ru || product.pattern_tj) && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
                   <span className="catalog-label" style={{ border: "none", padding: 0 }}>
-                    {lang === "ru" ? "Рисунок" : "Нақш"}
+                    {lang === "ru" ? "Рисунок" : "Акс"}
                   </span>
                   <span style={{ fontSize: 14 }}>{localized(product.pattern_ru ?? "", product.pattern_tj)}</span>
                 </div>

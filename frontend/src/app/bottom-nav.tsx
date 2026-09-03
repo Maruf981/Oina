@@ -85,7 +85,6 @@ function Badge({ count }: { count: number }) {
     </div>
   );
 }
-
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -93,6 +92,7 @@ export function BottomNav() {
   const [lang, setLang] = useState<"ru" | "tj">("ru");
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [ordersCount, setOrdersCount] = useState(0);
+  if (pathname.startsWith("/admin")) return null;
 
   useEffect(() => {
     const saved = localStorage.getItem("lang") as "ru" | "tj" | null;

@@ -320,17 +320,25 @@ function HomeInner() {
   };
 
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (searchQuery) params.set("search", searchQuery);
-    if (minPrice) params.set("min_price", minPrice);
-    if (maxPrice) params.set("max_price", maxPrice);
-    if (filterSize) params.set("size", filterSize);
-    if (filterColor) params.set("color", filterColor);
-
-      fetch(`${API_URL}/products/?${params.toString()}`)
-      .then((res) => res.json())
-      .then(setProducts)
-      .catch(() => setProducts([]));
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (searchQuery) params.set("search", searchQuery);
+      if (minPrice) params.set("min_price", minPrice);
+      if (maxPrice) params.set("max_price", maxPrice);
+      if (filterSize) params.set("size", filterSize);
+      if (filterColor) params.set("color", filterColor);
+      fetch(`${API_URL}/products/?${params.toString()}`, { signal: controller.signal })
+        .then((res) => res.json())
+        .then(setProducts)
+        .catch((err) => {
+          if (err.name !== "AbortError") setProducts([]);
+        });
+    }, 350);
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [searchQuery, minPrice, maxPrice, filterSize, filterColor]);
 
   return (

@@ -346,8 +346,7 @@ export default function AdminPage() {
           </span>
         </div>
       </nav>
-
-      <div style={{ display: "flex", gap: 30, padding: "20px 40px", borderBottom: "1px solid var(--line)" }}>
+      <div style={{ display: "flex", gap: 24, padding: "20px 16px", borderBottom: "1px solid var(--line)", overflowX: "auto", whiteSpace: "nowrap", WebkitOverflowScrolling: "touch" }}>
         {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts"] as const).map((tabName) => (
           <span
             key={tabName}
@@ -587,7 +586,7 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
               </button>
             )}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>
+          <div className="admin-products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>
             {draftProducts.map((p) => renderCard(p, true))}
           </div>
         </div>
@@ -600,7 +599,7 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
           <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 16, color: "var(--text-muted)" }}>
             Опубликовано ({publishedProducts.length})
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>
+          <div className="admin-products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>
             {publishedProducts.map((p) => renderCard(p, false))}
           </div>
         </div>
@@ -1434,7 +1433,7 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 20, marginBottom: 24, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 12, marginBottom: 24, alignItems: "center", flexWrap: "wrap" }}>
         <select
           value={periodFilter}
           onChange={(e) => setPeriodFilter(e.target.value as "all" | "today" | "week" | "month")}
@@ -1478,6 +1477,7 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
       <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 14 }}>
         По поставщикам
       </div>
+    <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ borderBottom: "1px solid var(--line)" }}>
@@ -1498,6 +1498,7 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -1704,6 +1705,7 @@ function WarehouseTab({ products, suppliers, incomingMovements }: any) {
       </div>
 
       {isGrouped ? (
+      <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--line)" }}>
@@ -1730,7 +1732,9 @@ function WarehouseTab({ products, suppliers, incomingMovements }: any) {
             ))}
           </tbody>
         </table>
+        </div>
       ) : (
+      <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--line)" }}>
@@ -1761,6 +1765,7 @@ function WarehouseTab({ products, suppliers, incomingMovements }: any) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

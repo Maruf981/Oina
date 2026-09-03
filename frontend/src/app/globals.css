@@ -73,3 +73,14 @@ html, body {
     max-width: 100% !important;
   }
 }
+@media (max-width: 640px) {
+  .admin-products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+}
+@media (max-width: 640px) {
+  .finance-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
