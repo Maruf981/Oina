@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
+from app.core.telegram_notify import send_admin_notification
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -17,8 +18,21 @@ def list_my_orders(current: Customer = Depends(get_current_customer), db: Sessio
 
 
 @router.post("/", response_model=OrderOut)
-def create_order(data: OrderCreate, db: Session = Depends(get_db)):
-    return order_repo.create_order(db, data)
+def create_order(data: OrderCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    order = order_repo.create_order(db, data)
+    items_text = "\n".join(
+        f"— {item.variant.product.title_ru} ({item.variant.color}, {item.variant.size}) x{item.quantity}"
+        for item in order.items
+    )
+    text = (
+        f"🛒 <b>Новый заказ №{order.id}</b>\n"
+        f"Клиент: {order.customer.name or 'Без имени'} ({order.customer.phone})\n"
+        f"Сумма: {order.total} смн\n"
+        f"Адрес: {order.delivery_address or '—'}\n"
+        f"{items_text}"
+    )
+    background_tasks.add_task(send_admin_notification, text)
+    return order
 
 
 @router.get("/", response_model=list[OrderOut])
@@ -27,6 +41,30 @@ def list_orders(db: Session = Depends(get_db)):
     return db.query(Order).order_by(Order.created_at.desc()).all()
 
 
+@router.get("/stats/summary")
+def order_stats(db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    from datetime import datetime, timedelta
+    from app.models.order import Order
+
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = now - timedelta(days=7)
+    month_start = now - timedelta(days=30)
+    excluded = ("cancelled", "returned")
+
+    def summarize(since):
+        orders = (
+            db.query(Order)
+            .filter(Order.created_at >= since, Order.status.notin_(excluded))
+            .all()
+        )
+        return {"count": len(orders), "revenue": sum(float(o.total) for o in orders)}
+
+    return {
+        "today": summarize(today_start),
+        "week": summarize(week_start),
+        "month": summarize(month_start),
+    }
 @router.get("/{order_id}", response_model=OrderOut)
 def get_order(order_id: int, db: Session = Depends(get_db)):
     from app.models.order import Order
@@ -41,6 +79,7 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
 def change_order_status(
     order_id: int,
     data: OrderStatusUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     _: bool = Depends(get_current_admin),
 ):
@@ -49,4 +88,9 @@ def change_order_status(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    return order_repo.update_status(db, order, data.status)
+    updated = order_repo.update_status(db, order, data.status)
+    if data.status in ("cancelled", "returned"):
+        label = "❌ Отменён" if data.status == "cancelled" else "↩️ Возврат"
+        text = f"{label}: Заказ №{updated.id} — {updated.total} смн"
+        background_tasks.add_task(send_admin_notification, text)
+    return updated

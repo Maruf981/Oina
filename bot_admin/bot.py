@@ -26,6 +26,8 @@ main_menu = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📦 Добавить товар")],
         [KeyboardButton(text="📋 Мои черновики"), KeyboardButton(text="🛒 Новые заказы")],
+        [KeyboardButton(text="🔍 Поиск товара"), KeyboardButton(text="📈 Статистика")],
+        [KeyboardButton(text="⚠️ Низкие остатки"), KeyboardButton(text="📦 Поставщики")],
         [KeyboardButton(text="📊 Категории"), KeyboardButton(text="ℹ️ Помощь")],
     ],
     resize_keyboard=True,
@@ -47,6 +49,10 @@ done_menu = ReplyKeyboardMarkup(
 )
 
 
+
+
+class SearchState(StatesGroup):
+    waiting_query = State()
 
 
 def is_admin(user_id: int) -> bool:
@@ -85,10 +91,15 @@ async def help_handler(message: Message):
         return
     await message.answer(
         "Доступные команды:\n"
-        "📦 Добавить товар — создать черновик товара\n"
+        "📦 Добавить товар — быстрый черновик через форму\n"
         "📋 Мои черновики — список неопубликованных товаров\n"
         "🛒 Новые заказы — последние заказы\n"
-        "📊 Категории — список категорий"
+        "🔍 Поиск товара — найти по названию/артикулу\n"
+        "📈 Статистика — выручка и заказы за периоды\n"
+        "⚠️ Низкие остатки — товары с малым остатком\n"
+        "📦 Поставщики — список поставщиков\n"
+        "📊 Категории — список категорий\n\n"
+        "Ты автоматически получишь уведомление о новом заказе, отмене или возврате."
     )
 
 
@@ -130,15 +141,100 @@ async def orders_handler(message: Message):
 async def drafts_handler(message: Message):
     if not is_admin(message.from_user.id):
         return
+    token = await get_admin_token()
     async with httpx.AsyncClient() as client:
-        res = await client.get(f"{API_BASE_URL}/products/")
+        res = await client.get(f"{API_BASE_URL}/products/admin/all", headers={"Authorization": f"Bearer {token}"})
         products = res.json()
     drafts = [p for p in products if not p.get("is_active", True)]
     if not drafts:
         await message.answer("Черновиков нет.")
         return
-    for p in drafts:
+    for p in drafts[:10]:
         await message.answer(f"№{p['catalog_number']} — {p['title_ru']} — {p['price']} смн (черновик)")
+
+
+@dp.message(F.text == "🔍 Поиск товара")
+async def search_start(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        return
+    await state.set_state(SearchState.waiting_query)
+    await message.answer("Введи название или артикул товара:", reply_markup=cancel_menu)
+
+
+@dp.message(SearchState.waiting_query)
+async def search_process(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        return
+    query = message.text.strip()
+    await state.clear()
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"{API_BASE_URL}/products/", params={"search": query})
+        products = res.json()
+    if not products:
+        await message.answer("Ничего не найдено.", reply_markup=main_menu)
+        return
+    for p in products[:5]:
+        variants_text = "\n".join(
+            f"  {v['color']}, {v['size']}: {v['stock']} шт" for v in p.get("variants", [])
+        )
+        await message.answer(
+            f"<b>{p['title_ru']}</b>\n"
+            f"Артикул: {p['catalog_number']}\n"
+            f"Цена: {p['price']} смн\n"
+            f"{variants_text}",
+            parse_mode="HTML",
+        )
+    await message.answer("Готово.", reply_markup=main_menu)
+
+
+@dp.message(F.text == "📈 Статистика")
+async def stats_handler(message: Message):
+    if not is_admin(message.from_user.id):
+        return
+    token = await get_admin_token()
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"{API_BASE_URL}/orders/stats/summary", headers={"Authorization": f"Bearer {token}"})
+        stats = res.json()
+    await message.answer(
+        f"<b>📈 Статистика</b>\n\n"
+        f"Сегодня: {stats['today']['count']} заказов, {stats['today']['revenue']:.0f} смн\n"
+        f"За неделю: {stats['week']['count']} заказов, {stats['week']['revenue']:.0f} смн\n"
+        f"За месяц: {stats['month']['count']} заказов, {stats['month']['revenue']:.0f} смн",
+        parse_mode="HTML",
+    )
+
+
+@dp.message(F.text == "⚠️ Низкие остатки")
+async def low_stock_handler(message: Message):
+    if not is_admin(message.from_user.id):
+        return
+    token = await get_admin_token()
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"{API_BASE_URL}/products/admin/low-stock", headers={"Authorization": f"Bearer {token}"})
+        items = res.json()
+    if not items:
+        await message.answer("Низких остатков нет.")
+        return
+    text = "\n".join(
+        f"№{i['catalog_number']} {i['product_title']} — {i['color']}, {i['size']}: {i['stock']} шт"
+        for i in items[:20]
+    )
+    await message.answer(f"<b>⚠️ Низкие остатки:</b>\n{text}", parse_mode="HTML")
+
+
+@dp.message(F.text == "📦 Поставщики")
+async def suppliers_handler(message: Message):
+    if not is_admin(message.from_user.id):
+        return
+    token = await get_admin_token()
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"{API_BASE_URL}/suppliers/", headers={"Authorization": f"Bearer {token}"})
+        suppliers = res.json()
+    if not suppliers:
+        await message.answer("Поставщиков пока нет.")
+        return
+    text = "\n".join(f"{s['id']}. {s['name']} — {s.get('phone') or '—'}" for s in suppliers)
+    await message.answer(f"<b>📦 Поставщики:</b>\n{text}", parse_mode="HTML")
 
 
 # ===== Добавление товара =====

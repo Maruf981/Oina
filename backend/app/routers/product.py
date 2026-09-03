@@ -49,6 +49,25 @@ def list_products(
     )
 
 
+@router.get("/admin/low-stock")
+def low_stock_products(threshold: int = 3, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    from app.models.product import Product, ProductVariant
+    variants = (
+        db.query(ProductVariant)
+        .join(Product)
+        .filter(ProductVariant.stock <= threshold, Product.is_archived == False)
+        .all()
+    )
+    return [
+        {
+            "product_title": v.product.title_ru,
+            "catalog_number": v.product.catalog_number,
+            "color": v.color,
+            "size": v.size,
+            "stock": v.stock,
+        }
+        for v in variants
+    ]
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product(product_id: int, db: Session = Depends(get_db), is_admin: bool = Depends(get_current_admin_optional)):
     product = product_repo.get_by_id(db, product_id)
