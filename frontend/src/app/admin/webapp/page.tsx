@@ -131,7 +131,7 @@ export default function WebAppPage() {
       const loginRes = await fetch(`${API}/telegram-auth/admin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ init_data: initData }),
+        body: JSON.stringify({ init_data: window.Telegram?.WebApp?.initData || initData }),
       });
       if (!loginRes.ok) { const errText = await loginRes.text(); throw new Error(errText); }
       const { access_token } = await loginRes.json();
