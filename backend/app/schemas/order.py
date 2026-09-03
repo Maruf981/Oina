@@ -17,12 +17,21 @@ class OrderCreate(BaseModel):
     items: list[OrderItemCreate]
 
 
+class VariantBrief(BaseModel):
+    id: int
+    size: str
+    color: str
+    title_ru: str
+    title_tj: str | None
+    catalog_number: str
+    class Config:
+        from_attributes = True
 class OrderItemOut(BaseModel):
     id: int
     product_variant_id: int
     quantity: int
     price_at_order: float
-
+    variant: VariantBrief | None = None
     class Config:
         from_attributes = True
 

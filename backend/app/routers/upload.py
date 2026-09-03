@@ -53,6 +53,24 @@ async def upload_product_image(
 
     return {"id": image.id, "url": image.url, "color": image.color, "sort_order": image.sort_order, "media_type": image.media_type}
 
+@router.delete("/product-image/{image_id}")
+async def delete_product_image(
+    image_id: int,
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin),
+):
+    image = db.query(ProductImage).filter(ProductImage.id == image_id).first()
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+    try:
+        public_id = image.url.split("/")[-1].split(".")[0]
+        resource_type = "video" if image.media_type == "video" else "image"
+        cloudinary.uploader.destroy(f"oina/products/{public_id}", resource_type=resource_type)
+    except Exception:
+        pass
+    db.delete(image)
+    db.commit()
+    return {"deleted": True}
 @router.post("/avatar")
 async def upload_avatar(
     file: UploadFile = File(...),

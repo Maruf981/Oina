@@ -56,6 +56,18 @@ class ProductVariant(Base):
 
     product: Mapped["Product"] = relationship(back_populates="variants")
 
+    @property
+    def title_ru(self) -> str:
+        return self.product.title_ru
+
+    @property
+    def title_tj(self) -> str | None:
+        return self.product.title_tj
+
+    @property
+    def catalog_number(self) -> str:
+        return self.product.catalog_number
+
 
 class ProductImage(Base):
     __tablename__ = "product_images"

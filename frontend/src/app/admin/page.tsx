@@ -130,7 +130,7 @@ type Order = {
   comment: string | null;
   payment_method: string | null;
   customer: { id: number; name: string | null; phone: string };
-  items: { id: number; product_variant_id: number; quantity: number; price_at_order: number }[];
+  items: { id: number; product_variant_id: number; quantity: number; price_at_order: number; variant: { id: number; size: string; color: string; title_ru: string; title_tj: string | null; catalog_number: string } | null }[];
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -791,7 +791,13 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
       setUploadingImage(false);
     }
   };
-
+  const handleDeleteImage = async (imageId: number) => {
+    if (!confirm("Удалить это фото/видео?")) return;
+    const res = await authFetch(`${API}/upload/product-image/${imageId}`, { method: "DELETE" });
+    if (res.ok) {
+      setProductImages((prev: any[]) => prev.filter((img) => img.id !== imageId));
+    }
+  };
   const inputStyle = { padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14, width: "100%", boxSizing: "border-box" as const };
 
   return (
@@ -1124,6 +1130,30 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
 
       {product && (
         <div style={{ marginBottom: 24 }}>
+          {productImages.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10, marginBottom: 16 }}>
+              {productImages.map((img: any) => (
+                <div key={img.id} style={{ position: "relative", aspectRatio: "1", background: "var(--surface)", border: "1px solid var(--line)" }}>
+                  {img.media_type === "video" ? (
+                    <video src={img.url} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ width: "100%", height: "100%", backgroundImage: `url(${img.url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+                  )}
+                  <span
+                    onClick={() => handleDeleteImage(img.id)}
+                    style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,0.7)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, cursor: "pointer" }}
+                  >
+                    ✕
+                  </span>
+                  {img.color && (
+                    <span style={{ position: "absolute", bottom: 4, left: 4, fontSize: 10, background: "rgba(0,0,0,0.7)", color: "#fff", padding: "2px 6px" }}>
+                      {img.color}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 12 }}>{t.uploadImage}</div>
           <select
             value={imageColor}
@@ -1783,6 +1813,7 @@ const ORDER_STATUS_LABELS: Record<string, string> = {
 };
 
 function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
+  const [searchQuery, setSearchQuery] = useState("");
   const handleStatusChange = async (orderId: number, status: string) => {
     await authFetch(`${API}/orders/${orderId}/status`, {
       method: "PATCH",
@@ -1791,12 +1822,31 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
     });
     refreshOrders();
   };
-
-  if (orders.length === 0) return <p style={{ color: "var(--text-muted)" }}>{t.noOrders}</p>;
-
+  const query = searchQuery.trim().toLowerCase();
+  const filteredOrders = query
+    ? orders.filter((o: Order) => {
+        if (String(o.id).includes(query)) return true;
+        return o.items.some((item) => {
+          const v = item.variant;
+          if (!v) return false;
+          return (
+            v.title_ru?.toLowerCase().includes(query) ||
+            v.title_tj?.toLowerCase().includes(query) ||
+            v.catalog_number?.toLowerCase().includes(query)
+          );
+        });
+      })
+    : orders;
   return (
     <div>
-      {orders.map((o: Order) => (
+      <input
+        placeholder="Поиск по номеру заказа, названию или артикулу"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        style={{ padding: 12, marginBottom: 20, width: "100%", maxWidth: 420, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }}
+      />
+      {filteredOrders.length === 0 && <p style={{ color: "var(--text-muted)" }}>{t.noOrders}</p>}
+      {filteredOrders.map((o: Order) => (
         <div key={o.id} style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span className="product-title" style={{ fontSize: 16 }}>Заказ №{o.id}</span>
@@ -1809,6 +1859,19 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
             {o.customer?.name || "Без имени"} · {o.customer?.phone}
           </div>
           {o.delivery_address && <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 10 }}>{o.delivery_address}</p>}
+          {o.comment && <p style={{ color: "var(--accent)", fontSize: 13, marginBottom: 10 }}>💬 {o.comment}</p>}
+          <div style={{ borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)", padding: "10px 0", marginBottom: 10 }}>
+            {o.items.map((item) => (
+              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                <span>
+                  {item.variant ? item.variant.title_ru : "Товар удалён"}
+                  {item.variant && ` · ${t.catalogNumber} ${item.variant.catalog_number} · ${item.variant.color}, ${item.variant.size}`}
+                  {" × "}{item.quantity}
+                </span>
+                <span style={{ color: "var(--text-muted)" }}>{item.price_at_order} смн</span>
+              </div>
+            ))}
+          </div>
           <select
             value={o.status}
             onChange={(e) => handleStatusChange(o.id, e.target.value)}
