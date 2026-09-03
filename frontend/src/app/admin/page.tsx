@@ -420,6 +420,8 @@ function getAdminBadgeSrc(p: Product): string | null {
 function ProductsTab({ t, view, products, categories, suppliers, refreshSuppliers, selectedProduct, setSelectedProduct, creatingProduct, setCreatingProduct, authFetch, refreshProducts, token }: any) {
   const productList: Product[] = Array.isArray(products) ? products : [];
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [draftPage, setDraftPage] = useState(1);
+  const [publishedPage, setPublishedPage] = useState(1);
 
   if (selectedProduct || creatingProduct) {
     return (
@@ -469,6 +471,13 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
 
   const draftProducts = productList.filter((p) => !p.is_active);
   const publishedProducts = productList.filter((p) => p.is_active);
+  const PAGE_SIZE = 20;
+  const draftTotalPages = Math.max(1, Math.ceil(draftProducts.length / PAGE_SIZE));
+  const publishedTotalPages = Math.max(1, Math.ceil(publishedProducts.length / PAGE_SIZE));
+  const currentDraftPage = Math.min(draftPage, draftTotalPages);
+  const currentPublishedPage = Math.min(publishedPage, publishedTotalPages);
+  const pagedDraftProducts = draftProducts.slice((currentDraftPage - 1) * PAGE_SIZE, currentDraftPage * PAGE_SIZE);
+  const pagedPublishedProducts = publishedProducts.slice((currentPublishedPage - 1) * PAGE_SIZE, currentPublishedPage * PAGE_SIZE);
 
   const renderCard = (p: Product, showCheckbox: boolean) => (
     <div
@@ -587,8 +596,15 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
             )}
           </div>
           <div className="admin-products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>
-            {draftProducts.map((p) => renderCard(p, true))}
+            {pagedDraftProducts.map((p) => renderCard(p, true))}
           </div>
+          {draftTotalPages > 1 && (
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", marginTop: 20 }}>
+              <button onClick={() => setDraftPage(Math.max(1, currentDraftPage - 1))} disabled={currentDraftPage === 1} style={{ padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", cursor: currentDraftPage === 1 ? "not-allowed" : "pointer", opacity: currentDraftPage === 1 ? 0.5 : 1 }}>← Назад</button>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Страница {currentDraftPage} из {draftTotalPages}</span>
+              <button onClick={() => setDraftPage(Math.min(draftTotalPages, currentDraftPage + 1))} disabled={currentDraftPage === draftTotalPages} style={{ padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", cursor: currentDraftPage === draftTotalPages ? "not-allowed" : "pointer", opacity: currentDraftPage === draftTotalPages ? 0.5 : 1 }}>Вперёд →</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -600,8 +616,15 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
             Опубликовано ({publishedProducts.length})
           </div>
           <div className="admin-products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>
-            {publishedProducts.map((p) => renderCard(p, false))}
+            {pagedPublishedProducts.map((p) => renderCard(p, false))}
           </div>
+          {publishedTotalPages > 1 && (
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", marginTop: 20 }}>
+              <button onClick={() => setPublishedPage(Math.max(1, currentPublishedPage - 1))} disabled={currentPublishedPage === 1} style={{ padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", cursor: currentPublishedPage === 1 ? "not-allowed" : "pointer", opacity: currentPublishedPage === 1 ? 0.5 : 1 }}>← Назад</button>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Страница {currentPublishedPage} из {publishedTotalPages}</span>
+              <button onClick={() => setPublishedPage(Math.min(publishedTotalPages, currentPublishedPage + 1))} disabled={currentPublishedPage === publishedTotalPages} style={{ padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", cursor: currentPublishedPage === publishedTotalPages ? "not-allowed" : "pointer", opacity: currentPublishedPage === publishedTotalPages ? 0.5 : 1 }}>Вперёд →</button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -707,6 +730,18 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
   };
 
   const handleSave = async () => {
+    if (!form.title_ru.trim()) {
+      alert("Заполните название товара (RU)");
+      return;
+    }
+    if (!form.price || Number(form.price) <= 0) {
+      alert("Укажите цену продажи больше 0");
+      return;
+    }
+    if (!form.cost_price || Number(form.cost_price) <= 0) {
+      alert("Укажите закупочную цену больше 0");
+      return;
+    }
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
@@ -796,6 +831,16 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
     const res = await authFetch(`${API}/upload/product-image/${imageId}`, { method: "DELETE" });
     if (res.ok) {
       setProductImages((prev: any[]) => prev.filter((img) => img.id !== imageId));
+    }
+  };
+  const handleSetPrimary = async (imageId: number) => {
+    const res = await authFetch(`${API}/upload/product-image/${imageId}/set-primary`, { method: "POST" });
+    if (res.ok) {
+      setProductImages((prev: any[]) => {
+        const target = prev.find((img) => img.id === imageId);
+        if (!target) return prev;
+        return [target, ...prev.filter((img) => img.id !== imageId)];
+      });
     }
   };
   const inputStyle = { padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14, width: "100%", boxSizing: "border-box" as const };
@@ -1132,8 +1177,8 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
         <div style={{ marginBottom: 24 }}>
           {productImages.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10, marginBottom: 16 }}>
-              {productImages.map((img: any) => (
-                <div key={img.id} style={{ position: "relative", aspectRatio: "1", background: "var(--surface)", border: "1px solid var(--line)" }}>
+              {productImages.map((img: any, index: number) => (
+                <div key={img.id} style={{ position: "relative", aspectRatio: "1", background: "var(--surface)", border: index === 0 ? "2px solid var(--accent)" : "1px solid var(--line)" }}>
                   {img.media_type === "video" ? (
                     <video src={img.url} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   ) : (
@@ -1148,6 +1193,19 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
                   {img.color && (
                     <span style={{ position: "absolute", bottom: 4, left: 4, fontSize: 10, background: "rgba(0,0,0,0.7)", color: "#fff", padding: "2px 6px" }}>
                       {img.color}
+                    </span>
+                  )}
+                  {index === 0 ? (
+                    <span style={{ position: "absolute", top: 4, left: 4, fontSize: 9, fontFamily: "var(--font-label)", textTransform: "uppercase", letterSpacing: "0.04em", background: "var(--accent)", color: "var(--bg)", padding: "2px 6px" }}>
+                      Главное
+                    </span>
+                  ) : (
+                    <span
+                      onClick={() => handleSetPrimary(img.id)}
+                      style={{ position: "absolute", top: 4, left: 4, width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,0.7)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, cursor: "pointer" }}
+                      title="Сделать главным"
+                    >
+                      ★
                     </span>
                   )}
                 </div>
@@ -1814,6 +1872,9 @@ const ORDER_STATUS_LABELS: Record<string, string> = {
 
 function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const handleStatusChange = async (orderId: number, status: string) => {
     await authFetch(`${API}/orders/${orderId}/status`, {
       method: "PATCH",
@@ -1823,7 +1884,7 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
     refreshOrders();
   };
   const query = searchQuery.trim().toLowerCase();
-  const filteredOrders = query
+  const searchedOrders = query
     ? orders.filter((o: Order) => {
         if (String(o.id).includes(query)) return true;
         return o.items.some((item) => {
@@ -1837,16 +1898,45 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
         });
       })
     : orders;
+  const filteredOrders = statusFilter
+    ? searchedOrders.filter((o: Order) => o.status === statusFilter)
+    : searchedOrders;
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setPage(1);
+  };
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
   return (
     <div>
-      <input
-        placeholder="Поиск по номеру заказа, названию или артикулу"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        style={{ padding: 12, marginBottom: 20, width: "100%", maxWidth: 420, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }}
-      />
-      {filteredOrders.length === 0 && <p style={{ color: "var(--text-muted)" }}>{t.noOrders}</p>}
-      {filteredOrders.map((o: Order) => (
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+        <input
+          placeholder="Поиск по номеру заказа, названию или артикулу"
+          value={searchQuery}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          style={{ padding: 12, width: "100%", maxWidth: 420, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }}
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => handleStatusFilterChange(e.target.value)}
+          style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
+        >
+          <option value="">Все статусы</option>
+          {Object.entries(ORDER_STATUS_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
+      </div>
+      <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
+        Найдено: {filteredOrders.length}
+      </div>
+      {pagedOrders.length === 0 && <p style={{ color: "var(--text-muted)" }}>{t.noOrders}</p>}
+      {pagedOrders.map((o: Order) => (
         <div key={o.id} style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span className="product-title" style={{ fontSize: 16 }}>Заказ №{o.id}</span>
@@ -1883,6 +1973,27 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
           </select>
         </div>
       ))}
+      {totalPages > 1 && (
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", marginTop: 20 }}>
+          <button
+            onClick={() => setPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            style={{ padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", cursor: currentPage === 1 ? "not-allowed" : "pointer", opacity: currentPage === 1 ? 0.5 : 1 }}
+          >
+            ← Назад
+          </button>
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+            Страница {currentPage} из {totalPages}
+          </span>
+          <button
+            onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            style={{ padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", cursor: currentPage === totalPages ? "not-allowed" : "pointer", opacity: currentPage === totalPages ? 0.5 : 1 }}
+          >
+            Вперёд →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

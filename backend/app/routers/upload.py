@@ -53,6 +53,27 @@ async def upload_product_image(
 
     return {"id": image.id, "url": image.url, "color": image.color, "sort_order": image.sort_order, "media_type": image.media_type}
 
+@router.post("/product-image/{image_id}/set-primary")
+async def set_primary_image(
+    image_id: int,
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin),
+):
+    image = db.query(ProductImage).filter(ProductImage.id == image_id).first()
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+    siblings = (
+        db.query(ProductImage)
+        .filter(ProductImage.product_id == image.product_id)
+        .order_by(ProductImage.sort_order)
+        .all()
+    )
+    siblings = [img for img in siblings if img.id != image_id]
+    siblings.insert(0, image)
+    for index, img in enumerate(siblings):
+        img.sort_order = index
+    db.commit()
+    return {"ok": True}
 @router.delete("/product-image/{image_id}")
 async def delete_product_image(
     image_id: int,

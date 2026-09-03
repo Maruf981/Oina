@@ -108,6 +108,8 @@ function HomeInner() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [visibleCount, setVisibleCount] = useState(20);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
   const { lang, toggleLang } = useLang();
   const [cartOpen, setCartOpen] = useState(false);
@@ -138,10 +140,15 @@ function HomeInner() {
     }
   };
   const searchParams = useSearchParams();
-
   useEffect(() => {
     setAuthOpen(searchParams.get("login") === "1");
   }, [searchParams]);
+  useEffect(() => {
+    if (!auth.customer) return;
+    if (!customerName && auth.customer.name) setCustomerName(auth.customer.name);
+    if (!customerPhone && auth.customer.phone) setCustomerPhone(auth.customer.phone);
+    if (!deliveryAddress && auth.customer.address) setDeliveryAddress(auth.customer.address);
+  }, [auth.customer]);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [authName, setAuthName] = useState("");
   const [authPhone, setAuthPhone] = useState("");
@@ -330,7 +337,10 @@ function HomeInner() {
       if (filterColor) params.set("color", filterColor);
       fetch(`${API_URL}/products/?${params.toString()}`, { signal: controller.signal })
         .then((res) => res.json())
-        .then(setProducts)
+        .then((data) => {
+          setProducts(data);
+          setVisibleCount(20);
+        })
         .catch((err) => {
           if (err.name !== "AbortError") setProducts([]);
         });
@@ -340,6 +350,20 @@ function HomeInner() {
       controller.abort();
     };
   }, [searchQuery, minPrice, maxPrice, filterSize, filterColor]);
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => prev + 20);
+        }
+      },
+      { rootMargin: "400px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [products]);
 
   return (
     <div data-theme={theme} style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh", paddingTop: 90 }}>
@@ -744,7 +768,7 @@ function HomeInner() {
               {t.noProducts}
             </div>
           )}
-          {products.map((p) => (
+          {products.slice(0, visibleCount).map((p) => (
             <div key={p.id} style={{ background: "var(--bg)", padding: 20 }}>
               <div
                 style={{
@@ -895,6 +919,7 @@ function HomeInner() {
             </div>
           ))}
         </div>
+        <div ref={loadMoreRef} style={{ height: 1 }} />
       </div>
 
       {cartOpen && (

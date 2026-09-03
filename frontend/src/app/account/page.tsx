@@ -56,6 +56,10 @@ export default function AccountPage() {
   const [newPassword, setNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteMsg, setDeleteMsg] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -150,6 +154,29 @@ export default function AccountPage() {
       setPasswordMsg("Ошибка сети");
     } finally {
       setSavingPassword(false);
+    }
+  };
+  const handleDeleteAccount = async () => {
+    if (!auth.token) return;
+    setDeletingAccount(true);
+    setDeleteMsg("");
+    try {
+      const res = await fetch(`${API_URL}/auth/me`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth.token}` },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      if (res.ok) {
+        auth.logout();
+        router.push("/");
+      } else {
+        const data = await res.json().catch(() => null);
+        setDeleteMsg(data?.detail || "Ошибка удаления аккаунта");
+      }
+    } catch {
+      setDeleteMsg("Ошибка сети");
+    } finally {
+      setDeletingAccount(false);
     }
   };
 
@@ -401,6 +428,45 @@ export default function AccountPage() {
               {savingPassword ? (lang === "ru" ? "Сохраняем..." : "Нигоҳ дошта истодааст...") : (lang === "ru" ? "Изменить пароль" : "Ивази парол")}
             </button>
             {passwordMsg && <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{passwordMsg}</span>}
+            <div style={{ marginTop: 30, paddingTop: 24, borderTop: "1px solid var(--line)" }}>
+              <div style={{ color: "#E24B4A", fontSize: 13, marginBottom: 12 }}>
+                {lang === "ru" ? "Удаление аккаунта необратимо. Ваши персональные данные будут стёрты, история заказов сохранится в анонимном виде." : "Нест кардани ҳисоб бебозгашт аст."}
+              </div>
+              {!confirmDelete ? (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  style={{ padding: "10px 18px", background: "transparent", color: "#E24B4A", border: "1px solid #E24B4A", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+                >
+                  {lang === "ru" ? "Удалить аккаунт" : "Ҳисобро нест кардан"}
+                </button>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 320 }}>
+                  <input
+                    type="password"
+                    placeholder={lang === "ru" ? "Введите пароль для подтверждения" : "Парол"}
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    style={inputStyle}
+                  />
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deletingAccount || !deletePassword}
+                      style={{ padding: "10px 18px", background: "#E24B4A", color: "#fff", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", opacity: deletingAccount ? 0.6 : 1 }}
+                    >
+                      {deletingAccount ? (lang === "ru" ? "Удаляем..." : "...") : (lang === "ru" ? "Подтвердить удаление" : "Тасдиқ")}
+                    </button>
+                    <span
+                      onClick={() => { setConfirmDelete(false); setDeletePassword(""); setDeleteMsg(""); }}
+                      style={{ padding: "10px 18px", cursor: "pointer", fontSize: 12, color: "var(--text-muted)" }}
+                    >
+                      {lang === "ru" ? "Отмена" : "Бекор"}
+                    </span>
+                  </div>
+                  {deleteMsg && <span style={{ fontSize: 13, color: "#E24B4A" }}>{deleteMsg}</span>}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

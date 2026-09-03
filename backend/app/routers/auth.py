@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_customer, get_current_admin
 from app.core.security import hash_password, verify_password, create_access_token
 from app.models.customer import Customer
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, CustomerOut, UpdateProfileRequest, ChangePasswordRequest
+from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, CustomerOut, UpdateProfileRequest, ChangePasswordRequest, DeleteAccountRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -87,6 +87,22 @@ def change_password(
     return {"ok": True}
 
 
+@router.delete("/me")
+def delete_account(
+    data: DeleteAccountRequest,
+    db: Session = Depends(get_db),
+    current: Customer = Depends(get_current_customer),
+):
+    if not current.password_hash or not verify_password(data.password, current.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid password")
+    current.name = None
+    current.phone = f"deleted_{current.id}"
+    current.password_hash = None
+    current.address = None
+    current.avatar_url = None
+    current.telegram_id = None
+    db.commit()
+    return {"ok": True}
 @router.post("/admin-login")
 def admin_login(data: LoginRequest):
     if data.password != settings.ADMIN_PASSWORD:
