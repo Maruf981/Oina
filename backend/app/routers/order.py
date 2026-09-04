@@ -17,6 +17,26 @@ def list_my_orders(current: Customer = Depends(get_current_customer), db: Sessio
     return db.query(Order).filter(Order.customer_id == current.id).order_by(Order.created_at.desc()).all()
 
 
+@router.get("/lookup", response_model=list[OrderOut])
+def lookup_orders_by_phone(phone: str, db: Session = Depends(get_db)):
+    """
+    Публичный поиск последних заказов по номеру телефона — используется клиентским
+    ИИ-ботом, чтобы отвечать на вопрос "где мой заказ" без полноценного входа в аккаунт.
+    Намеренно не требует авторизации, но ограничен последними 5 заказами.
+    """
+    from app.models.order import Order
+    customer = db.query(Customer).filter(Customer.phone == phone).first()
+    if not customer:
+        return []
+    return (
+        db.query(Order)
+        .filter(Order.customer_id == customer.id)
+        .order_by(Order.created_at.desc())
+        .limit(5)
+        .all()
+    )
+
+
 @router.post("/", response_model=OrderOut)
 def create_order(data: OrderCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     order = order_repo.create_order(db, data)
