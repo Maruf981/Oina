@@ -164,7 +164,10 @@ export default function WebAppPage() {
           variants,
         }),
       });
-      if (!productRes.ok) throw new Error("Save failed");
+      if (!productRes.ok) {
+        const errText = await productRes.text();
+        throw new Error(errText || "Save failed");
+      }
       const product = await productRes.json();
 
       if (photo) {
@@ -179,8 +182,8 @@ export default function WebAppPage() {
 
       setDone(true);
       setTimeout(() => window.Telegram?.WebApp?.close(), 1500);
-    } catch (err) {
-      alert("Ошибка сохранения. Попробуй ещё раз.");
+    } catch (err: any) {
+      alert("Ошибка сохранения: " + (err?.message || "неизвестно"));
     } finally {
       setSaving(false);
     }
