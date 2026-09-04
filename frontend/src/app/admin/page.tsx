@@ -49,6 +49,14 @@ const labels = {
     color: "Цвет",
     sku: "Артикул",
     uploadImage: "Загрузить фото",
+    employees: "Сотрудники",
+    addEmployee: "Добавить сотрудника",
+    role: "Роль",
+    salary: "Зарплата",
+    phone: "Телефон",
+    address: "Адрес",
+    hireDate: "Дата приёма",
+    notes: "Заметки",
   },
   tj: {
     title: "Воридшавӣ ба админ",
@@ -94,6 +102,14 @@ const labels = {
     color: "Ранг",
     sku: "Артикул",
     uploadImage: "Боркунии акс",
+    employees: "Кормандон",
+    addEmployee: "Иловаи кормандон",
+    role: "Вазифа",
+    salary: "Маош",
+    phone: "Телефон",
+    address: "Суроға",
+    hireDate: "Санаи қабул",
+    notes: "Ёддошт",
   },
 };
 
@@ -229,7 +245,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived">(() => {
+  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived" | "employees">(() => {
     if (typeof window === "undefined") return "products";
     return (localStorage.getItem("admin_tab") as any) || "products";
   });
@@ -363,7 +379,7 @@ export default function AdminPage() {
         </div>
       </nav>
       <div style={{ display: "flex", gap: 24, padding: "20px 16px", borderBottom: "1px solid var(--line)", overflowX: "auto", whiteSpace: "nowrap", WebkitOverflowScrolling: "touch" }}>
-        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts", "archived"] as const).map((tabName) => (
+        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts", "archived", "employees"] as const).map((tabName) => (
           <span
             key={tabName}
             onClick={() => setTab(tabName)}
@@ -414,6 +430,7 @@ export default function AdminPage() {
         {tab === "orders" && <OrdersTab t={t} orders={orders} authFetch={authFetch} refreshOrders={refreshOrders} lang={lang} />}
         {tab === "warehouse" && <WarehouseTab products={products} suppliers={suppliers} incomingMovements={incomingMovements} />}
         {tab === "finance" && <FinanceTab orders={orders} products={products} suppliers={suppliers} authFetch={authFetch} />}
+        {tab === "employees" && <EmployeesTab t={t} authFetch={authFetch} />}
       </div>
     </div>
   );
@@ -2258,6 +2275,182 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function EmployeesTab({ t, authFetch }: any) {
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [form, setForm] = useState<any>({
+    name: "", role: "", salary: "", phone: "", address: "", hire_date: "", notes: "",
+  });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [error, setError] = useState("");
+
+  const refresh = () => {
+    setLoading(true);
+    authFetch(`${API}/employees/?include_archived=true`)
+      .then((r: any) => r.json())
+      .then((data: any) => {
+        setEmployees(Array.isArray(data) ? data : []);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const resetForm = () => {
+    setForm({ name: "", role: "", salary: "", phone: "", address: "", hire_date: "", notes: "" });
+    setPhotoFile(null);
+    setEditingId(null);
+    setCreating(false);
+    setError("");
+  };
+
+  const startEdit = (emp: any) => {
+    setForm({
+      name: emp.name || "",
+      role: emp.role || "",
+      salary: emp.salary != null ? String(emp.salary) : "",
+      phone: emp.phone || "",
+      address: emp.address || "",
+      hire_date: emp.hire_date || "",
+      notes: emp.notes || "",
+    });
+    setEditingId(emp.id);
+    setCreating(true);
+    setPhotoFile(null);
+    setError("");
+  };
+
+  const handleSave = async () => {
+    setError("");
+    if (!form.name.trim()) {
+      setError("Введите имя сотрудника");
+      return;
+    }
+    const payload = {
+      name: form.name,
+      role: form.role || null,
+      salary: form.salary ? Number(form.salary) : null,
+      phone: form.phone || null,
+      address: form.address || null,
+      hire_date: form.hire_date || null,
+      notes: form.notes || null,
+    };
+    const url = editingId ? `${API}/employees/${editingId}` : `${API}/employees/`;
+    const method = editingId ? "PATCH" : "POST";
+    const res = await authFetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      setError("Не удалось сохранить сотрудника");
+      return;
+    }
+    const saved = await res.json();
+    if (photoFile) {
+      const fd = new FormData();
+      fd.append("file", photoFile);
+      await authFetch(`${API}/upload/employee-photo/${saved.id}`, { method: "POST", body: fd });
+    }
+    resetForm();
+    refresh();
+  };
+
+  const handleArchive = async (id: number) => {
+    if (!window.confirm("Скрыть сотрудника? Данные не удалятся, можно будет восстановить.")) return;
+    await authFetch(`${API}/employees/${id}`, { method: "DELETE" });
+    refresh();
+  };
+
+  const handleRestore = async (id: number) => {
+    await authFetch(`${API}/employees/${id}/restore`, { method: "POST" });
+    refresh();
+  };
+
+  const inputStyle = { width: "100%", padding: 10, marginBottom: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", boxSizing: "border-box" as const };
+
+  const visibleEmployees = employees.filter((e) => (showArchived ? e.is_archived : !e.is_archived));
+
+  if (loading) return <p style={{ color: "var(--text-muted)" }}>Загрузка...</p>;
+
+  return (
+    <div>
+      {!creating ? (
+        <div style={{ display: "flex", gap: 10, marginBottom: 24, flexWrap: "wrap" }}>
+          <button
+            onClick={() => setCreating(true)}
+            style={{ padding: "10px 20px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+          >
+            + {t.addEmployee}
+          </button>
+          <button
+            onClick={() => setShowArchived((v) => !v)}
+            style={{ padding: "10px 20px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", fontSize: 12, cursor: "pointer" }}
+          >
+            {showArchived ? "Показать активных" : "Показать архив"}
+          </button>
+        </div>
+      ) : (
+        <div style={{ maxWidth: 480, marginBottom: 24, border: "1px solid var(--line)", padding: 20 }}>
+          <input placeholder={t.name} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />
+          <input placeholder={t.role} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} style={inputStyle} />
+          <input type="number" placeholder={t.salary} value={form.salary} onChange={(e) => setForm({ ...form, salary: e.target.value })} style={inputStyle} />
+          <input placeholder={t.phone} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} style={inputStyle} />
+          <input placeholder={t.address} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} style={inputStyle} />
+          <input type="date" placeholder={t.hireDate} value={form.hire_date} onChange={(e) => setForm({ ...form, hire_date: e.target.value })} style={inputStyle} />
+          <textarea placeholder={t.notes} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={{ ...inputStyle, minHeight: 70, fontFamily: "inherit" }} />
+          <label style={{ display: "block", marginBottom: 10, fontSize: 13, color: "var(--text-muted)" }}>
+            {t.uploadImage}
+            <input type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)} style={{ display: "block", marginTop: 6 }} />
+          </label>
+          {error && <p style={{ color: "#E24B4A", fontSize: 13, marginBottom: 10 }}>{error}</p>}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={handleSave} style={{ padding: "10px 16px", background: "var(--text)", color: "var(--bg)", border: "none", cursor: "pointer" }}>{t.save}</button>
+            <button onClick={resetForm} style={{ padding: "10px 16px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", cursor: "pointer" }}>{t.cancel}</button>
+          </div>
+        </div>
+      )}
+
+      {visibleEmployees.length === 0 && <p style={{ color: "var(--text-muted)" }}>Сотрудников пока нет</p>}
+
+      {visibleEmployees.map((emp) => (
+        <div key={emp.id} style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 16, display: "flex", gap: 20, flexWrap: "wrap", opacity: emp.is_archived ? 0.5 : 1 }}>
+          {emp.photo_url && (
+            <div style={{ width: 90, height: 90, flexShrink: 0, borderRadius: "50%", backgroundImage: `url(${emp.photo_url})`, backgroundSize: "cover", backgroundPosition: "center", border: "1px solid var(--line)" }} />
+          )}
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span className="product-title" style={{ fontSize: 17, textDecoration: emp.is_archived ? "line-through" : "none" }}>{emp.name}</span>
+              <div style={{ display: "flex", gap: 12 }}>
+                {!emp.is_archived && (
+                  <span onClick={() => startEdit(emp)} style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: 12, textDecoration: "underline" }}>{t.save === "Сохранить" ? "Изменить" : "Тағйир"}</span>
+                )}
+                {emp.is_archived ? (
+                  <span onClick={() => handleRestore(emp.id)} style={{ cursor: "pointer", color: "var(--text)", fontSize: 12, textDecoration: "underline" }}>{t.restoreCategory}</span>
+                ) : (
+                  <span onClick={() => handleArchive(emp.id)} style={{ cursor: "pointer", color: "#E24B4A", fontSize: 12, textDecoration: "underline" }}>{t.deleteCategory}</span>
+                )}
+              </div>
+            </div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>
+              {emp.role || "—"} {emp.salary != null && `· ${t.salary}: ${emp.salary} смн`}
+            </div>
+            {emp.phone && <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>{t.phone}: {emp.phone}</div>}
+            {emp.address && <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>{t.address}: {emp.address}</div>}
+            {emp.hire_date && <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>{t.hireDate}: {emp.hire_date}</div>}
+            {emp.notes && <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 8, whiteSpace: "pre-wrap" }}>{emp.notes}</div>}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

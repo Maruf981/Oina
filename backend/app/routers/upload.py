@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_admin, get_current_customer
 from app.models.product import Product, ProductImage
 from app.models.customer import Customer
+from app.models.employee import Employee
 
 cloudinary.config(
     cloud_name=settings.CLOUDINARY_CLOUD_NAME,
@@ -92,6 +93,27 @@ async def delete_product_image(
     db.delete(image)
     db.commit()
     return {"deleted": True}
+@router.post("/employee-photo/{employee_id}")
+async def upload_employee_photo(
+    employee_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin),
+):
+    employee = db.query(Employee).filter(Employee.id == employee_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    result = cloudinary.uploader.upload(
+        file.file,
+        folder="oina/employees",
+        resource_type="image",
+    )
+    employee.photo_url = result["secure_url"]
+    db.commit()
+    db.refresh(employee)
+    return {"photo_url": employee.photo_url}
+
+
 @router.post("/avatar")
 async def upload_avatar(
     file: UploadFile = File(...),
