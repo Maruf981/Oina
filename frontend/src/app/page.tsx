@@ -64,6 +64,9 @@ type Product = {
   images: ProductImage[];
 };
 
+function isValidPhone(phone: string): boolean {
+  return /^(\+992\d{9}|\d{9})$/.test(phone.trim());
+}
 function isDiscountActive(p: Product): boolean {
   if (!p.discount_percent) return false;
   const now = new Date();
@@ -1245,12 +1248,19 @@ function HomeInner() {
                   onChange={(e) => setCustomerName(e.target.value)}
                   style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
                 />
-                <input
-                  placeholder="Телефон"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
-                />
+                <div>
+                  <input
+                    placeholder="Телефон (+992900796328 или 900796328)"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    style={{ width: "100%", padding: 12, background: "var(--surface)", border: customerPhone && !isValidPhone(customerPhone) ? "1px solid #E24B4A" : "1px solid var(--line)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }}
+                  />
+                  {customerPhone && !isValidPhone(customerPhone) && (
+                    <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 4 }}>
+                      {lang === "ru" ? "Формат: +992900796328 или 900796328" : "Формат: +992900796328 ё 900796328"}
+                    </div>
+                  )}
+                </div>
                 <input
                   placeholder="Адрес доставки"
                   value={deliveryAddress}
@@ -1304,7 +1314,7 @@ function HomeInner() {
                 <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
                   <button
                     onClick={handlePlaceOrder}
-                    disabled={placing || !customerName || !customerPhone || !deliveryAddress}
+                    disabled={placing || !customerName || !customerPhone || !deliveryAddress || !isValidPhone(customerPhone)}
                     style={{
                       width: "100%",
                       padding: "14px",
