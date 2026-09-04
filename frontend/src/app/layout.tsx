@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { CartProvider } from "./cart-context";
 import { AuthProvider } from "./auth-context";
@@ -27,6 +27,14 @@ export const metadata: Metadata = {
     title: "Oina.tj — Интернет-магазин одежды в Таджикистане",
     description: "Женская, мужская и детская одежда с доставкой по Душанбе и всей стране.",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
