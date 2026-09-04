@@ -7,7 +7,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
 from dotenv import load_dotenv
 
-from knowledge_base import SYSTEM_PROMPT
+from knowledge_base import SYSTEM_PROMPT, TOOLS
 
 load_dotenv()
 
@@ -16,6 +16,7 @@ logging.basicConfig(level=logging.INFO)
 BOT_TOKEN = os.getenv("BOT_TOKEN_CLIENT")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 CLAUDE_MODEL = "claude-sonnet-4-6"
+API_URL = os.getenv("API_URL", "https://oina.onrender.com")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -26,11 +27,19 @@ conversation_history: dict[int, list[dict]] = {}
 MAX_HISTORY_MESSAGES = 12  # храним последние N сообщений диалога (и user, и assistant)
 
 
-async def ask_claude(user_id: int, user_message: str) -> str:
-    history = conversation_history.setdefault(user_id, [])
-    history.append({"role": "user", "content": user_message})
-    history = history[-MAX_HISTORY_MESSAGES:]
+async def lookup_order_by_phone(phone: str) -> list:
+    async with httpx.AsyncClient(timeout=15) as client:
+        try:
+            response = await client.get(f"{API_URL}/orders/lookup", params={"phone": phone})
+            if response.status_code != 200:
+                return []
+            return response.json()
+        except Exception as e:
+            logging.error(f"Order lookup error: {e}")
+            return []
 
+
+async def call_claude_api(history: list[dict]) -> dict:
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
             "https://api.anthropic.com/v1/messages",
@@ -41,17 +50,52 @@ async def ask_claude(user_id: int, user_message: str) -> str:
             },
             json={
                 "model": CLAUDE_MODEL,
-                "max_tokens": 500,
+                "max_tokens": 700,
                 "system": SYSTEM_PROMPT,
+                "tools": TOOLS,
                 "messages": history,
             },
         )
-
     if response.status_code != 200:
         logging.error(f"Claude API error: {response.status_code} {response.text}")
-        return "Извините, сейчас не могу ответить. Попробуйте чуть позже или напишите нам напрямую."
+        return {}
+    return response.json()
 
-    data = response.json()
+
+async def ask_claude(user_id: int, user_message: str) -> str:
+    history = conversation_history.setdefault(user_id, [])
+    history.append({"role": "user", "content": user_message})
+    history = history[-MAX_HISTORY_MESSAGES:]
+
+    max_tool_rounds = 3
+    data = {}
+    for _ in range(max_tool_rounds):
+        data = await call_claude_api(history)
+        if not data:
+            return "Извините, сейчас не могу ответить. Попробуйте чуть позже или напишите нам напрямую."
+
+        content_blocks = data.get("content", [])
+
+        if data.get("stop_reason") != "tool_use":
+            break
+
+        history.append({"role": "assistant", "content": content_blocks})
+
+        tool_results = []
+        for block in content_blocks:
+            if block.get("type") != "tool_use":
+                continue
+            if block.get("name") == "lookup_order_by_phone":
+                phone = block.get("input", {}).get("phone", "")
+                orders = await lookup_order_by_phone(phone)
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.get("id"),
+                    "content": str(orders) if orders else "Заказов с таким номером не найдено.",
+                })
+
+        history.append({"role": "user", "content": tool_results})
+
     reply_text = "".join(
         block.get("text", "") for block in data.get("content", []) if block.get("type") == "text"
     ).strip()
