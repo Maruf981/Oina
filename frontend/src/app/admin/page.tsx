@@ -1430,21 +1430,61 @@ function SupplierPicker({ suppliers, value, onChange, authFetch, refreshSupplier
   );
 }
 
+function transliterate(text: string): string {
+  const map: Record<string, string> = {
+    а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i",
+    й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t",
+    у: "u", ф: "f", х: "h", ц: "ts", ч: "ch", ш: "sh", щ: "sch", ъ: "", ы: "y", ь: "",
+    э: "e", ю: "yu", я: "ya", ғ: "gh", қ: "q", ӣ: "i", ӯ: "u", ҳ: "h", ҷ: "j",
+  };
+  return text
+    .toLowerCase()
+    .split("")
+    .map((ch) => (map[ch] !== undefined ? map[ch] : ch))
+    .join("")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
 function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, authFetch, refreshCategories }: any) {
   const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
   const [parentId, setParentId] = useState("");
   const topLevel = categories.filter((c: Category) => !c.parent_id);
 
+  const [categoryError, setCategoryError] = useState("");
   const handleSave = async () => {
-    await authFetch(`${API}/categories/`, {
+    setCategoryError("");
+    if (!name.trim()) {
+      setCategoryError("Введите название категории");
+      return;
+    }
+    const baseSlug = transliterate(name);
+    const finalSlug = baseSlug || `category-${Date.now()}`;
+    const res = await authFetch(`${API}/categories/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, slug, parent_id: parentId ? Number(parentId) : null }),
+      body: JSON.stringify({ name, slug: finalSlug, parent_id: parentId ? Number(parentId) : null }),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      if (err?.detail && String(err.detail).includes("duplicate")) {
+        const retryRes = await authFetch(`${API}/categories/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, slug: `${finalSlug}-${Date.now()}`, parent_id: parentId ? Number(parentId) : null }),
+        });
+        if (!retryRes.ok) {
+          setCategoryError("Не удалось сохранить категорию");
+          return;
+        }
+      } else {
+        setCategoryError("Не удалось сохранить категорию");
+        return;
+      }
+    }
     setCreatingCategory(false);
     setName("");
-    setSlug("");
     setParentId("");
     refreshCategories();
   };
@@ -1461,7 +1501,6 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
       ) : (
         <div style={{ display: "flex", gap: 10, marginBottom: 24, maxWidth: 640, flexWrap: "wrap" }}>
           <input placeholder={t.name} value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }} />
-          <input placeholder={t.slug} value={slug} onChange={(e) => setSlug(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }} />
           <select value={parentId} onChange={(e) => setParentId(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }}>
             <option value="">Без родителя (основная категория)</option>
             {topLevel.map((c: Category) => (
@@ -1469,6 +1508,11 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
             ))}
           </select>
           <button onClick={handleSave} style={{ padding: "10px 16px", background: "var(--text)", color: "var(--bg)", border: "none", cursor: "pointer" }}>{t.save}</button>
+          {categoryError && (
+            <p style={{ color: "#E24B4A", fontSize: 13, width: "100%", marginTop: 8 }}>
+              {categoryError}
+            </p>
+          )}
         </div>
       )}
 
@@ -1508,7 +1552,6 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
       .then((r: any) => r.json())
       .then(setExpenses);
   }, [unlocked]);
-  const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
   const handleAddExpense = () => {
     if (!expenseTitle || !expenseAmount) return;
     authFetch(`${API}/expenses/`, {
@@ -1620,6 +1663,8 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
     }
     return true;
   };
+  const filteredExpenses = expenses.filter((e: any) => isWithinPeriod(e.expense_date));
+  const totalExpenses = filteredExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
 
   const excludedStatuses = new Set(["cancelled", "returned"]);
   const validOrders = (Array.isArray(orders) ? orders : []).filter(
@@ -1729,11 +1774,11 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
             Добавить
           </button>
         </div>
-        {expenses.length === 0 ? (
-          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Расходов пока нет</p>
+        {filteredExpenses.length === 0 ? (
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Расходов за этот период нет</p>
         ) : (
           <div>
-            {expenses.map((e: any) => (
+            {filteredExpenses.map((e: any) => (
               <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
                 <span style={{ fontSize: 13 }}>{e.expense_date} — {e.title}</span>
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>

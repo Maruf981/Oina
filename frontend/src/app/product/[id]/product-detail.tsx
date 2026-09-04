@@ -141,6 +141,7 @@ export default function ProductDetailClient() {
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"success" | "error">("success");
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
@@ -237,6 +238,7 @@ export default function ProductDetailClient() {
   const handleSelectSize = (size: string) => {
     setSelectedSize(size);
     const match = product.variants.find((v) => v.size === size && v.color === selectedColor);
+    if (match) setQuantity((q) => Math.min(q, match.stock || 1));
     if (match) {
       const imgIdx = product.images.findIndex((img) => img.color === match.color);
       if (imgIdx !== -1) setActiveImage(imgIdx);
@@ -245,6 +247,7 @@ export default function ProductDetailClient() {
   const handleSelectColor = (color: string) => {
     setSelectedColor(color);
     const match = product.variants.find((v) => v.color === color && v.size === selectedSize);
+    if (match) setQuantity((q) => Math.min(q, match.stock || 1));
     if (match) {
       const imgIdx = product.images.findIndex((img) => img.color === match.color);
       if (imgIdx !== -1) setActiveImage(imgIdx);
@@ -270,9 +273,9 @@ export default function ProductDetailClient() {
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!currentVariant) return;
-    cart.addItem(
+    const result = await cart.addItem(
       {
         variantId: currentVariant.id,
         productId: product.id,
@@ -284,11 +287,17 @@ export default function ProductDetailClient() {
       },
       quantity
     );
+    if (!result.ok) {
+      setToastType("error");
+      setToastMessage(result.error || (lang === "ru" ? "Не удалось добавить товар в корзину" : "Илова кардан имконнопазир аст"));
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
     setQuantity(1);
+    setToastType("success");
     setToastMessage(lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд");
-    setTimeout(() => router.push("/"), 900);
+    setTimeout(() => setToastMessage(null), 2000);
   };
-
   return (
     <div
       data-theme={theme}
@@ -884,8 +893,8 @@ export default function ProductDetailClient() {
             bottom: 24,
             left: "50%",
             transform: "translateX(-50%)",
-            background: "var(--text)",
-            color: "var(--bg)",
+            background: toastType === "error" ? "#E24B4A" : "var(--text)",
+            color: toastType === "error" ? "#fff" : "var(--bg)",
             padding: "12px 24px",
             fontFamily: "var(--font-label)",
             fontSize: 13,

@@ -23,6 +23,12 @@ type ProductImage = {
   media_type?: string;
 };
 
+type Category = {
+  id: number;
+  name: string;
+  slug: string;
+  parent_id: number | null;
+};
 type Product = {
   id: number;
   title_ru: string;
@@ -105,8 +111,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 function HomeInner() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [openMegaMenu, setOpenMegaMenu] = useState<number | null>(null);
+  useEffect(() => {
+    fetch(`${API_URL}/categories/`)
+      .then((r) => r.json())
+      .then(setCategories)
+      .catch(() => setCategories([]));
+  }, []);
   const [products, setProducts] = useState<Product[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -162,6 +175,7 @@ function HomeInner() {
   const [authError, setAuthError] = useState("");
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"success" | "error">("success");
 
   const localized = (ru: string, tj: string | null) => (lang === "tj" && tj ? tj : ru);
 
@@ -304,22 +318,36 @@ function HomeInner() {
           })),
         }),
       });
-      if (!res.ok) throw new Error("Order failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || "Order failed");
+      }
       const order = await res.json();
+      await cart.clearCart();
       setOrderNumber(order.id);
       setCheckoutStep("payment");
-    } catch {
-      alert(lang === "ru" ? "Ошибка оформления заказа" : "Хатогӣ ҳангоми фармоиш");
-    } finally {
+    } catch (err: any) {
+      const msg = typeof err?.message === "string" ? err.message : "";
+      const friendlyMsg = msg.includes("В наличии только")
+        ? msg
+        : (lang === "ru" ? "Ошибка оформления заказа. Попробуйте ещё раз." : "Хатогӣ ҳангоми фармоиш. Бори дигар кӯшиш кунед.");
+      setToastType("error");
+      setToastMessage(friendlyMsg);
+      setTimeout(() => setToastMessage(null), 3000);
       setPlacing(false);
     }
   };
-
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = async (product: Product) => {
     const variantId = selectedSizes[product.id] ?? product.variants[0]?.id;
     const variant = product.variants.find((v) => v.id === variantId);
     if (!variant) return;
-    cart.addItem({
+    if (variant.stock <= 0) {
+      setToastType("error");
+      setToastMessage(lang === "ru" ? "Этого товара нет в наличии" : "Ин мол мавҷуд нест");
+      setTimeout(() => setToastMessage(null), 2500);
+      return;
+    }
+    const result = await cart.addItem({
       variantId: variant.id,
       productId: product.id,
       title: localized(product.title_ru, product.title_tj),
@@ -328,6 +356,13 @@ function HomeInner() {
       size: variant.size,
       color: variant.color,
     });
+    if (!result.ok) {
+      setToastType("error");
+      setToastMessage(result.error || (lang === "ru" ? "Не удалось добавить товар в корзину" : "Илова кардан имконнопазир аст"));
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+    setToastType("success");
     setToastMessage(lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд");
     setTimeout(() => setToastMessage(null), 2000);
   };
@@ -341,6 +376,7 @@ function HomeInner() {
       if (maxPrice) params.set("max_price", maxPrice);
       if (filterSize) params.set("size", filterSize);
       if (filterColor) params.set("color", filterColor);
+      if (selectedCategoryId) params.set("category_id", String(selectedCategoryId));
       fetch(`${API_URL}/products/?${params.toString()}`, { signal: controller.signal })
         .then((res) => res.json())
         .then((data) => {
@@ -355,7 +391,7 @@ function HomeInner() {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor]);
+  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId]);
   useEffect(() => {
     const el = loadMoreRef.current;
     if (!el) return;
@@ -391,11 +427,13 @@ function HomeInner() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "16px 20px",
+            padding: "24px 20px",
             gap: 10,
+            position: "relative",
           }}
         >
         <div
+          className="burger-icon-desktop-hide"
           onClick={() => setMenuOpen(!menuOpen)}
           style={{
             display: "flex",
@@ -410,11 +448,10 @@ function HomeInner() {
           <span style={{ height: 2, background: "var(--text)" }} />
           <span style={{ height: 2, background: "var(--text)" }} />
         </div>
-
         <img
           src={theme === "dark" ? "/logo.png" : "/logo-light.png"}
           alt="Oina.tj"
-          style={{ height: "clamp(28px, 8vw, 48px)", flexShrink: 1, minWidth: 0 }}
+          style={{ height: "clamp(28px, 8vw, 48px)", position: "absolute", left: "50%", transform: "translateX(-50%)" }}
         />
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
@@ -699,11 +736,12 @@ function HomeInner() {
               padding: "24px 0",
               display: "flex",
               flexDirection: "column",
+              overflowY: "auto",
               borderTopRightRadius: 16,
               borderBottomRightRadius: 16,
             }}
           >
-            <div style={{ marginBottom: 30, padding: "0 24px" }}>
+            <div style={{ marginBottom: 20, padding: "0 24px" }}>
               <span
                 className="catalog-label"
                 style={{ border: "none", padding: 0, fontSize: 18, color: "var(--text)" }}
@@ -712,32 +750,176 @@ function HomeInner() {
               </span>
             </div>
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {(["women", "men", "kids"] as const).map((key) => {
-                const isActive = activeCategory === key || hoveredCategory === key;
+              {categories.filter((c) => !c.parent_id).map((parent) => {
+                const children = categories.filter((c) => c.parent_id === parent.id);
+                const isExpanded = openMegaMenu === parent.id;
                 return (
-                  <span
-                    key={key}
-                    onClick={() => setActiveCategory(key)}
-                    onMouseEnter={() => setHoveredCategory(key)}
-                    onMouseLeave={() => setHoveredCategory(null)}
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: 20,
-                      cursor: "pointer",
-                      padding: "16px 24px",
-                      background: isActive ? "var(--bg)" : "transparent",
-                      borderBottom: "1px solid var(--line)",
-                      transition: "background 0.15s ease",
-                    }}
-                  >
-                    {t[key]}
-                  </span>
+                  <div key={parent.id}>
+                    <span
+                      onClick={() => {
+                        if (children.length > 0) {
+                          setOpenMegaMenu(isExpanded ? null : parent.id);
+                        } else {
+                          setSelectedCategoryId(parent.id);
+                          setMenuOpen(false);
+                        }
+                      }}
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: 20,
+                        cursor: "pointer",
+                        padding: "16px 24px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        background: selectedCategoryId === parent.id ? "var(--bg)" : "transparent",
+                        borderBottom: "1px solid var(--line)",
+                      }}
+                    >
+                      {parent.name}
+                      {children.length > 0 && (
+                        <span style={{ fontSize: 14, color: "var(--text-muted)" }}>{isExpanded ? "\u2212" : "+"}</span>
+                      )}
+                    </span>
+                    {isExpanded && (
+                      <div style={{ display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+                        <span
+                          onClick={() => {
+                            setSelectedCategoryId(parent.id);
+                            setMenuOpen(false);
+                          }}
+                          style={{
+                            fontFamily: "var(--font-label)",
+                            fontSize: 13,
+                            letterSpacing: "0.04em",
+                            textTransform: "uppercase",
+                            cursor: "pointer",
+                            padding: "12px 24px 12px 36px",
+                            color: "var(--accent)",
+                            borderBottom: "1px solid var(--line)",
+                          }}
+                        >
+                          {lang === "ru" ? "Все товары" : "Ҳамаи молҳо"}
+                        </span>
+                        {children.map((child) => (
+                          <span
+                            key={child.id}
+                            onClick={() => {
+                              setSelectedCategoryId(child.id);
+                              setMenuOpen(false);
+                            }}
+                            style={{
+                              fontFamily: "var(--font-label)",
+                              fontSize: 13,
+                              cursor: "pointer",
+                              padding: "12px 24px 12px 36px",
+                              color: selectedCategoryId === child.id ? "var(--accent)" : "var(--text)",
+                              borderBottom: "1px solid var(--line)",
+                            }}
+                          >
+                            {child.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
           </div>
         </div>
       )}
+      <div
+        className="category-nav-desktop"
+        style={{
+          display: "flex",
+          gap: 32,
+          padding: "0 40px",
+          borderBottom: "1px solid var(--line)",
+          position: "relative",
+        }}
+      >
+        {categories.filter((c) => !c.parent_id).map((parent) => {
+          const children = categories.filter((c) => c.parent_id === parent.id);
+          return (
+            <div
+              key={parent.id}
+              onMouseEnter={() => setOpenMegaMenu(parent.id)}
+              onMouseLeave={() => setOpenMegaMenu(null)}
+              style={{ position: "relative" }}
+            >
+              <span
+                onClick={() => setSelectedCategoryId(parent.id)}
+                style={{
+                  display: "block",
+                  padding: "16px 0",
+                  fontFamily: "var(--font-label)",
+                  fontSize: 13,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                  color: selectedCategoryId === parent.id ? "var(--accent)" : "var(--text)",
+                  borderBottom: selectedCategoryId === parent.id ? "2px solid var(--accent)" : "2px solid transparent",
+                }}
+              >
+                {parent.name}
+              </span>
+              {openMegaMenu === parent.id && children.length > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    background: "var(--bg)",
+                    border: "1px solid var(--line)",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                    padding: "16px 0",
+                    minWidth: 220,
+                    zIndex: 140,
+                  }}
+                >
+                  <span
+                    onClick={() => {
+                      setSelectedCategoryId(parent.id);
+                      setOpenMegaMenu(null);
+                    }}
+                    style={{
+                      display: "block",
+                      padding: "8px 24px",
+                      fontSize: 13,
+                      color: "var(--accent)",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-label)",
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {lang === "ru" ? "Все товары" : "Ҳамаи молҳо"}
+                  </span>
+                  {children.map((child) => (
+                    <span
+                      key={child.id}
+                      onClick={() => {
+                        setSelectedCategoryId(child.id);
+                        setOpenMegaMenu(null);
+                      }}
+                      style={{
+                        display: "block",
+                        padding: "8px 24px",
+                        fontSize: 14,
+                        color: selectedCategoryId === child.id ? "var(--accent)" : "var(--text)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {child.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
       <div
         style={{
@@ -935,7 +1117,8 @@ function HomeInner() {
             position: "fixed",
             inset: 0,
             background: "rgba(0,0,0,0.5)",
-            zIndex: 100,
+            zIndex: 200,
+            overflow: "hidden",
           }}
         >
           <div
@@ -952,6 +1135,7 @@ function HomeInner() {
               padding: 24,
               display: "flex",
               flexDirection: "column",
+              overflowY: "auto",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -1343,8 +1527,8 @@ function HomeInner() {
             bottom: 24,
             left: "50%",
             transform: "translateX(-50%)",
-            background: "var(--text)",
-            color: "var(--bg)",
+            background: toastType === "error" ? "#E24B4A" : "var(--text)",
+            color: toastType === "error" ? "#fff" : "var(--bg)",
             padding: "12px 24px",
             fontFamily: "var(--font-label)",
             fontSize: 13,

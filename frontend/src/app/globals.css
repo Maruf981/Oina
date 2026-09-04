@@ -85,3 +85,14 @@ html, body {
     grid-template-columns: 1fr !important;
   }
 }
+@media (max-width: 640px) {
+  .category-nav-desktop {
+    display: none !important;
+  }
+}
+@media (min-width: 641px) {
+  .burger-icon-desktop-hide {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}

@@ -33,9 +33,10 @@ type ServerCartItem = {
 
 type CartContextType = {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, "qty">, qty?: number) => void;
+  addItem: (item: Omit<CartItem, "qty">, qty?: number) => Promise<{ ok: boolean; error?: string }>;
   removeItem: (variantId: number) => void;
   updateQty: (variantId: number, qty: number) => void;
+  clearCart: () => void;
   totalCount: number;
   totalPrice: number;
 };
@@ -142,7 +143,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [auth.token]);
 
-  const addItem = async (item: Omit<CartItem, "qty">, qty: number = 1) => {
+  const addItem = async (item: Omit<CartItem, "qty">, qty: number = 1): Promise<{ ok: boolean; error?: string }> => {
     if (!auth.token) {
       setItems((prev) => {
         const existing = prev.find((i) => i.variantId === item.variantId);
@@ -151,7 +152,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
         return [...prev, { ...item, qty }];
       });
-      return;
+      return { ok: true };
     }
     try {
       const res = await fetch(`${API_URL}/cart/`, {
@@ -159,9 +160,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ product_variant_id: item.variantId, quantity: qty }),
       });
-      if (res.ok) await loadServerCart();
+      if (res.ok) {
+        await loadServerCart();
+        return { ok: true };
+      }
+      const err = await res.json().catch(() => null);
+      return { ok: false, error: err?.detail };
     } catch {
-      // ignore
+      return { ok: false };
     }
   };
 
@@ -199,12 +205,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // ignore
     }
   };
+  const clearCart = async () => {
+    if (!auth.token) {
+      setItems([]);
+      localStorage.removeItem("cart");
+      return;
+    }
+    try {
+      await fetch(`${API_URL}/cart/`, { method: "DELETE", headers: authHeaders() });
+      setItems([]);
+      serverIdMap.clear();
+    } catch {
+      // ignore
+    }
+  };
 
   const totalCount = items.reduce((sum, i) => sum + i.qty, 0);
   const totalPrice = items.reduce((sum, i) => sum + i.qty * i.price, 0);
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, updateQty, totalCount, totalPrice }}>
+    <CartContext.Provider value={{ items, addItem, removeItem, updateQty, clearCart, totalCount, totalPrice }}>
       {children}
     </CartContext.Provider>
   );

@@ -36,11 +36,15 @@ def add_to_cart(
         .first()
     )
     if existing:
-        existing.quantity += data.quantity
+        new_qty = existing.quantity + data.quantity
+        if new_qty > variant.stock:
+            raise HTTPException(status_code=400, detail=f"В наличии только {variant.stock} шт.")
+        existing.quantity = new_qty
         db.commit()
         db.refresh(existing)
         return existing
-
+    if data.quantity > variant.stock:
+        raise HTTPException(status_code=400, detail=f"В наличии только {variant.stock} шт.")
     item = CartItem(customer_id=customer.id, product_variant_id=data.product_variant_id, quantity=data.quantity)
     db.add(item)
     db.commit()
@@ -60,6 +64,8 @@ def update_cart_item(
         raise HTTPException(status_code=404, detail="Cart item not found")
     if data.quantity < 1:
         raise HTTPException(status_code=400, detail="Quantity must be at least 1")
+    if data.quantity > item.variant.stock:
+        raise HTTPException(status_code=400, detail=f"В наличии только {item.variant.stock} шт.")
     item.quantity = data.quantity
     db.commit()
     db.refresh(item)
