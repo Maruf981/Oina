@@ -53,7 +53,11 @@ html, body {
     padding: 16px 12px 0 !important;
   }
   .banner-slider {
-    height: 220px !important;
+    height: 150px !important;
+  }
+  .banner-slide-bg {
+    background-size: cover !important;
+    background-position: center top !important;
   }
   .banner-slide-bg h2 {
     font-size: 22px !important;
