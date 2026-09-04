@@ -246,11 +246,12 @@ export default function WebAppPage() {
               style={{
                 padding: "6px 12px",
                 borderRadius: 20,
-                border: active ? `2px solid ${hex}` : "1px solid #2A2A2E",
-                background: active ? hex : "#18181B",
-                color: active ? getContrastText(hex) : "#F2F0EA",
+                border: active ? `2px solid ${hex}` : `1px solid ${hex}`,
+                background: hex,
+                color: getContrastText(hex),
                 fontSize: 13,
                 cursor: "pointer",
+                opacity: active ? 1 : 0.55,
               }}
             >
               {color}
@@ -344,9 +345,14 @@ export default function WebAppPage() {
                   <div key={size} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
                     <span style={{ opacity: 0.7 }}>{size}:</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={stock}
-                      onChange={(e) => setSizeStock(entry.color, size, Number(e.target.value))}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/[^0-9]/g, "");
+                        setSizeStock(entry.color, size, digits === "" ? 0 : Number(digits));
+                      }}
                       style={{ width: 50, padding: 4, fontSize: 12, background: "#0E0E10", border: "1px solid #2A2A2E", color: "#F2F0EA", borderRadius: 4 }}
                     />
                   </div>
