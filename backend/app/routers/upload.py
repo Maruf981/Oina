@@ -9,6 +9,7 @@ from app.core.deps import get_current_admin, get_current_customer
 from app.models.product import Product, ProductImage
 from app.models.customer import Customer
 from app.models.employee import Employee
+from app.models.home_banner import HomeBanner
 
 cloudinary.config(
     cloud_name=settings.CLOUDINARY_CLOUD_NAME,
@@ -112,6 +113,27 @@ async def upload_employee_photo(
     db.commit()
     db.refresh(employee)
     return {"photo_url": employee.photo_url}
+
+
+@router.post("/banner-image/{banner_id}")
+async def upload_banner_image(
+    banner_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin),
+):
+    banner = db.query(HomeBanner).filter(HomeBanner.id == banner_id).first()
+    if not banner:
+        raise HTTPException(status_code=404, detail="Banner not found")
+    result = cloudinary.uploader.upload(
+        file.file,
+        folder="oina/banners",
+        resource_type="image",
+    )
+    banner.image_url = result["secure_url"]
+    db.commit()
+    db.refresh(banner)
+    return {"image_url": banner.image_url}
 
 
 @router.post("/avatar")

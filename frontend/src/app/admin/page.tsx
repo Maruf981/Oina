@@ -57,6 +57,12 @@ const labels = {
     address: "Адрес",
     hireDate: "Дата приёма",
     notes: "Заметки",
+    banners: "Баннеры",
+    addBanner: "Добавить баннер",
+    subtitle: "Подзаголовок",
+    product: "Товар",
+    sortOrder: "Порядок",
+    active: "Активен",
   },
   tj: {
     title: "Воридшавӣ ба админ",
@@ -110,6 +116,12 @@ const labels = {
     address: "Суроға",
     hireDate: "Санаи қабул",
     notes: "Ёддошт",
+    banners: "Баннерҳо",
+    addBanner: "Иловаи баннер",
+    subtitle: "Зерсарлавҳа",
+    product: "Мол",
+    sortOrder: "Тартиб",
+    active: "Фаъол",
   },
 };
 
@@ -245,7 +257,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived" | "employees">(() => {
+  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived" | "employees" | "banners">(() => {
     if (typeof window === "undefined") return "products";
     return (localStorage.getItem("admin_tab") as any) || "products";
   });
@@ -379,7 +391,7 @@ export default function AdminPage() {
         </div>
       </nav>
       <div style={{ display: "flex", gap: 24, padding: "20px 16px", borderBottom: "1px solid var(--line)", overflowX: "auto", whiteSpace: "nowrap", WebkitOverflowScrolling: "touch" }}>
-        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts", "archived", "employees"] as const).map((tabName) => (
+        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts", "archived", "employees", "banners"] as const).map((tabName) => (
           <span
             key={tabName}
             onClick={() => setTab(tabName)}
@@ -431,6 +443,7 @@ export default function AdminPage() {
         {tab === "warehouse" && <WarehouseTab products={products} suppliers={suppliers} incomingMovements={incomingMovements} />}
         {tab === "finance" && <FinanceTab orders={orders} products={products} suppliers={suppliers} authFetch={authFetch} />}
         {tab === "employees" && <EmployeesTab t={t} authFetch={authFetch} />}
+        {tab === "banners" && <BannersTab t={t} authFetch={authFetch} products={products} />}
       </div>
     </div>
   );
@@ -2448,6 +2461,188 @@ function EmployeesTab({ t, authFetch }: any) {
             {emp.address && <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>{t.address}: {emp.address}</div>}
             {emp.hire_date && <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>{t.hireDate}: {emp.hire_date}</div>}
             {emp.notes && <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 8, whiteSpace: "pre-wrap" }}>{emp.notes}</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BannersTab({ t, authFetch, products }: any) {
+  const [banners, setBanners] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<any>({
+    title: "", subtitle: "", product_id: "", sort_order: 0, is_active: true, text_color: "#FFFFFF",
+  });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [error, setError] = useState("");
+
+  const refresh = () => {
+    setLoading(true);
+    authFetch(`${API}/banners/?active_only=false`)
+      .then((r: any) => r.json())
+      .then((data: any) => {
+        setBanners(Array.isArray(data) ? data.sort((a: any, b: any) => a.sort_order - b.sort_order) : []);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const resetForm = () => {
+    setForm({ title: "", subtitle: "", product_id: "", sort_order: 0, is_active: true, text_color: "#FFFFFF" });
+    setImageFile(null);
+    setEditingId(null);
+    setCreating(false);
+    setError("");
+  };
+
+  const startEdit = (b: any) => {
+    setForm({
+      title: b.title || "",
+      subtitle: b.subtitle || "",
+      product_id: b.product_id || "",
+      sort_order: b.sort_order ?? 0,
+      is_active: b.is_active,
+      text_color: b.text_color || "#FFFFFF",
+    });
+    setEditingId(b.id);
+    setCreating(true);
+    setImageFile(null);
+    setError("");
+  };
+
+  const handleSave = async () => {
+    setError("");
+    if (!form.title.trim()) {
+      setError("Введите заголовок баннера");
+      return;
+    }
+    if (!form.product_id) {
+      setError("Выберите товар");
+      return;
+    }
+    const payload = {
+      title: form.title,
+      subtitle: form.subtitle || null,
+      product_id: Number(form.product_id),
+      sort_order: Number(form.sort_order) || 0,
+      is_active: form.is_active,
+      text_color: form.text_color || "#FFFFFF",
+    };
+    const url = editingId ? `${API}/banners/${editingId}` : `${API}/banners/`;
+    const method = editingId ? "PATCH" : "POST";
+    const res = await authFetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      setError("Не удалось сохранить баннер");
+      return;
+    }
+    const saved = await res.json();
+    if (imageFile) {
+      const fd = new FormData();
+      fd.append("file", imageFile);
+      await authFetch(`${API}/upload/banner-image/${saved.id}`, { method: "POST", body: fd });
+    }
+    resetForm();
+    refresh();
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Удалить баннер безвозвратно?")) return;
+    await authFetch(`${API}/banners/${id}`, { method: "DELETE" });
+    refresh();
+  };
+
+  const toggleActive = async (b: any) => {
+    await authFetch(`${API}/banners/${b.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: b.title,
+        subtitle: b.subtitle,
+        product_id: b.product_id,
+        sort_order: b.sort_order,
+        is_active: !b.is_active,
+        text_color: b.text_color,
+      }),
+    });
+    refresh();
+  };
+
+  const inputStyle = { width: "100%", padding: 10, marginBottom: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", boxSizing: "border-box" as const };
+  const productList: any[] = Array.isArray(products) ? products : [];
+
+  if (loading) return <p style={{ color: "var(--text-muted)" }}>Загрузка...</p>;
+
+  return (
+    <div>
+      {!creating ? (
+        <button
+          onClick={() => setCreating(true)}
+          style={{ marginBottom: 24, padding: "10px 20px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+        >
+          + {t.addBanner}
+        </button>
+      ) : (
+        <div style={{ maxWidth: 480, marginBottom: 24, border: "1px solid var(--line)", padding: 20 }}>
+          <input placeholder={t.name} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} style={inputStyle} />
+          <input placeholder={t.subtitle} value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} style={inputStyle} />
+          <select value={form.product_id} onChange={(e) => setForm({ ...form, product_id: e.target.value })} style={inputStyle}>
+            <option value="">— {t.product} —</option>
+            {productList.map((p: any) => (
+              <option key={p.id} value={p.id}>№{p.catalog_number} — {p.title_ru}</option>
+            ))}
+          </select>
+          <input type="number" placeholder={t.sortOrder} value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} style={inputStyle} />
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 13 }}>
+            <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
+            {t.active}
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, fontSize: 13 }}>
+            Цвет текста:
+            <input type="color" value={form.text_color} onChange={(e) => setForm({ ...form, text_color: e.target.value })} style={{ width: 44, height: 28, padding: 0, border: "1px solid var(--line)", background: "none", cursor: "pointer" }} />
+            <span style={{ color: "var(--text-muted)" }}>{form.text_color}</span>
+          </label>
+          <label style={{ display: "block", marginBottom: 10, fontSize: 13, color: "var(--text-muted)" }}>
+            {t.uploadImage}
+            <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} style={{ display: "block", marginTop: 6 }} />
+          </label>
+          {error && <p style={{ color: "#E24B4A", fontSize: 13, marginBottom: 10 }}>{error}</p>}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={handleSave} style={{ padding: "10px 16px", background: "var(--text)", color: "var(--bg)", border: "none", cursor: "pointer" }}>{t.save}</button>
+            <button onClick={resetForm} style={{ padding: "10px 16px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", cursor: "pointer" }}>{t.cancel}</button>
+          </div>
+        </div>
+      )}
+
+      {banners.length === 0 && <p style={{ color: "var(--text-muted)" }}>Баннеров пока нет</p>}
+
+      {banners.map((b) => (
+        <div key={b.id} style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 16, display: "flex", gap: 20, flexWrap: "wrap", opacity: b.is_active ? 1 : 0.5 }}>
+          {b.image_url && (
+            <div style={{ width: 160, height: 90, flexShrink: 0, backgroundImage: `url(${b.image_url})`, backgroundSize: "cover", backgroundPosition: "center", border: "1px solid var(--line)" }} />
+          )}
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span className="product-title" style={{ fontSize: 17 }}>{b.title}</span>
+              <div style={{ display: "flex", gap: 12 }}>
+                <span onClick={() => startEdit(b)} style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: 12, textDecoration: "underline" }}>Изменить</span>
+                <span onClick={() => toggleActive(b)} style={{ cursor: "pointer", color: "var(--text)", fontSize: 12, textDecoration: "underline" }}>{b.is_active ? "Выключить" : "Включить"}</span>
+                <span onClick={() => handleDelete(b.id)} style={{ cursor: "pointer", color: "#E24B4A", fontSize: 12, textDecoration: "underline" }}>Удалить</span>
+              </div>
+            </div>
+            {b.subtitle && <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>{b.subtitle}</div>}
+            <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+              {t.product}: {b.product ? `№${b.product.catalog_number} — ${b.product.title_ru}` : "—"} · {t.sortOrder}: {b.sort_order}
+            </div>
           </div>
         </div>
       ))}

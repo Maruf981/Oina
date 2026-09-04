@@ -49,6 +49,23 @@ html, body {
   }
 }
 @media (max-width: 640px) {
+  .banner-wrapper {
+    padding: 16px 12px 0 !important;
+  }
+  .banner-slider {
+    height: 220px !important;
+  }
+  .banner-slide-bg h2 {
+    font-size: 22px !important;
+  }
+  .banner-slide-bg p {
+    font-size: 13px !important;
+  }
+  .banner-slider .bottom-nav-mobile-placeholder {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
   .bottom-nav-mobile {
     display: block !important;
   }

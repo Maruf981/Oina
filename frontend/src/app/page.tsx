@@ -29,6 +29,15 @@ type Category = {
   slug: string;
   parent_id: number | null;
 };
+type Banner = {
+  id: number;
+  image_url: string | null;
+  title: string;
+  subtitle: string | null;
+  product_id: number;
+  sort_order: number;
+  text_color: string;
+};
 type Product = {
   id: number;
   title_ru: string;
@@ -119,6 +128,13 @@ function HomeInner() {
       .then((r) => r.json())
       .then(setCategories)
       .catch(() => setCategories([]));
+  }, []);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  useEffect(() => {
+    fetch(`${API_URL}/banners/`)
+      .then((r) => r.json())
+      .then(setBanners)
+      .catch(() => setBanners([]));
   }, []);
   const [products, setProducts] = useState<Product[]>([]);
   const [visibleCount, setVisibleCount] = useState(20);
@@ -920,6 +936,7 @@ function HomeInner() {
           );
         })}
       </div>
+      <BannerSlider banners={banners} router={router} />
 
       <div
         style={{
@@ -1619,5 +1636,82 @@ export default function Home() {
     <Suspense fallback={null}>
       <HomeInner />
     </Suspense>
+  );
+}
+
+function BannerSlider({ banners, router }: { banners: Banner[]; router: any }) {
+  const [index, setIndex] = useState(0);
+  const active = banners.filter((b) => b.image_url);
+
+  useEffect(() => {
+    if (active.length <= 1) return;
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % active.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [active.length]);
+
+  if (active.length === 0) return null;
+
+  const current = active[index % active.length];
+
+  return (
+    <div className="banner-wrapper" style={{ padding: "24px 40px 0" }}>
+    <div className="banner-slider" style={{ position: "relative", width: "100%", height: 380, overflow: "hidden", borderRadius: 8 }}>
+      {active.map((b, i) => (
+        <div
+          key={b.id}
+          className="banner-slide-bg"
+          onClick={() => router.push(`/product/${b.product_id}`)}
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url(${b.image_url})`,
+            backgroundSize: "cover",
+            backgroundPosition: "top center",
+            cursor: "pointer",
+            opacity: i === index % active.length ? 1 : 0,
+            pointerEvents: i === index % active.length ? "auto" : "none",
+            transition: "opacity 0.6s ease",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.05) 50%)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-end",
+              padding: "32px 40px",
+            }}
+          >
+            <h2 className="product-title" style={{ color: b.text_color || "#fff", fontSize: 32, margin: 0 }}>{b.title}</h2>
+            {b.subtitle && <p style={{ color: b.text_color || "#fff", opacity: 0.85, fontSize: 15, marginTop: 8 }}>{b.subtitle}</p>}
+          </div>
+        </div>
+      ))}
+      {active.length > 1 && (
+        <div style={{ position: "absolute", bottom: 16, right: 40, display: "flex", gap: 8, zIndex: 2 }}>
+          {active.map((_, i) => (
+            <span
+              key={i}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIndex(i);
+              }}
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: i === index % active.length ? "#fff" : "rgba(255,255,255,0.4)",
+                cursor: "pointer",
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+    </div>
   );
 }
