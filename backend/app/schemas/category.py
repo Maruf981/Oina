@@ -13,6 +13,7 @@ class CategoryCreate(CategoryBase):
 
 class CategoryOut(CategoryBase):
     id: int
+    is_archived: bool = False
 
     class Config:
         from_attributes = True

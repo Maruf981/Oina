@@ -22,6 +22,10 @@ const labels = {
     logout: "Выйти",
     addProduct: "Добавить товар",
     addCategory: "Добавить категорию",
+    deleteCategory: "Удалить",
+    restoreCategory: "Восстановить",
+    categoryArchivedLabel: "В архиве",
+    confirmDeleteCategory: "Скрыть категорию? Товары в ней останутся, категорию можно будет восстановить.",
     name: "Название",
     slug: "Слаг (латиницей)",
     save: "Сохранить",
@@ -64,6 +68,10 @@ const labels = {
     logout: "Баромадан",
     addProduct: "Иловаи мол",
     addCategory: "Иловаи категория",
+    deleteCategory: "Нест кардан",
+    restoreCategory: "Барқарор кардан",
+    categoryArchivedLabel: "Дар бойгонӣ",
+    confirmDeleteCategory: "Категорияро пинҳон кунам? Молҳо дар он мемонанд, категорияро баъдан барқарор кардан мумкин аст.",
     name: "Ном",
     slug: "Слаг (бо ҳарфҳои лотинӣ)",
     save: "Нигоҳ доштан",
@@ -91,7 +99,7 @@ const labels = {
   },
 };
 
-type Category = { id: number; name: string; slug: string; parent_id: number | null };
+type Category = { id: number; name: string; slug: string; parent_id: number | null; is_archived?: boolean };
 type Supplier = { id: number; name: string; phone: string | null };
 
 type Variant = { id: number; size: string; color: string; stock: number; sku: string };
@@ -295,7 +303,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!token) return;
     refreshProducts();
-    fetch(`${API}/categories/`).then((r) => r.json()).then(setCategories);
+    fetch(`${API}/categories/?include_archived=true`).then((r) => r.json()).then(setCategories);
     authFetch(`${API}/orders/`).then((r) => (r.ok ? r.json() : [])).then(setOrders);
     authFetch(`${API}/suppliers/`).then((r) => (r.ok ? r.json() : [])).then(setSuppliers);
     authFetch(`${API}/stock-movements/?movement_type=incoming`).then((r) => (r.ok ? r.json() : [])).then(setIncomingMovements);
@@ -309,7 +317,7 @@ export default function AdminPage() {
       }
       return r.ok ? r.json() : [];
     }).then(setProducts);
-  const refreshCategories = () => fetch(`${API}/categories/`).then((r) => r.json()).then(setCategories);
+  const refreshCategories = () => fetch(`${API}/categories/?include_archived=true`).then((r) => r.json()).then(setCategories);
   const refreshOrders = () => authFetch(`${API}/orders/`).then((r) => (r.ok ? r.json() : [])).then(setOrders);
   const refreshSuppliers = () => authFetch(`${API}/suppliers/`).then((r) => (r.ok ? r.json() : [])).then(setSuppliers);
 
@@ -930,8 +938,8 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
         <input type="number" placeholder={t.price} value={form.price} onChange={(e) => updateField("price", e.target.value)} style={inputStyle} />
         <select value={form.category_id} onChange={(e) => updateField("category_id", Number(e.target.value))} style={inputStyle}>
-          {categories.filter((c: Category) => !c.parent_id).map((parent: Category) => {
-            const children = categories.filter((c: Category) => c.parent_id === parent.id);
+          {categories.filter((c: Category) => !c.parent_id && !c.is_archived).map((parent: Category) => {
+            const children = categories.filter((c: Category) => c.parent_id === parent.id && !c.is_archived);
             if (children.length === 0) {
               return <option key={parent.id} value={parent.id}>{parent.name}</option>;
             }
@@ -1453,6 +1461,15 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
   const topLevel = categories.filter((c: Category) => !c.parent_id);
 
   const [categoryError, setCategoryError] = useState("");
+  const handleArchiveCategory = async (id: number) => {
+    if (!window.confirm(t.confirmDeleteCategory)) return;
+    await authFetch(`${API}/categories/${id}`, { method: "DELETE" });
+    refreshCategories();
+  };
+  const handleRestoreCategory = async (id: number) => {
+    await authFetch(`${API}/categories/${id}/restore`, { method: "POST" });
+    refreshCategories();
+  };
   const handleSave = async () => {
     setCategoryError("");
     if (!name.trim()) {
@@ -1503,7 +1520,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
           <input placeholder={t.name} value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }} />
           <select value={parentId} onChange={(e) => setParentId(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }}>
             <option value="">Без родителя (основная категория)</option>
-            {topLevel.map((c: Category) => (
+            {topLevel.filter((c: Category) => !c.is_archived).map((c: Category) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
@@ -1520,12 +1537,28 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
         const children = categories.filter((c: Category) => c.parent_id === parent.id);
         return (
           <div key={parent.id}>
-            <div style={{ padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
-              {parent.name} <span style={{ color: "var(--text-muted)" }}>({parent.slug})</span>
+            <div style={{ padding: "12px 0", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between", opacity: parent.is_archived ? 0.5 : 1 }}>
+              <span style={{ textDecoration: parent.is_archived ? "line-through" : "none" }}>
+                {parent.name} <span style={{ color: "var(--text-muted)" }}>({parent.slug})</span>
+                {parent.is_archived && <span style={{ marginLeft: 8, fontSize: 11, color: "#E24B4A" }}>{t.categoryArchivedLabel}</span>}
+              </span>
+              {parent.is_archived ? (
+                <button onClick={() => handleRestoreCategory(parent.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}>{t.restoreCategory}</button>
+              ) : (
+                <button onClick={() => handleArchiveCategory(parent.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "#E24B4A", fontSize: 12, cursor: "pointer" }}>{t.deleteCategory}</button>
+              )}
             </div>
             {children.map((child: Category) => (
-              <div key={child.id} style={{ padding: "10px 0 10px 24px", borderBottom: "1px solid var(--line)", color: "var(--text-muted)" }}>
-                — {child.name} <span style={{ color: "var(--text-muted)" }}>({child.slug})</span>
+              <div key={child.id} style={{ padding: "10px 0 10px 24px", borderBottom: "1px solid var(--line)", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "space-between", opacity: child.is_archived ? 0.5 : 1 }}>
+                <span style={{ textDecoration: child.is_archived ? "line-through" : "none" }}>
+                  — {child.name} <span style={{ color: "var(--text-muted)" }}>({child.slug})</span>
+                  {child.is_archived && <span style={{ marginLeft: 8, fontSize: 11, color: "#E24B4A" }}>{t.categoryArchivedLabel}</span>}
+                </span>
+                {child.is_archived ? (
+                  <button onClick={() => handleRestoreCategory(child.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}>{t.restoreCategory}</button>
+                ) : (
+                  <button onClick={() => handleArchiveCategory(child.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "#E24B4A", fontSize: 12, cursor: "pointer" }}>{t.deleteCategory}</button>
+                )}
               </div>
             ))}
           </div>

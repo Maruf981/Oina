@@ -1,4 +1,4 @@
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import String, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -11,6 +11,7 @@ class Category(Base):
     name: Mapped[str] = mapped_column(String(100))
     slug: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     parent: Mapped["Category | None"] = relationship(remote_side="Category.id", backref="children")
     products: Mapped[list["Product"]] = relationship(back_populates="category")
