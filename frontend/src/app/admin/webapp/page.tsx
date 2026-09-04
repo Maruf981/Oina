@@ -126,6 +126,10 @@ export default function WebAppPage() {
       alert("Укажи название");
       return;
     }
+    if (!categoryId) {
+      alert("Укажи категорию");
+      return;
+    }
     setSaving(true);
     try {
       const loginRes = await fetch(`${API}/telegram-auth/admin`, {
@@ -136,30 +140,42 @@ export default function WebAppPage() {
       if (!loginRes.ok) throw new Error("Login failed");
       const { access_token } = await loginRes.json();
 
-      const colorsPayload = activeColors.map((c) => ({
-        color: c.color,
-        size_type: c.sizeType,
-        sizes: Object.entries(c.sizes).map(([size, stock]) => ({ size, stock })),
-      }));
+      const variants = activeColors.flatMap((c) =>
+        Object.entries(c.sizes).map(([size, stock]) => ({
+          size,
+          color: c.color,
+          stock,
+        }))
+      );
       const guidePayload = allSizesUsed
         .filter((s) => guide[s])
         .map((s) => guide[s]);
 
-      const formData = new FormData();
-      formData.append("title", title);
-      formData.append("price", price);
-      formData.append("cost_price", costPrice);
-      formData.append("category_id", categoryId ? String(categoryId) : "");
-      formData.append("colors", JSON.stringify(colorsPayload));
-      formData.append("size_guide", JSON.stringify(guidePayload));
-      if (photo) formData.append("photo", photo);
-
-      const res = await fetch(`${API}/quick-drafts/`, {
+      const productRes = await fetch(`${API}/products/`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${access_token}` },
-        body: formData,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${access_token}` },
+        body: JSON.stringify({
+          category_id: categoryId,
+          title_ru: title,
+          price: price ? Number(price) : 0,
+          cost_price: costPrice ? Number(costPrice) : null,
+          is_active: false,
+          size_guide: guidePayload,
+          variants,
+        }),
       });
-      if (!res.ok) throw new Error("Save failed");
+      if (!productRes.ok) throw new Error("Save failed");
+      const product = await productRes.json();
+
+      if (photo) {
+        const imgFormData = new FormData();
+        imgFormData.append("file", photo);
+        await fetch(`${API}/upload/product-image/${product.id}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${access_token}` },
+          body: imgFormData,
+        });
+      }
 
       setDone(true);
       setTimeout(() => window.Telegram?.WebApp?.close(), 1500);
@@ -185,14 +201,14 @@ export default function WebAppPage() {
   if (done) {
     return (
       <div style={{ background: "#0E0E10", color: "#F2F0EA", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "sans-serif" }}>
-        <span style={{ fontSize: 18 }}>✅ Быстрый черновик сохранён</span>
+        <span style={{ fontSize: 18 }}>✅ Черновик товара сохранён</span>
       </div>
     );
   }
 
   return (
     <div style={{ background: "#0E0E10", color: "#F2F0EA", minHeight: "100vh", padding: 20, paddingBottom: 100, fontFamily: "sans-serif" }}>
-      <h2 style={{ marginBottom: 20 }}>Быстрый черновик</h2>
+      <h2 style={{ marginBottom: 20 }}>Новый черновик товара</h2>
 
       <label style={{ display: "block", marginBottom: 12 }}>
         <div style={{ padding: 14, background: "#18181B", border: "1px dashed #2A2A2E", textAlign: "center", borderRadius: 4, cursor: "pointer" }}>
@@ -373,7 +389,7 @@ export default function WebAppPage() {
           marginTop: 20,
         }}
       >
-        {saving ? "Сохраняем..." : "Сохранить черновик"}
+        {saving ? "Сохраняем..." : "Создать черновик"}
       </button>
     </div>
   );
