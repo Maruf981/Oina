@@ -145,7 +145,6 @@ function HomeInner() {
   const { theme, toggleTheme } = useTheme();
   const { lang, toggleLang } = useLang();
   const [cartOpen, setCartOpen] = useState(false);
-  const [selectedSizes, setSelectedSizes] = useState<Record<number, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -355,35 +354,6 @@ function HomeInner() {
       setTimeout(() => setToastMessage(null), 3000);
       setPlacing(false);
     }
-  };
-  const handleAddToCart = async (product: Product) => {
-    const variantId = selectedSizes[product.id] ?? product.variants[0]?.id;
-    const variant = product.variants.find((v) => v.id === variantId);
-    if (!variant) return;
-    if (variant.stock <= 0) {
-      setToastType("error");
-      setToastMessage(lang === "ru" ? "Этого товара нет в наличии" : "Ин мол мавҷуд нест");
-      setTimeout(() => setToastMessage(null), 2500);
-      return;
-    }
-    const result = await cart.addItem({
-      variantId: variant.id,
-      productId: product.id,
-      title: localized(product.title_ru, product.title_tj),
-      catalogNumber: product.catalog_number,
-      price: product.price,
-      size: variant.size,
-      color: variant.color,
-    });
-    if (!result.ok) {
-      setToastType("error");
-      setToastMessage(result.error || (lang === "ru" ? "Не удалось добавить товар в корзину" : "Илова кардан имконнопазир аст"));
-      setTimeout(() => setToastMessage(null), 3000);
-      return;
-    }
-    setToastType("success");
-    setToastMessage(lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд");
-    setTimeout(() => setToastMessage(null), 2000);
   };
 
   useEffect(() => {
