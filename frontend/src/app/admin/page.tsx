@@ -797,6 +797,8 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
   const savingRef = useRef(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [productImages, setProductImages] = useState(product?.images ?? []);
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
+  const [dragOverImageIndex, setDragOverImageIndex] = useState<number | null>(null);
 
   const updateField = (key: string, value: any) => setForm({ ...form, [key]: value });
 
@@ -943,6 +945,41 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
         return [target, ...prev.filter((img) => img.id !== imageId)];
       });
     }
+  };
+  const persistImageOrder = async (orderedImages: any[]) => {
+    if (!product) return;
+    await authFetch(`${API}/upload/product-image/${product.id}/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image_ids: orderedImages.map((img) => img.id) }),
+    });
+  };
+  const handleImageDragStart = (index: number) => {
+    setDraggedImageIndex(index);
+  };
+  const handleImageDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (index !== dragOverImageIndex) setDragOverImageIndex(index);
+  };
+  const handleImageDrop = (index: number) => {
+    if (draggedImageIndex === null || draggedImageIndex === index) {
+      setDraggedImageIndex(null);
+      setDragOverImageIndex(null);
+      return;
+    }
+    setProductImages((prev: any[]) => {
+      const next = [...prev];
+      const [moved] = next.splice(draggedImageIndex, 1);
+      next.splice(index, 0, moved);
+      persistImageOrder(next);
+      return next;
+    });
+    setDraggedImageIndex(null);
+    setDragOverImageIndex(null);
+  };
+  const handleImageDragEnd = () => {
+    setDraggedImageIndex(null);
+    setDragOverImageIndex(null);
   };
   const inputStyle = { padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14, width: "100%", boxSizing: "border-box" as const };
 
@@ -1317,7 +1354,22 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
           {productImages.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10, marginBottom: 16 }}>
               {productImages.map((img: any, index: number) => (
-                <div key={img.id} style={{ position: "relative", aspectRatio: "1", background: "var(--surface)", border: index === 0 ? "2px solid var(--accent)" : "1px solid var(--line)" }}>
+                <div
+                  key={img.id}
+                  draggable
+                  onDragStart={() => handleImageDragStart(index)}
+                  onDragOver={(e) => handleImageDragOver(e, index)}
+                  onDrop={() => handleImageDrop(index)}
+                  onDragEnd={handleImageDragEnd}
+                  style={{
+                    position: "relative",
+                    aspectRatio: "1",
+                    background: "var(--surface)",
+                    border: index === 0 ? "2px solid var(--accent)" : dragOverImageIndex === index ? "2px dashed var(--accent)" : "1px solid var(--line)",
+                    cursor: "grab",
+                    opacity: draggedImageIndex === index ? 0.4 : 1,
+                  }}
+                >
                   {img.media_type === "video" ? (
                     <video src={img.url} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   ) : (
