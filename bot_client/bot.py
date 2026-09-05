@@ -27,16 +27,28 @@ conversation_history: dict[int, list[dict]] = {}
 MAX_HISTORY_MESSAGES = 12  # храним последние N сообщений диалога (и user, и assistant)
 
 
-async def lookup_order_by_phone(phone: str) -> list:
+async def fetch_backend(path: str, params: dict) -> dict | list | None:
+    """GET-запрос к backend с повторными попытками при 429 (временный троттлинг Render free-тарифа)."""
     async with httpx.AsyncClient(timeout=15) as client:
-        try:
-            response = await client.get(f"{API_URL}/orders/lookup", params={"phone": phone})
-            if response.status_code != 200:
-                return []
-            return response.json()
-        except Exception as e:
-            logging.error(f"Order lookup error: {e}")
-            return []
+        for attempt in range(3):
+            try:
+                response = await client.get(f"{API_URL}{path}", params=params)
+            except Exception as e:
+                logging.error(f"Backend request error: {e}")
+                return None
+            if response.status_code == 200:
+                return response.json()
+            if response.status_code == 429 and attempt < 2:
+                await asyncio.sleep(1.5 * (attempt + 1))
+                continue
+            logging.error(f"Backend request failed: {response.status_code} {response.text}")
+            return None
+    return None
+
+
+async def lookup_order_by_phone(phone: str) -> list:
+    result = await fetch_backend("/orders/lookup", {"phone": phone})
+    return result if isinstance(result, list) else []
 
 
 async def search_products(query: str = "", color: str = "", size: str = "") -> list:
@@ -48,15 +60,9 @@ async def search_products(query: str = "", color: str = "", size: str = "") -> l
     if size:
         params["size"] = size
 
-    async with httpx.AsyncClient(timeout=15) as client:
-        try:
-            response = await client.get(f"{API_URL}/products/", params=params)
-            if response.status_code != 200:
-                return []
-            products = response.json()
-        except Exception as e:
-            logging.error(f"Product search error: {e}")
-            return []
+    products = await fetch_backend("/products/", params)
+    if not isinstance(products, list):
+        return []
 
     simplified = []
     for p in products[:10]:
