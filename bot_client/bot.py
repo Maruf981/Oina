@@ -39,6 +39,41 @@ async def lookup_order_by_phone(phone: str) -> list:
             return []
 
 
+async def search_products(query: str = "", color: str = "", size: str = "") -> list:
+    params = {}
+    if query:
+        params["search"] = query
+    if color:
+        params["color"] = color
+    if size:
+        params["size"] = size
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        try:
+            response = await client.get(f"{API_URL}/products/", params=params)
+            if response.status_code != 200:
+                return []
+            products = response.json()
+        except Exception as e:
+            logging.error(f"Product search error: {e}")
+            return []
+
+    simplified = []
+    for p in products[:10]:
+        available = [
+            {"size": v["size"], "color": v["color"], "stock": v["stock"]}
+            for v in p.get("variants", [])
+            if v.get("stock", 0) > 0
+        ]
+        simplified.append({
+            "title": p.get("title_ru"),
+            "catalog_number": p.get("catalog_number"),
+            "price": p.get("price"),
+            "available_variants": available,
+        })
+    return simplified
+
+
 async def call_claude_api(history: list[dict]) -> dict:
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
@@ -92,6 +127,18 @@ async def ask_claude(user_id: int, user_message: str) -> str:
                     "type": "tool_result",
                     "tool_use_id": block.get("id"),
                     "content": str(orders) if orders else "Заказов с таким номером не найдено.",
+                })
+            elif block.get("name") == "search_products":
+                tool_input = block.get("input", {})
+                products = await search_products(
+                    query=tool_input.get("query", ""),
+                    color=tool_input.get("color", ""),
+                    size=tool_input.get("size", ""),
+                )
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.get("id"),
+                    "content": str(products) if products else "Товары не найдены.",
                 })
 
         history.append({"role": "user", "content": tool_results})
