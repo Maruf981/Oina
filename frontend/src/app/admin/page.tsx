@@ -2167,6 +2167,7 @@ const ORDER_STATUS_LABELS: Record<string, string> = {
 function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [periodFilter, setPeriodFilter] = useState<"all" | "today" | "yesterday" | "week" | "month">("all");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
   const handleStatusChange = async (orderId: number, status: string) => {
@@ -2192,9 +2193,32 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
         });
       })
     : orders;
-  const filteredOrders = statusFilter
+  const isWithinPeriod = (iso: string): boolean => {
+    if (periodFilter === "all") return true;
+    const date = new Date(iso);
+    const now = new Date();
+    if (periodFilter === "today") return date.toDateString() === now.toDateString();
+    if (periodFilter === "yesterday") {
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      return date.toDateString() === yesterday.toDateString();
+    }
+    if (periodFilter === "week") {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(now.getDate() - 7);
+      return date >= weekAgo;
+    }
+    if (periodFilter === "month") {
+      const monthAgo = new Date(now);
+      monthAgo.setMonth(now.getMonth() - 1);
+      return date >= monthAgo;
+    }
+    return true;
+  };
+  const statusedOrders = statusFilter
     ? searchedOrders.filter((o: Order) => o.status === statusFilter)
     : searchedOrders;
+  const filteredOrders = statusedOrders.filter((o: Order) => isWithinPeriod(o.created_at));
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pagedOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -2204,6 +2228,10 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
   };
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
+    setPage(1);
+  };
+  const handlePeriodFilterChange = (value: "all" | "today" | "yesterday" | "week" | "month") => {
+    setPeriodFilter(value);
     setPage(1);
   };
   return (
@@ -2225,6 +2253,33 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
             <option key={value} value={value}>{label}</option>
           ))}
         </select>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+        {([
+          { value: "all", label: "Все" },
+          { value: "today", label: "Сегодня" },
+          { value: "yesterday", label: "Вчера" },
+          { value: "week", label: "Неделя" },
+          { value: "month", label: "Месяц" },
+        ] as const).map((p) => (
+          <button
+            key={p.value}
+            onClick={() => handlePeriodFilterChange(p.value)}
+            style={{
+              padding: "8px 16px",
+              background: periodFilter === p.value ? "var(--accent)" : "var(--surface)",
+              color: periodFilter === p.value ? "var(--bg)" : "var(--text)",
+              border: "1px solid var(--line)",
+              fontFamily: "var(--font-label)",
+              fontSize: 12,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              cursor: "pointer",
+            }}
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
       <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
         Найдено: {filteredOrders.length}
