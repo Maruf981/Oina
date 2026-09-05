@@ -67,7 +67,7 @@ async def search_products(query: str = "", color: str = "", size: str = "") -> l
     simplified = []
     for p in products[:10]:
         available = [
-            {"size": v["size"], "color": v["color"], "stock": v["stock"]}
+            {"size": v["size"], "color": v["color"]}
             for v in p.get("variants", [])
             if v.get("stock", 0) > 0
         ]
