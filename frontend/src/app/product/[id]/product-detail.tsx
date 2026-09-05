@@ -238,19 +238,25 @@ export default function ProductDetailClient() {
   const handleSelectSize = (size: string) => {
     setSelectedSize(size);
     const match = product.variants.find((v) => v.size === size && v.color === selectedColor);
-    if (match) setQuantity((q) => Math.min(q, match.stock || 1));
     if (match) {
+      setQuantity((q) => Math.min(q, match.stock || 1));
       const imgIdx = product.images.findIndex((img) => img.color === match.color);
       if (imgIdx !== -1) setActiveImage(imgIdx);
+    } else if (selectedColor !== null) {
+      setSelectedColor(null);
     }
   };
   const handleSelectColor = (color: string) => {
     setSelectedColor(color);
     const match = product.variants.find((v) => v.color === color && v.size === selectedSize);
-    if (match) setQuantity((q) => Math.min(q, match.stock || 1));
     if (match) {
+      setQuantity((q) => Math.min(q, match.stock || 1));
       const imgIdx = product.images.findIndex((img) => img.color === match.color);
       if (imgIdx !== -1) setActiveImage(imgIdx);
+    } else if (selectedSize !== null) {
+      // Выбранный ранее размер недоступен для этого цвета — сбрасываем,
+      // чтобы состояние совпадало с тем, что видит пользователь (ни один размер не подсвечен)
+      setSelectedSize(null);
     }
   };
   const handleSubmitRating = async (rating: number) => {
@@ -274,7 +280,28 @@ export default function ProductDetailClient() {
   };
 
   const handleAddToCart = async () => {
-    if (!currentVariant) return;
+    if (!currentVariant) {
+      let message: string;
+      if (selectedSize === null && selectedColor === null) {
+        message = lang === "ru" ? "Выберите размер и цвет" : "Андоза ва рангро интихоб кунед";
+      } else if (selectedSize === null) {
+        message = lang === "ru" ? "Выберите размер" : "Андозаро интихоб кунед";
+      } else if (selectedColor === null) {
+        message = lang === "ru" ? "Выберите цвет" : "Рангро интихоб кунед";
+      } else {
+        message = lang === "ru" ? "Этой комбинации размера и цвета нет в наличии" : "Ин таркиб мавҷуд нест";
+      }
+      setToastType("error");
+      setToastMessage(message);
+      setTimeout(() => setToastMessage(null), 2500);
+      return;
+    }
+    if (currentVariant.stock <= 0) {
+      setToastType("error");
+      setToastMessage(lang === "ru" ? "Этого товара нет в наличии" : "Ин мол мавҷуд нест");
+      setTimeout(() => setToastMessage(null), 2500);
+      return;
+    }
     const result = await cart.addItem(
       {
         variantId: currentVariant.id,
@@ -430,7 +457,7 @@ export default function ProductDetailClient() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div className="catalog-label" style={{ border: "none", padding: 0 }}>
-                Артикул {product.catalog_number}
+                Арт. {product.catalog_number}
               </div>
               <span
                 onClick={() => setShareMenuOpen(!shareMenuOpen)}
