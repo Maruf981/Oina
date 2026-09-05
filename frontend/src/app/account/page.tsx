@@ -14,6 +14,14 @@ type OrderItem = {
   product_variant_id: number;
   quantity: number;
   price_at_order: number;
+  variant: {
+    id: number;
+    size: string;
+    color: string;
+    title_ru: string;
+    title_tj: string | null;
+    catalog_number: string;
+  } | null;
 };
 
 type Order = {
@@ -386,7 +394,20 @@ export default function AccountPage() {
                   {statusLabels[order.status] || order.status} · {new Date(order.created_at).toLocaleDateString("ru-RU")}
                 </div>
                 {order.delivery_address && (
-                  <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{order.delivery_address}</p>
+                  <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 10 }}>{order.delivery_address}</p>
+                )}
+                {order.items.length > 0 && (
+                  <div style={{ borderTop: "1px solid var(--line)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                    {order.items.map((item) => (
+                      <div key={item.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text-muted)" }}>
+                        <span>
+                          {item.variant ? (lang === "ru" ? item.variant.title_ru : item.variant.title_tj || item.variant.title_ru) : (lang === "ru" ? "Товар" : "Мол")}
+                          {item.variant && ` (${item.variant.color}, ${item.variant.size})`}
+                        </span>
+                        <span>{item.quantity} {lang === "ru" ? "шт" : "дона"} × {item.price_at_order} смн</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             ))}
