@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense, type ReactElement } from "react";
 import { translations, Lang } from "./translations";
 import { useCart } from "./cart-context";
 import { useAuth } from "./auth-context";
@@ -34,7 +34,8 @@ type Banner = {
   image_url: string | null;
   title: string;
   subtitle: string | null;
-  product_id: number;
+  product_id: number | null;
+  category_id: number | null;
   sort_order: number;
   text_color: string;
 };
@@ -84,6 +85,60 @@ function getDiscountBadgeSrc(percent: number | null): string | null {
     if (step <= percent) closest = step;
   }
   return `/badge-discount-${closest}.png`;
+}
+
+function getRecommendedBadgeText(p: Product): string | null {
+  if (isDiscountActive(p) && p.discount_percent) return `-${p.discount_percent}%`;
+  if (p.is_new) return "Новинка";
+  if (p.is_featured) return "Хорошая цена";
+  return null;
+}
+
+function getCategoryIcon(name: string): ReactElement {
+  const n = name.toLowerCase();
+  const stroke = "currentColor";
+  if (n.includes("муж")) {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
+        <path d="M8 4h8l3 4-3 2v10H8V10L5 8z" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (n.includes("жен")) {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
+        <path d="M9 3h6l2 5-3 1 3 12H7l3-12-3-1z" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (n.includes("дет")) {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
+        <circle cx="12" cy="6" r="2.5" />
+        <path d="M6 20l2-9h8l2 9M9 11v9M15 11v9" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (n.includes("обув")) {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
+        <path d="M4 17c0-3 2-6 5-7l2-3 3 2 4 1c2 .5 3 2 3 4v3H4z" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (n.includes("аксесс")) {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
+        <rect x="4" y="9" width="16" height="11" rx="2" />
+        <path d="M8 9V6a4 4 0 018 0v3" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+    </svg>
+  );
 }
 
 function StarRating({ avgRating, reviewCount }: { avgRating: number | null; reviewCount: number }) {
@@ -140,6 +195,12 @@ function HomeInner() {
       .catch(() => setBanners([]));
   }, []);
   const [products, setProducts] = useState<Product[]>([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
+  const [recommendedCollapsed, setRecommendedCollapsed] = useState(false);
+  const recommendedScrollRef = useRef<HTMLDivElement>(null);
+  const [isDraggingRecommended, setIsDraggingRecommended] = useState(false);
+  const dragStartXRef = useRef(0);
+  const dragStartScrollRef = useRef(0);
   const [visibleCount, setVisibleCount] = useState(20);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
@@ -173,6 +234,10 @@ function HomeInner() {
   const searchParams = useSearchParams();
   useEffect(() => {
     setAuthOpen(searchParams.get("login") === "1");
+  }, [searchParams]);
+  useEffect(() => {
+    const catParam = searchParams.get("category");
+    if (catParam) setSelectedCategoryId(Number(catParam));
   }, [searchParams]);
   useEffect(() => {
     if (searchParams.get("cart") === "1") {
@@ -366,6 +431,7 @@ function HomeInner() {
       if (filterSize) params.set("size", filterSize);
       if (filterColor) params.set("color", filterColor);
       if (selectedCategoryId) params.set("category_id", String(selectedCategoryId));
+      if (searchParams.get("recommended") === "1") params.set("recommended_only", "true");
       fetch(`${API_URL}/products/?${params.toString()}`, { signal: controller.signal })
         .then((res) => res.json())
         .then((data) => {
@@ -380,7 +446,13 @@ function HomeInner() {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId]);
+  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams]);
+  useEffect(() => {
+    fetch(`${API_URL}/products/?recommended_only=true`)
+      .then((res) => res.json())
+      .then((data) => setRecommendedProducts(data))
+      .catch(() => setRecommendedProducts([]));
+  }, []);
   useEffect(() => {
     const el = loadMoreRef.current;
     if (!el) return;
@@ -911,27 +983,107 @@ function HomeInner() {
       </div>
       <BannerSlider banners={banners} router={router} />
 
-      <div
-        style={{
-          padding: "60px 40px",
-          borderBottom: "1px solid var(--line)",
-        }}
-      >
-        <div className="catalog-label" style={{ border: "none", padding: 0, color: "var(--accent)" }}>
-          {t.collection}
+      {recommendedProducts.length > 0 && (
+        <div className="recommended-wrapper" style={{ padding: "24px 40px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <h2 className="product-title" style={{ fontSize: 22 }}>{t.recommended}</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <span
+                onClick={() => router.push("/?recommended=1")}
+                style={{ fontSize: 13, color: "var(--text-muted)", cursor: "pointer", whiteSpace: "nowrap" }}
+              >
+                {t.seeAll} →
+              </span>
+              <span
+                onClick={() => setRecommendedCollapsed((v) => !v)}
+                style={{ fontSize: 13, color: "var(--text-muted)", cursor: "pointer", whiteSpace: "nowrap" }}
+              >
+                {recommendedCollapsed ? "▼" : "▲"}
+              </span>
+            </div>
+          </div>
+          {!recommendedCollapsed && (
+            <div
+              onMouseDown={(e) => {
+                setIsDraggingRecommended(true);
+                dragStartXRef.current = e.pageX;
+                dragStartScrollRef.current = recommendedScrollRef.current?.scrollLeft ?? 0;
+              }}
+              onMouseMove={(e) => {
+                if (!isDraggingRecommended || !recommendedScrollRef.current) return;
+                const delta = e.pageX - dragStartXRef.current;
+                recommendedScrollRef.current.scrollLeft = dragStartScrollRef.current - delta;
+              }}
+              onMouseUp={() => setIsDraggingRecommended(false)}
+              onMouseLeave={() => setIsDraggingRecommended(false)}
+              style={{ background: "var(--surface)", borderRadius: 16, padding: "16px 12px", display: "flex", alignItems: "center", gap: 8 }}
+            >
+              <span
+                onClick={() => recommendedScrollRef.current?.scrollBy({ left: -300, behavior: "smooth" })}
+                style={{ fontSize: 32, color: "#444441", cursor: "pointer", flexShrink: 0, userSelect: "none", lineHeight: 1 }}
+              >
+                ‹
+              </span>
+              <div
+                ref={recommendedScrollRef}
+                className="recommended-scroll"
+                style={{ display: "flex", gap: 12, overflowX: "auto", scrollBehavior: isDraggingRecommended ? "auto" : "smooth", cursor: isDraggingRecommended ? "grabbing" : "grab", WebkitOverflowScrolling: "touch" }}
+              >
+                {recommendedProducts.map((p) => {
+                  const badgeText = getRecommendedBadgeText(p);
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => { if (!isDraggingRecommended) router.push(`/product/${p.id}`); }}
+                      className="recommended-card"
+                      style={{ cursor: "pointer", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", background: "var(--bg)" }}
+                    >
+                      <div style={{ position: "relative", aspectRatio: "3/4", background: "var(--surface)", marginBottom: 8 }}>
+                        <AutoSlideImage images={p.images} onClick={() => { if (!isDraggingRecommended) router.push(`/product/${p.id}`); }} />
+                        {badgeText && (
+                          <span style={{ position: "absolute", top: 8, left: 8, fontSize: 10, fontWeight: 500, background: "var(--bg)", color: "var(--text)", padding: "3px 8px", borderRadius: 4 }}>
+                            {badgeText}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--text)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 8px" }}>
+                        {localized(p.title_ru, p.title_tj)}
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", padding: "0 8px 8px" }}>{p.price} смн</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <span
+                onClick={() => recommendedScrollRef.current?.scrollBy({ left: 300, behavior: "smooth" })}
+                style={{ fontSize: 32, color: "#444441", cursor: "pointer", flexShrink: 0, userSelect: "none", lineHeight: 1 }}
+              >
+                ›
+              </span>
+            </div>
+          )}
         </div>
-        <h1 className="product-title" style={{ fontSize: 44, margin: "16px 0 24px" }}>
-          {t.heroTitle}
-        </h1>
-        <p style={{ color: "var(--text-muted)", maxWidth: 380 }}>
-          {t.heroSubtitle}
-        </p>
-      </div>
+      )}
+
+      {categories.filter((c) => !c.parent_id).length > 0 && (
+        <div className="category-tiles-wrapper" style={{ padding: "8px 40px 24px" }}>
+          <div className="category-tiles">
+            {categories.filter((c) => !c.parent_id).map((cat) => (
+              <div
+                key={cat.id}
+                onClick={() => setSelectedCategoryId(cat.id)}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 8px", background: "var(--surface)", border: "1px solid var(--line)", cursor: "pointer" }}
+              >
+                <div style={{ color: "var(--accent)" }}>{getCategoryIcon(cat.name)}</div>
+                <span style={{ fontSize: 12, color: "var(--text)", textAlign: "center" }}>{cat.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
 
         <div className="catalog-container" style={{ padding: "0 40px 40px" }}>
-        <h2 className="product-title" style={{ fontSize: 26, padding: "32px 0 24px" }}>
-          {t.newArrivals}
-        </h2>
         <div
           className="products-grid"
           style={{
@@ -981,7 +1133,7 @@ function HomeInner() {
                   <img
                     src="/badge-brand.png"
                     alt="Бренд"
-                    style={{ position: "absolute", top: -42, left: "50%", transform: "translateX(-50%)", width: 108, height: 108, objectFit: "contain", pointerEvents: "none" }}
+                    style={{ position: "absolute", top: -50, left: "50%", transform: "translateX(-50%)", width: 130, height: 130, objectFit: "contain", pointerEvents: "none" }}
                   />
                 )}
 
@@ -1642,7 +1794,7 @@ function BannerSlider({ banners, router }: { banners: Banner[]; router: any }) {
         <div
           key={b.id}
           className="banner-slide-bg"
-          onClick={() => router.push(`/product/${b.product_id}`)}
+          onClick={() => router.push(`/?category=${b.category_id}`)}
           style={{
             position: "absolute",
             inset: 0,

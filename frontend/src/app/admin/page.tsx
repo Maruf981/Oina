@@ -443,7 +443,7 @@ export default function AdminPage() {
         {tab === "warehouse" && <WarehouseTab products={products} suppliers={suppliers} incomingMovements={incomingMovements} />}
         {tab === "finance" && <FinanceTab orders={orders} products={products} suppliers={suppliers} authFetch={authFetch} />}
         {tab === "employees" && <EmployeesTab t={t} authFetch={authFetch} />}
-        {tab === "banners" && <BannersTab t={t} authFetch={authFetch} products={products} />}
+        {tab === "banners" && <BannersTab t={t} authFetch={authFetch} products={products} categories={categories} />}
       </div>
     </div>
   );
@@ -603,7 +603,7 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
           <img
             src="/badge-brand.png"
             alt="Бренд"
-            style={{ position: "absolute", top: -25, left: "50%", transform: "translateX(-50%)", width: 84, height: 84, objectFit: "contain", pointerEvents: "none" }}
+            style={{ position: "absolute", top: -33, left: "50%", transform: "translateX(-50%)", width: 101, height: 101, objectFit: "contain", pointerEvents: "none" }}
           />
         )}
       </div>
@@ -752,6 +752,7 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
     pattern_tj: product?.pattern_tj ?? "",
     badgeType: (product?.discount_percent ? "discount" : product?.is_new ? "new" : product?.is_featured ? "featured" : "none") as "none" | "featured" | "new" | "discount",
     is_brand: product?.is_brand ?? false,
+    is_recommended: product?.is_recommended ?? false,
     discount_percent: product?.discount_percent ?? "",
     discount_from: product?.discount_from ?? "",
     discount_to: product?.discount_to ?? "",
@@ -858,6 +859,7 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
         is_featured: badgeType === "featured",
         is_new: badgeType === "new",
         is_brand: form.is_brand,
+        is_recommended: form.is_recommended,
         discount_percent: badgeType === "discount" && form.discount_percent !== "" ? Number(form.discount_percent) : null,
         discount_from: badgeType === "discount" && form.discount_from !== "" ? form.discount_from : null,
         discount_to: badgeType === "discount" && form.discount_to !== "" ? form.discount_to : null,
@@ -1064,6 +1066,17 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 24 }}>
         <textarea placeholder={`${t.description} (RU)`} value={form.description_ru} onChange={(e) => updateField("description_ru", e.target.value)} rows={3} style={inputStyle} />
         <textarea placeholder={`${t.description} (TJ)`} value={form.description_tj} onChange={(e) => updateField("description_tj", e.target.value)} rows={3} style={inputStyle} />
+      </div>
+
+      <div style={{ marginBottom: 24, padding: 14, border: "1px solid var(--accent)" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={form.is_recommended}
+            onChange={(e) => updateField("is_recommended", e.target.checked)}
+          />
+          Показать в подборке на главной
+        </label>
       </div>
 
       <div style={{ marginBottom: 24 }}>
@@ -2575,13 +2588,13 @@ function EmployeesTab({ t, authFetch }: any) {
   );
 }
 
-function BannersTab({ t, authFetch, products }: any) {
+function BannersTab({ t, authFetch, products, categories }: any) {
   const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<any>({
-    title: "", subtitle: "", product_id: "", sort_order: 0, is_active: true, text_color: "#FFFFFF",
+    title: "", subtitle: "", category_id: "", sort_order: 0, is_active: true, text_color: "#FFFFFF",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState("");
@@ -2601,7 +2614,7 @@ function BannersTab({ t, authFetch, products }: any) {
   }, []);
 
   const resetForm = () => {
-    setForm({ title: "", subtitle: "", product_id: "", sort_order: 0, is_active: true, text_color: "#FFFFFF" });
+    setForm({ title: "", subtitle: "", category_id: "", sort_order: 0, is_active: true, text_color: "#FFFFFF" });
     setImageFile(null);
     setEditingId(null);
     setCreating(false);
@@ -2612,7 +2625,7 @@ function BannersTab({ t, authFetch, products }: any) {
     setForm({
       title: b.title || "",
       subtitle: b.subtitle || "",
-      product_id: b.product_id || "",
+      category_id: b.category_id || "",
       sort_order: b.sort_order ?? 0,
       is_active: b.is_active,
       text_color: b.text_color || "#FFFFFF",
@@ -2629,14 +2642,14 @@ function BannersTab({ t, authFetch, products }: any) {
       setError("Введите заголовок баннера");
       return;
     }
-    if (!form.product_id) {
-      setError("Выберите товар");
+    if (!form.category_id) {
+      setError("Выберите категорию");
       return;
     }
     const payload = {
       title: form.title,
       subtitle: form.subtitle || null,
-      product_id: Number(form.product_id),
+      category_id: Number(form.category_id),
       sort_order: Number(form.sort_order) || 0,
       is_active: form.is_active,
       text_color: form.text_color || "#FFFFFF",
@@ -2675,7 +2688,7 @@ function BannersTab({ t, authFetch, products }: any) {
       body: JSON.stringify({
         title: b.title,
         subtitle: b.subtitle,
-        product_id: b.product_id,
+        category_id: b.category_id,
         sort_order: b.sort_order,
         is_active: !b.is_active,
         text_color: b.text_color,
@@ -2702,10 +2715,10 @@ function BannersTab({ t, authFetch, products }: any) {
         <div style={{ maxWidth: 480, marginBottom: 24, border: "1px solid var(--line)", padding: 20 }}>
           <input placeholder={t.name} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} style={inputStyle} />
           <input placeholder={t.subtitle} value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} style={inputStyle} />
-          <select value={form.product_id} onChange={(e) => setForm({ ...form, product_id: e.target.value })} style={inputStyle}>
-            <option value="">— {t.product} —</option>
-            {productList.map((p: any) => (
-              <option key={p.id} value={p.id}>№{p.catalog_number} — {p.title_ru}</option>
+          <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} style={inputStyle}>
+            <option value="">— Категория —</option>
+            {(Array.isArray(categories) ? categories : []).filter((c: any) => !c.parent_id).map((c: any) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
           <input type="number" placeholder={t.sortOrder} value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} style={inputStyle} />
@@ -2748,7 +2761,7 @@ function BannersTab({ t, authFetch, products }: any) {
             </div>
             {b.subtitle && <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>{b.subtitle}</div>}
             <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-              {t.product}: {b.product ? `№${b.product.catalog_number} — ${b.product.title_ru}` : "—"} · {t.sortOrder}: {b.sort_order}
+              Категория: {b.category ? b.category.name : "—"} · {t.sortOrder}: {b.sort_order}
             </div>
           </div>
         </div>

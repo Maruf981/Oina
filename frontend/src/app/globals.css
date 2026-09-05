@@ -127,3 +127,43 @@ html, body {
     pointer-events: none !important;
   }
 }
+
+.recommended-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.recommended-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.recommended-card {
+  flex: 0 0 140px;
+}
+@media (max-width: 480px) {
+  .recommended-card {
+    flex: 0 0 47%;
+  }
+}
+
+.category-tiles {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .category-tiles {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .category-tiles-wrapper {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .recommended-wrapper {
+    padding: 16px 12px !important;
+  }
+}
