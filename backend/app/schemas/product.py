@@ -69,6 +69,7 @@ class ProductBase(BaseModel):
     is_featured: bool = False
     is_new: bool = False
     is_brand: bool = False
+    is_recommended: bool = False
     size_guide: list[SizeGuideRow] | None = None
     discount_percent: int | None = None
     discount_from: date | None = None

@@ -36,6 +36,7 @@ def list_products(
     max_price: float | None = None,
     size: str | None = None,
     color: str | None = None,
+    recommended_only: bool = False,
     db: Session = Depends(get_db),
 ):
     return product_repo.get_all(
@@ -46,6 +47,7 @@ def list_products(
         max_price=max_price,
         size=size,
         color=color,
+        recommended_only=recommended_only,
     )
 
 

@@ -33,6 +33,7 @@ class Product(Base):
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
     is_new: Mapped[bool] = mapped_column(Boolean, default=False)
     is_brand: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_recommended: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     size_guide: Mapped[list | None] = mapped_column(JSON, nullable=True)
     discount_percent: Mapped[int | None] = mapped_column(nullable=True)
     discount_from: Mapped["date | None"] = mapped_column(nullable=True)

@@ -13,8 +13,11 @@ def get_all(
     max_price: float | None = None,
     size: str | None = None,
     color: str | None = None,
+    recommended_only: bool = False,
 ) -> list[Product]:
     query = db.query(Product).filter(Product.is_active == True, Product.is_archived == False)
+    if recommended_only:
+        query = query.filter(Product.is_recommended == True)
     if category_id is not None:
         query = query.filter(Product.category_id == category_id)
     if search:
