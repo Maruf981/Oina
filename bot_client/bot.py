@@ -186,25 +186,44 @@ async def text_handler(message: Message):
 
 
 from aiohttp import web
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+
+WEBHOOK_PATH = "/webhook"
+WEBHOOK_BASE_URL = os.getenv("RENDER_EXTERNAL_URL", "https://oina-client-bot.onrender.com")
+WEBHOOK_URL = f"{WEBHOOK_BASE_URL}{WEBHOOK_PATH}"
 
 
 async def health_check(request):
     return web.Response(text="Bot is running")
 
 
-async def start_web_server():
+async def on_startup(bot: Bot):
+    await bot.set_webhook(WEBHOOK_URL)
+    logging.info(f"Webhook set to {WEBHOOK_URL}")
+
+
+async def on_shutdown(bot: Bot):
+    await bot.delete_webhook()
+
+
+async def main():
+    dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
+
     app = web.Application()
     app.router.add_get("/", health_check)
+
+    webhook_handler = SimpleRequestHandler(dispatcher=dp, bot=bot)
+    webhook_handler.register(app, path=WEBHOOK_PATH)
+    setup_application(app, dp, bot=bot)
+
     runner = web.AppRunner(app)
     await runner.setup()
     port = int(os.getenv("PORT", 8080))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
-
-async def main():
-    await start_web_server()
-    await dp.start_polling(bot)
+    await asyncio.Event().wait()
 
 
 if __name__ == "__main__":
