@@ -1,6 +1,7 @@
 import cloudinary
 import cloudinary.uploader
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -76,6 +77,31 @@ async def set_primary_image(
         img.sort_order = index
     db.commit()
     return {"ok": True}
+class ReorderImagesRequest(BaseModel):
+    image_ids: list[int]
+
+
+@router.post("/product-image/{product_id}/reorder")
+async def reorder_product_images(
+    product_id: int,
+    payload: ReorderImagesRequest,
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin),
+):
+    images = (
+        db.query(ProductImage)
+        .filter(ProductImage.product_id == product_id)
+        .all()
+    )
+    images_by_id = {img.id: img for img in images}
+    if set(payload.image_ids) != set(images_by_id.keys()):
+        raise HTTPException(status_code=400, detail="image_ids must match the product's existing images exactly")
+    for index, image_id in enumerate(payload.image_ids):
+        images_by_id[image_id].sort_order = index
+    db.commit()
+    return {"ok": True}
+
+
 @router.delete("/product-image/{image_id}")
 async def delete_product_image(
     image_id: int,
