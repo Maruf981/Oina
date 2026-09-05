@@ -67,7 +67,7 @@ async def search_products(query: str = "", color: str = "", size: str = "") -> l
     simplified = []
     for p in products[:10]:
         available = [
-            {"size": v["size"], "color": v["color"]}
+            {"variant_id": v["id"], "size": v["size"], "color": v["color"]}
             for v in p.get("variants", [])
             if v.get("stock", 0) > 0
         ]
@@ -78,6 +78,35 @@ async def search_products(query: str = "", color: str = "", size: str = "") -> l
             "available_variants": available,
         })
     return simplified
+
+
+async def place_order(variant_id: int, quantity: int, customer_name: str, customer_phone: str, delivery_address: str) -> dict:
+    payload = {
+        "customer_name": customer_name,
+        "customer_phone": customer_phone,
+        "delivery_address": delivery_address,
+        "comment": "",
+        "payment_method": "qr",
+        "items": [{"product_variant_id": variant_id, "quantity": quantity}],
+    }
+    async with httpx.AsyncClient(timeout=15) as client:
+        for attempt in range(3):
+            try:
+                response = await client.post(f"{API_URL}/orders/", json=payload)
+            except Exception as e:
+                logging.error(f"Order placement error: {e}")
+                return {"error": "Ошибка соединения с сервером"}
+            if response.status_code == 200:
+                return response.json()
+            if response.status_code == 429 and attempt < 2:
+                await asyncio.sleep(1.5 * (attempt + 1))
+                continue
+            try:
+                detail = response.json().get("detail", response.text)
+            except Exception:
+                detail = response.text
+            return {"error": detail}
+    return {"error": "Не удалось оформить заказ, попробуйте позже"}
 
 
 async def call_claude_api(history: list[dict]) -> dict:
@@ -133,6 +162,20 @@ async def ask_claude(user_id: int, user_message: str) -> str:
                     "type": "tool_result",
                     "tool_use_id": block.get("id"),
                     "content": str(orders) if orders else "Заказов с таким номером не найдено.",
+                })
+            elif block.get("name") == "place_order":
+                tool_input = block.get("input", {})
+                order_result = await place_order(
+                    variant_id=tool_input.get("variant_id"),
+                    quantity=tool_input.get("quantity", 1),
+                    customer_name=tool_input.get("customer_name", ""),
+                    customer_phone=tool_input.get("customer_phone", ""),
+                    delivery_address=tool_input.get("delivery_address", ""),
+                )
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.get("id"),
+                    "content": str(order_result),
                 })
             elif block.get("name") == "search_products":
                 tool_input = block.get("input", {})
