@@ -29,8 +29,9 @@ MAX_HISTORY_MESSAGES = 12  # храним последние N сообщени�
 
 async def fetch_backend(path: str, params: dict) -> dict | list | None:
     """GET-запрос к backend с повторными попытками при 429 (временный троттлинг Render free-тарифа)."""
+    delays = [3, 6, 10]
     async with httpx.AsyncClient(timeout=15) as client:
-        for attempt in range(3):
+        for attempt in range(len(delays) + 1):
             try:
                 response = await client.get(f"{API_URL}{path}", params=params)
             except Exception as e:
@@ -38,8 +39,8 @@ async def fetch_backend(path: str, params: dict) -> dict | list | None:
                 return None
             if response.status_code == 200:
                 return response.json()
-            if response.status_code == 429 and attempt < 2:
-                await asyncio.sleep(1.5 * (attempt + 1))
+            if response.status_code == 429 and attempt < len(delays):
+                await asyncio.sleep(delays[attempt])
                 continue
             logging.error(f"Backend request failed: {response.status_code} {response.text}")
             return None
@@ -89,8 +90,9 @@ async def place_order(variant_id: int, quantity: int, customer_name: str, custom
         "payment_method": "qr",
         "items": [{"product_variant_id": variant_id, "quantity": quantity}],
     }
+    delays = [3, 6, 10]
     async with httpx.AsyncClient(timeout=15) as client:
-        for attempt in range(3):
+        for attempt in range(len(delays) + 1):
             try:
                 response = await client.post(f"{API_URL}/orders/", json=payload)
             except Exception as e:
@@ -98,8 +100,8 @@ async def place_order(variant_id: int, quantity: int, customer_name: str, custom
                 return {"error": "Ошибка соединения с сервером"}
             if response.status_code == 200:
                 return response.json()
-            if response.status_code == 429 and attempt < 2:
-                await asyncio.sleep(1.5 * (attempt + 1))
+            if response.status_code == 429 and attempt < len(delays):
+                await asyncio.sleep(delays[attempt])
                 continue
             try:
                 detail = response.json().get("detail", response.text)
