@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     FINANCE_PIN: str = "000000"
     BOT_TOKEN_ADMIN: str = ""
     ADMIN_TELEGRAM_ID: int = 0
+    ANTHROPIC_API_KEY: str = ""
 
     class Config:
         env_file = ".env"

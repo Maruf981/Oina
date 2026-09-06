@@ -63,6 +63,7 @@ const labels = {
     product: "Товар",
     sortOrder: "Порядок",
     active: "Активен",
+    templates: "Шаблоны",
   },
   tj: {
     title: "Воридшавӣ ба админ",
@@ -122,6 +123,7 @@ const labels = {
     product: "Мол",
     sortOrder: "Тартиб",
     active: "Фаъол",
+    templates: "Шаблонҳо",
   },
 };
 
@@ -257,7 +259,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived" | "employees" | "banners">(() => {
+  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived" | "employees" | "banners" | "templates">(() => {
     if (typeof window === "undefined") return "products";
     return (localStorage.getItem("admin_tab") as any) || "products";
   });
@@ -391,7 +393,7 @@ export default function AdminPage() {
         </div>
       </nav>
       <div style={{ display: "flex", gap: 24, padding: "20px 16px", borderBottom: "1px solid var(--line)", overflowX: "auto", whiteSpace: "nowrap", WebkitOverflowScrolling: "touch" }}>
-        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts", "archived", "employees", "banners"] as const).map((tabName) => (
+        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts", "archived", "employees", "banners", "templates"] as const).map((tabName) => (
           <span
             key={tabName}
             onClick={() => setTab(tabName)}
@@ -444,6 +446,7 @@ export default function AdminPage() {
         {tab === "finance" && <FinanceTab orders={orders} products={products} suppliers={suppliers} authFetch={authFetch} />}
         {tab === "employees" && <EmployeesTab t={t} authFetch={authFetch} />}
         {tab === "banners" && <BannersTab t={t} authFetch={authFetch} products={products} categories={categories} />}
+{tab === "templates" && <TemplatesTab products={products} authFetch={authFetch} />}
       </div>
     </div>
   );
@@ -2766,6 +2769,178 @@ function BannersTab({ t, authFetch, products, categories }: any) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function TemplatesTab({ products, authFetch }: any) {
+  const [selectedId, setSelectedId] = useState<number | "">("");
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<any>(null);
+  const [captionInstagram, setCaptionInstagram] = useState("");
+  const [captionTiktok, setCaptionTiktok] = useState("");
+  const [error, setError] = useState("");
+  const [copiedInstagram, setCopiedInstagram] = useState(false);
+  const [copiedTiktok, setCopiedTiktok] = useState(false);
+
+  const productList: any[] = Array.isArray(products) ? products : [];
+
+  const handleGenerate = async () => {
+    if (!selectedId) return;
+    setLoading(true);
+    setError("");
+    setData(null);
+    setCopiedInstagram(false);
+    setCopiedTiktok(false);
+    const res = await authFetch(`${API}/social-preview/${selectedId}`);
+    if (!res.ok) {
+      setError("Не удалось сгенерировать шаблон");
+      setLoading(false);
+      return;
+    }
+    const result = await res.json();
+    setData(result);
+    setCaptionInstagram(result.caption_instagram || "");
+    setCaptionTiktok(result.caption_tiktok || "");
+    setLoading(false);
+  };
+
+  const handleCopyInstagram = () => {
+    navigator.clipboard.writeText(captionInstagram);
+    setCopiedInstagram(true);
+    setTimeout(() => setCopiedInstagram(false), 2000);
+  };
+
+  const handleCopyTiktok = () => {
+    navigator.clipboard.writeText(captionTiktok);
+    setCopiedTiktok(true);
+    setTimeout(() => setCopiedTiktok(false), 2000);
+  };
+
+  const handleDownload = async (url: string, filename: string) => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+  };
+
+  const inputStyle = { width: "100%", padding: 10, marginBottom: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", boxSizing: "border-box" as const };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 10, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
+        <select
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value ? Number(e.target.value) : "")}
+          style={{ ...inputStyle, width: "auto", minWidth: 260, marginBottom: 0 }}
+        >
+          <option value="">— Выберите товар —</option>
+          {productList.map((p) => (
+            <option key={p.id} value={p.id}>{p.title_ru} ({p.catalog_number})</option>
+          ))}
+        </select>
+        <button
+          onClick={handleGenerate}
+          disabled={!selectedId || loading}
+          style={{ padding: "10px 20px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: !selectedId || loading ? "not-allowed" : "pointer", opacity: !selectedId || loading ? 0.5 : 1 }}
+        >
+          {loading ? "Генерация..." : "Сгенерировать"}
+        </button>
+      </div>
+
+      {error && <p style={{ color: "#E24B4A", fontSize: 13, marginBottom: 16 }}>{error}</p>}
+
+      {data && (
+        <div>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 24 }}>
+            <div style={{ width: 240 }}>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", marginBottom: 8 }}>Instagram — пост</div>
+              <div style={{ border: "1px solid var(--line)", background: "var(--surface)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px" }}>
+                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>oina.tj</span>
+                </div>
+                <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", overflow: "hidden" }}>
+                  <img src={data.post_image_url} alt="post" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  {data.discount_percent ? (
+                    <div style={{ position: "absolute", bottom: 8, left: 8, background: "#E24B4A", color: "#fff", fontSize: 11, fontWeight: 600, padding: "3px 8px" }}>
+                      -{data.discount_percent}%
+                    </div>
+                  ) : null}
+                </div>
+                <div style={{ display: "flex", gap: 12, padding: "8px 10px", fontSize: 16 }}>
+                  <span>♡</span>
+                  <span>💬</span>
+                  <span>↗</span>
+                </div>
+              </div>
+              <button
+                onClick={() => handleDownload(data.post_image_url, `${data.product_id}_post.jpg`)}
+                style={{ marginTop: 8, width: "100%", padding: "8px 12px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", fontSize: 12, cursor: "pointer" }}
+              >
+                Скачать
+              </button>
+            </div>
+
+            <div style={{ width: 160 }}>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", marginBottom: 8 }}>Stories / Reels</div>
+              <div style={{ border: "1px solid var(--line)", background: "var(--surface)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: 8 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, fontWeight: 600 }}>oina.tj</span>
+                </div>
+                <div style={{ position: "relative", width: "100%", aspectRatio: "9 / 16", overflow: "hidden" }}>
+                  <img src={data.story_image_url} alt="story" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  {data.discount_percent ? (
+                    <div style={{ position: "absolute", bottom: 10, left: 10, background: "#E24B4A", color: "#fff", fontSize: 10, fontWeight: 600, padding: "2px 6px" }}>
+                      -{data.discount_percent}%
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <button
+                onClick={() => handleDownload(data.story_image_url, `${data.product_id}_story.jpg`)}
+                style={{ marginTop: 8, width: "100%", padding: "8px 12px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", fontSize: 12, cursor: "pointer" }}
+              >
+                Скачать
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            <div style={{ maxWidth: 400, flex: 1, minWidth: 280 }}>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>Текст для Instagram (пост)</div>
+              <textarea
+                value={captionInstagram}
+                onChange={(e) => setCaptionInstagram(e.target.value)}
+                style={{ ...inputStyle, minHeight: 130, fontFamily: "inherit" }}
+              />
+              <button
+                onClick={handleCopyInstagram}
+                style={{ padding: "8px 16px", background: "var(--text)", color: "var(--bg)", border: "none", fontSize: 12, cursor: "pointer" }}
+              >
+                {copiedInstagram ? "Скопировано" : "Скопировать текст"}
+              </button>
+            </div>
+            <div style={{ maxWidth: 400, flex: 1, minWidth: 280 }}>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>Текст для TikTok / Stories</div>
+              <textarea
+                value={captionTiktok}
+                onChange={(e) => setCaptionTiktok(e.target.value)}
+                style={{ ...inputStyle, minHeight: 130, fontFamily: "inherit" }}
+              />
+              <button
+                onClick={handleCopyTiktok}
+                style={{ padding: "8px 16px", background: "var(--text)", color: "var(--bg)", border: "none", fontSize: 12, cursor: "pointer" }}
+              >
+                {copiedTiktok ? "Скопировано" : "Скопировать текст"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
