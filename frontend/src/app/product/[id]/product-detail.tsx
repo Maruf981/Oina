@@ -601,7 +601,7 @@ export default function ProductDetailClient() {
                 {uniqueSizes.length > 0 && (
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontFamily: "var(--font-label)", fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
-                      Размер
+                      {lang === "ru" ? "Размер" : "Андоза"}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {sizesToShow.map((size) => {
@@ -636,7 +636,7 @@ export default function ProductDetailClient() {
                 {uniqueColors.length > 0 && (
                   <div style={{ marginBottom: 8 }}>
                     <div style={{ fontFamily: "var(--font-label)", fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
-                      Цвет
+                      {lang === "ru" ? "Цвет" : "Ранг"}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {uniqueColors.map((color) => {
@@ -681,7 +681,7 @@ export default function ProductDetailClient() {
                       marginBottom: 16,
                     }}
                   >
-                    Гид по размерам
+                    {lang === "ru" ? "Гид по размерам" : "Маълумот оиди андоза"}
                   </span>
                 )}
               </>
@@ -720,13 +720,14 @@ export default function ProductDetailClient() {
                   color: "var(--bg)",
                   border: "none",
                   fontFamily: "var(--font-label)",
-                  fontSize: 13,
+                  fontSize: lang === "ru" ? 13 : 12,
                   letterSpacing: "0.05em",
                   textTransform: "uppercase",
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
                 }}
               >
-                Добавить в корзину
+                {lang === "ru" ? "Добавить в корзину" : "Ба сабад"}
               </button>
               <button
                 disabled
@@ -737,14 +738,15 @@ export default function ProductDetailClient() {
                   color: "var(--text-muted)",
                   border: "1px solid var(--line)",
                   fontFamily: "var(--font-label)",
-                  fontSize: 13,
+                  fontSize: lang === "ru" ? 13 : 11,
                   letterSpacing: "0.05em",
                   textTransform: "uppercase",
                   cursor: "not-allowed",
                   opacity: 0.5,
+                  whiteSpace: "nowrap",
                 }}
               >
-                Оформить заказ
+                {lang === "ru" ? "Оформить заказ" : "Пардохти фармоиш"}
               </button>
             </div>
 
@@ -865,11 +867,11 @@ export default function ProductDetailClient() {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <span className="product-title" style={{ fontSize: 18 }}>Гид по размерам</span>
+              <span className="product-title" style={{ fontSize: 18 }}>{lang === "ru" ? "Гид по размерам" : "Маълумот оиди андоза"}</span>
               <span onClick={() => setSizeGuideOpen(false)} style={{ cursor: "pointer", fontSize: 20 }}>×</span>
             </div>
             {[
-              { label: lang === "ru" ? "Буквенные размеры" : "Андозаҳои ҳарфӣ", rows: (product.size_guide ?? []).filter((r) => !/^\d+$/.test(r.size)) },
+              { label: "", rows: (product.size_guide ?? []).filter((r) => !/^\d+$/.test(r.size)) },
               { label: lang === "ru" ? "Числовые размеры" : "Андозаҳои рақамӣ", rows: (product.size_guide ?? []).filter((r) => /^\d+$/.test(r.size)) },
             ].map(
               ({ label, rows }) =>
@@ -881,12 +883,12 @@ export default function ProductDetailClient() {
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                       <thead>
                         <tr style={{ borderBottom: "1px solid var(--line)" }}>
-                          <th style={{ textAlign: "left", padding: "6px 4px 6px 0", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Размер</th>
-                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Грудь</th>
-                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Талия</th>
-                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Длина</th>
-                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Рукав</th>
-                          <th style={{ textAlign: "left", padding: "6px 0", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>Плечи</th>
+                          <th style={{ textAlign: "left", padding: "6px 4px 6px 0", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? "Размер" : "Андоза"}</th>
+                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? "Грудь" : <>Кафаси<br />сина</>}</th>
+                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? "Талия" : "Миён"}</th>
+                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? <>Длина<br />одежды</> : <>Дарозии<br />Либос</>}</th>
+                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? <>Длина<br />рукав</> : <>Дарозии<br />Остин</>}</th>
+                          <th style={{ textAlign: "left", padding: "6px 0", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? "Плечи" : "Китф"}</th>
                         </tr>
                       </thead>
                       <tbody>
