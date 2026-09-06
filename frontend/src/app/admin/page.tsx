@@ -1552,7 +1552,9 @@ function transliterate(text: string): string {
 }
 function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, authFetch, refreshCategories }: any) {
   const [name, setName] = useState("");
+  const [nameTj, setNameTj] = useState("");
   const [parentId, setParentId] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
   const topLevel = categories.filter((c: Category) => !c.parent_id);
 
   const [categoryError, setCategoryError] = useState("");
@@ -1565,18 +1567,62 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
     await authFetch(`${API}/categories/${id}/restore`, { method: "POST" });
     refreshCategories();
   };
+
+  const startEditCategory = (c: Category) => {
+    setEditingId(c.id);
+    setName(c.name);
+    setNameTj((c as any).name_tj || "");
+    setParentId(c.parent_id ? String(c.parent_id) : "");
+    setCreatingCategory(true);
+    setCategoryError("");
+  };
+
+  const cancelEditCategory = () => {
+    setEditingId(null);
+    setName("");
+    setNameTj("");
+    setParentId("");
+    setCreatingCategory(false);
+    setCategoryError("");
+  };
+
   const handleSave = async () => {
     setCategoryError("");
     if (!name.trim()) {
       setCategoryError("Введите название категории");
       return;
     }
+
+    if (editingId) {
+      const res = await authFetch(`${API}/categories/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          name_tj: nameTj || null,
+          slug: categories.find((c: Category) => c.id === editingId)?.slug,
+          parent_id: parentId ? Number(parentId) : null,
+        }),
+      });
+      if (!res.ok) {
+        setCategoryError("Не удалось сохранить категорию");
+        return;
+      }
+      setCreatingCategory(false);
+      setEditingId(null);
+      setName("");
+      setNameTj("");
+      setParentId("");
+      refreshCategories();
+      return;
+    }
+
     const baseSlug = transliterate(name);
     const finalSlug = baseSlug || `category-${Date.now()}`;
     const res = await authFetch(`${API}/categories/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, slug: finalSlug, parent_id: parentId ? Number(parentId) : null }),
+      body: JSON.stringify({ name, name_tj: nameTj || null, slug: finalSlug, parent_id: parentId ? Number(parentId) : null }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => null);
@@ -1584,7 +1630,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
         const retryRes = await authFetch(`${API}/categories/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, slug: `${finalSlug}-${Date.now()}`, parent_id: parentId ? Number(parentId) : null }),
+          body: JSON.stringify({ name, name_tj: nameTj || null, slug: `${finalSlug}-${Date.now()}`, parent_id: parentId ? Number(parentId) : null }),
         });
         if (!retryRes.ok) {
           setCategoryError("Не удалось сохранить категорию");
@@ -1597,6 +1643,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
     }
     setCreatingCategory(false);
     setName("");
+    setNameTj("");
     setParentId("");
     refreshCategories();
   };
@@ -1613,13 +1660,17 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
       ) : (
         <div style={{ display: "flex", gap: 10, marginBottom: 24, maxWidth: 640, flexWrap: "wrap" }}>
           <input placeholder={t.name} value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }} />
+          <input placeholder="Название на таджикском" value={nameTj} onChange={(e) => setNameTj(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }} />
           <select value={parentId} onChange={(e) => setParentId(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }}>
             <option value="">Без родителя (основная категория)</option>
-            {topLevel.filter((c: Category) => !c.is_archived).map((c: Category) => (
+            {topLevel.filter((c: Category) => !c.is_archived && c.id !== editingId).map((c: Category) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
           <button onClick={handleSave} style={{ padding: "10px 16px", background: "var(--text)", color: "var(--bg)", border: "none", cursor: "pointer" }}>{t.save}</button>
+          {editingId && (
+            <button onClick={cancelEditCategory} style={{ padding: "10px 16px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", cursor: "pointer" }}>{t.cancel}</button>
+          )}
           {categoryError && (
             <p style={{ color: "#E24B4A", fontSize: 13, width: "100%", marginTop: 8 }}>
               {categoryError}
@@ -1635,25 +1686,37 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
             <div style={{ padding: "12px 0", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between", opacity: parent.is_archived ? 0.5 : 1 }}>
               <span style={{ textDecoration: parent.is_archived ? "line-through" : "none" }}>
                 {parent.name} <span style={{ color: "var(--text-muted)" }}>({parent.slug})</span>
+                {(parent as any).name_tj && <span style={{ color: "var(--text-muted)" }}> — {(parent as any).name_tj}</span>}
                 {parent.is_archived && <span style={{ marginLeft: 8, fontSize: 11, color: "#E24B4A" }}>{t.categoryArchivedLabel}</span>}
               </span>
-              {parent.is_archived ? (
-                <button onClick={() => handleRestoreCategory(parent.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}>{t.restoreCategory}</button>
-              ) : (
-                <button onClick={() => handleArchiveCategory(parent.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "#E24B4A", fontSize: 12, cursor: "pointer" }}>{t.deleteCategory}</button>
-              )}
+              <div style={{ display: "flex", gap: 10 }}>
+                {!parent.is_archived && (
+                  <button onClick={() => startEditCategory(parent)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}>Изменить</button>
+                )}
+                {parent.is_archived ? (
+                  <button onClick={() => handleRestoreCategory(parent.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}>{t.restoreCategory}</button>
+                ) : (
+                  <button onClick={() => handleArchiveCategory(parent.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "#E24B4A", fontSize: 12, cursor: "pointer" }}>{t.deleteCategory}</button>
+                )}
+              </div>
             </div>
             {children.map((child: Category) => (
               <div key={child.id} style={{ padding: "10px 0 10px 24px", borderBottom: "1px solid var(--line)", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "space-between", opacity: child.is_archived ? 0.5 : 1 }}>
                 <span style={{ textDecoration: child.is_archived ? "line-through" : "none" }}>
                   — {child.name} <span style={{ color: "var(--text-muted)" }}>({child.slug})</span>
+                  {(child as any).name_tj && <span style={{ color: "var(--text-muted)" }}> — {(child as any).name_tj}</span>}
                   {child.is_archived && <span style={{ marginLeft: 8, fontSize: 11, color: "#E24B4A" }}>{t.categoryArchivedLabel}</span>}
                 </span>
-                {child.is_archived ? (
-                  <button onClick={() => handleRestoreCategory(child.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}>{t.restoreCategory}</button>
-                ) : (
-                  <button onClick={() => handleArchiveCategory(child.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "#E24B4A", fontSize: 12, cursor: "pointer" }}>{t.deleteCategory}</button>
-                )}
+                <div style={{ display: "flex", gap: 10 }}>
+                  {!child.is_archived && (
+                    <button onClick={() => startEditCategory(child)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}>Изменить</button>
+                  )}
+                  {child.is_archived ? (
+                    <button onClick={() => handleRestoreCategory(child.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}>{t.restoreCategory}</button>
+                  ) : (
+                    <button onClick={() => handleArchiveCategory(child.id)} style={{ padding: "4px 10px", background: "transparent", border: "1px solid var(--line)", color: "#E24B4A", fontSize: 12, cursor: "pointer" }}>{t.deleteCategory}</button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

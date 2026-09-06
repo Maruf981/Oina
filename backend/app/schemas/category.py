@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class CategoryBase(BaseModel):
     name: str
+    name_tj: str | None = None
     slug: str
     parent_id: int | None = None
 

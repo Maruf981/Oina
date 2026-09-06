@@ -27,6 +27,14 @@ def create_category(data: CategoryCreate, db: Session = Depends(get_db), _: bool
     return category_repo.create(db, data)
 
 
+@router.patch("/{category_id}", response_model=CategoryOut)
+def update_category(category_id: int, data: CategoryCreate, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    category = category_repo.update(db, category_id, data)
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return category
+
+
 @router.delete("/{category_id}", response_model=CategoryOut)
 def archive_category(category_id: int, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     category = category_repo.archive(db, category_id)

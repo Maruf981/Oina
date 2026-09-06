@@ -23,6 +23,15 @@ def create(db: Session, data: CategoryCreate) -> Category:
     return category
 
 
+def update(db: Session, category_id: int, data: CategoryCreate) -> Category | None:
+    category = get_by_id(db, category_id)
+    if not category:
+        return None
+    for key, value in data.model_dump().items():
+        setattr(category, key, value)
+    db.commit()
+    db.refresh(category)
+    return category
 def archive(db: Session, category_id: int) -> Category | None:
     category = get_by_id(db, category_id)
     if not category:

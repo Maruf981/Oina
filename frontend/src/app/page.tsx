@@ -26,6 +26,7 @@ type ProductImage = {
 type Category = {
   id: number;
   name: string;
+  name_tj?: string | null;
   slug: string;
   parent_id: number | null;
 };
@@ -795,7 +796,7 @@ function HomeInner() {
                         borderBottom: "1px solid var(--line)",
                       }}
                     >
-                      {parent.name}
+                      {lang === "tj" && parent.name_tj ? parent.name_tj : parent.name}
                       {children.length > 0 && (
                         <span style={{ fontSize: 14, color: "var(--text-muted)" }}>{isExpanded ? "\u2212" : "+"}</span>
                       )}
@@ -836,7 +837,7 @@ function HomeInner() {
                               borderBottom: "1px solid var(--line)",
                             }}
                           >
-                            {child.name}
+                            {lang === "tj" && child.name_tj ? child.name_tj : child.name}
                           </span>
                         ))}
                       </div>
@@ -881,7 +882,7 @@ function HomeInner() {
                   borderBottom: selectedCategoryId === parent.id ? "2px solid var(--accent)" : "2px solid transparent",
                 }}
               >
-                {parent.name}
+                {lang === "tj" && parent.name_tj ? parent.name_tj : parent.name}
               </span>
               {openMegaMenu === parent.id && children.length > 0 && (
                 <div
@@ -930,7 +931,7 @@ function HomeInner() {
                         cursor: "pointer",
                       }}
                     >
-                      {child.name}
+                      {lang === "tj" && child.name_tj ? child.name_tj : child.name}
                     </span>
                   ))}
                 </div>

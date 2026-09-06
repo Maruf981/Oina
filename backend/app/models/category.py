@@ -9,6 +9,7 @@ class Category(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
+    name_tj: Mapped[str | None] = mapped_column(String(100), nullable=True)
     slug: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")

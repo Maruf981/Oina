@@ -56,32 +56,18 @@ export function SiteHeader() {
           margin: "0 auto",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          padding: "16px 20px",
+          justifyContent: "flex-end",
+          padding: "24px 20px",
           gap: 10,
+          position: "relative",
         }}
       >
-        <div
-          onClick={() => router.push("/")}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            cursor: "pointer",
-            width: 28,
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ height: 2, background: "var(--text)" }} />
-          <span style={{ height: 2, background: "var(--text)" }} />
-          <span style={{ height: 2, background: "var(--text)" }} />
-        </div>
 
         <img
           src={theme === "dark" ? "/logo.png" : "/logo-light.png"}
           alt="Oina.tj"
           onClick={() => router.push("/")}
-          style={{ height: "clamp(28px, 8vw, 48px)", flexShrink: 1, minWidth: 0, cursor: "pointer" }}
+          style={{ height: "clamp(28px, 8vw, 48px)", position: "absolute", left: "50%", transform: "translateX(-50%)", cursor: "pointer" }}
         />
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
