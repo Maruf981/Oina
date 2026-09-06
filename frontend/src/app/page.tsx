@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense, type ReactElement } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { translations, Lang } from "./translations";
 import { useCart } from "./cart-context";
 import { useAuth } from "./auth-context";
@@ -87,58 +87,11 @@ function getDiscountBadgeSrc(percent: number | null): string | null {
   return `/badge-discount-${closest}.png`;
 }
 
-function getRecommendedBadgeText(p: Product): string | null {
-  if (isDiscountActive(p) && p.discount_percent) return `-${p.discount_percent}%`;
-  if (p.is_new) return "Новинка";
-  if (p.is_featured) return "Хорошая цена";
+function getRecommendedBadge(p: Product): { text: string; color: string } | null {
+  if (isDiscountActive(p) && p.discount_percent) return { text: `-${p.discount_percent}%`, color: "#D64545" };
+  if (p.is_new) return { text: "Новинка", color: "#3E8E5A" };
+  if (p.is_featured) return { text: "Хорошая цена", color: "#3B6EA8" };
   return null;
-}
-
-function getCategoryIcon(name: string): ReactElement {
-  const n = name.toLowerCase();
-  const stroke = "currentColor";
-  if (n.includes("муж")) {
-    return (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
-        <path d="M8 4h8l3 4-3 2v10H8V10L5 8z" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (n.includes("жен")) {
-    return (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
-        <path d="M9 3h6l2 5-3 1 3 12H7l3-12-3-1z" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (n.includes("дет")) {
-    return (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
-        <circle cx="12" cy="6" r="2.5" />
-        <path d="M6 20l2-9h8l2 9M9 11v9M15 11v9" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (n.includes("обув")) {
-    return (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
-        <path d="M4 17c0-3 2-6 5-7l2-3 3 2 4 1c2 .5 3 2 3 4v3H4z" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (n.includes("аксесс")) {
-    return (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
-        <rect x="4" y="9" width="16" height="11" rx="2" />
-        <path d="M8 9V6a4 4 0 018 0v3" />
-      </svg>
-    );
-  }
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5">
-      <rect x="4" y="4" width="16" height="16" rx="2" />
-    </svg>
-  );
 }
 
 function StarRating({ avgRating, reviewCount }: { avgRating: number | null; reviewCount: number }) {
@@ -237,7 +190,12 @@ function HomeInner() {
   }, [searchParams]);
   useEffect(() => {
     const catParam = searchParams.get("category");
-    if (catParam) setSelectedCategoryId(Number(catParam));
+    if (catParam) {
+      setSelectedCategoryId(Number(catParam));
+      setTimeout(() => {
+        document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   }, [searchParams]);
   useEffect(() => {
     if (searchParams.get("cart") === "1") {
@@ -1030,7 +988,7 @@ function HomeInner() {
                 style={{ display: "flex", gap: 12, overflowX: "auto", scrollBehavior: isDraggingRecommended ? "auto" : "smooth", cursor: isDraggingRecommended ? "grabbing" : "grab", WebkitOverflowScrolling: "touch" }}
               >
                 {recommendedProducts.map((p) => {
-                  const badgeText = getRecommendedBadgeText(p);
+                  const badge = getRecommendedBadge(p);
                   return (
                     <div
                       key={p.id}
@@ -1040,9 +998,9 @@ function HomeInner() {
                     >
                       <div style={{ position: "relative", aspectRatio: "3/4", background: "var(--surface)", marginBottom: 8 }}>
                         <AutoSlideImage images={p.images} onClick={() => { if (!isDraggingRecommended) router.push(`/product/${p.id}`); }} />
-                        {badgeText && (
-                          <span style={{ position: "absolute", top: 8, left: 8, fontSize: 10, fontWeight: 500, background: "var(--bg)", color: "var(--text)", padding: "3px 8px", borderRadius: 4 }}>
-                            {badgeText}
+                        {badge && (
+                          <span style={{ position: "absolute", top: 8, left: 8, fontSize: 10, fontWeight: 500, background: badge.color, color: "#fff", padding: "3px 8px", borderRadius: 4 }}>
+                            {badge.text}
                           </span>
                         )}
                       </div>
@@ -1065,25 +1023,12 @@ function HomeInner() {
         </div>
       )}
 
-      {categories.filter((c) => !c.parent_id).length > 0 && (
-        <div className="category-tiles-wrapper" style={{ padding: "8px 40px 24px" }}>
-          <div className="category-tiles">
-            {categories.filter((c) => !c.parent_id).map((cat) => (
-              <div
-                key={cat.id}
-                onClick={() => setSelectedCategoryId(cat.id)}
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 8px", background: "var(--surface)", border: "1px solid var(--line)", cursor: "pointer" }}
-              >
-                <div style={{ color: "var(--accent)" }}>{getCategoryIcon(cat.name)}</div>
-                <span style={{ fontSize: 12, color: "var(--text)", textAlign: "center" }}>{cat.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <div style={{ padding: "8px 40px 16px" }}>
+        <h2 className="product-title" style={{ fontSize: 22 }}>{t.allCategories}</h2>
+      </div>
 
 
-        <div className="catalog-container" style={{ padding: "0 40px 40px" }}>
+        <div id="catalog-section" className="catalog-container" style={{ padding: "0 40px 40px" }}>
         <div
           className="products-grid"
           style={{
@@ -1824,6 +1769,25 @@ function BannerSlider({ banners, router }: { banners: Banner[]; router: any }) {
         </div>
       ))}
       {active.length > 1 && (
+        <>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              setIndex((i) => (i - 1 + active.length) % active.length);
+            }}
+            style={{ position: "absolute", top: "50%", left: 16, transform: "translateY(-50%)", fontSize: 32, color: "#fff", cursor: "pointer", userSelect: "none", zIndex: 2, textShadow: "0 1px 4px rgba(0,0,0,0.5)", lineHeight: 1 }}
+          >
+            ‹
+          </span>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              setIndex((i) => (i + 1) % active.length);
+            }}
+            style={{ position: "absolute", top: "50%", right: 16, transform: "translateY(-50%)", fontSize: 32, color: "#fff", cursor: "pointer", userSelect: "none", zIndex: 2, textShadow: "0 1px 4px rgba(0,0,0,0.5)", lineHeight: 1 }}
+          >
+            ›
+          </span>
         <div style={{ position: "absolute", bottom: 16, right: 40, display: "flex", gap: 8, zIndex: 2 }}>
           {active.map((_, i) => (
             <span
@@ -1842,6 +1806,7 @@ function BannerSlider({ banners, router }: { banners: Banner[]; router: any }) {
             />
           ))}
         </div>
+        </>
       )}
     </div>
     </div>
