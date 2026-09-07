@@ -441,7 +441,7 @@ export default function AdminPage() {
             refreshCategories={refreshCategories}
           />
         )}
-        {tab === "orders" && <OrdersTab t={t} orders={orders} authFetch={authFetch} refreshOrders={refreshOrders} lang={lang} />}
+        {tab === "orders" && <OrdersTab t={t} orders={orders} authFetch={authFetch} refreshOrders={refreshOrders} lang={lang} products={products} />}
         {tab === "warehouse" && <WarehouseTab products={products} suppliers={suppliers} incomingMovements={incomingMovements} authFetch={authFetch} refreshProducts={refreshProducts} />}
         {tab === "finance" && <FinanceTab orders={orders} products={products} suppliers={suppliers} authFetch={authFetch} />}
         {tab === "employees" && <EmployeesTab t={t} authFetch={authFetch} />}
@@ -2379,7 +2379,47 @@ const ORDER_STATUS_LABELS: Record<string, string> = {
   returned: "Возврат",
 };
 
-function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
+function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
+  const [exchangingItemId, setExchangingItemId] = useState<number | null>(null);
+  const [exchangeProductId, setExchangeProductId] = useState("");
+  const [exchangeVariantId, setExchangeVariantId] = useState("");
+  const [exchangeError, setExchangeError] = useState("");
+
+  const productList: any[] = Array.isArray(products) ? products : [];
+
+  const handleStartExchange = (itemId: number) => {
+    setExchangingItemId(itemId);
+    setExchangeProductId("");
+    setExchangeVariantId("");
+    setExchangeError("");
+  };
+
+  const handleCancelExchange = () => {
+    setExchangingItemId(null);
+    setExchangeProductId("");
+    setExchangeVariantId("");
+    setExchangeError("");
+  };
+
+  const handleConfirmExchange = async (orderId: number, itemId: number) => {
+    if (!exchangeVariantId) {
+      setExchangeError("Выберите товар и вариант");
+      return;
+    }
+    const res = await authFetch(`${API}/orders/${orderId}/items/${itemId}/exchange-variant`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ new_variant_id: Number(exchangeVariantId) }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      setExchangeError(err?.detail || "Не удалось выполнить обмен");
+      return;
+    }
+    handleCancelExchange();
+    refreshOrders();
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [periodFilter, setPeriodFilter] = useState<"all" | "today" | "yesterday" | "week" | "month">("all");
@@ -2554,9 +2594,54 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
                   {!(item as any).is_returned && (
                     <span onClick={() => handleReturnItem(o.id, item.id, item.quantity, (item as any).returned_quantity ?? 0)} style={{ cursor: "pointer", color: "#E24B4A", fontSize: 11, textDecoration: "underline" }}>Возврат</span>
                   )}
+                  {!(item as any).is_returned && (
+                    <span onClick={() => handleStartExchange(item.id)} style={{ cursor: "pointer", color: "var(--accent)", fontSize: 11, textDecoration: "underline" }}>Изменить</span>
+                  )}
                 </span>
               </div>
             ))}
+            {exchangingItemId && o.items.some((i: any) => i.id === exchangingItemId) && (
+              <div style={{ marginTop: 10, padding: 14, border: "1px solid var(--line)", background: "var(--surface)" }}>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>Обмен на другой товар/вариант</div>
+                <select
+                  value={exchangeProductId}
+                  onChange={(e) => { setExchangeProductId(e.target.value); setExchangeVariantId(""); }}
+                  style={{ width: "100%", padding: 8, marginBottom: 8, background: "var(--bg)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13, boxSizing: "border-box" }}
+                >
+                  <option value="">— Выберите товар —</option>
+                  {productList.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.title_ru} — {p.catalog_number}</option>
+                  ))}
+                </select>
+                {exchangeProductId && (
+                  <select
+                    value={exchangeVariantId}
+                    onChange={(e) => setExchangeVariantId(e.target.value)}
+                    style={{ width: "100%", padding: 8, marginBottom: 8, background: "var(--bg)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13, boxSizing: "border-box" }}
+                  >
+                    <option value="">— Выберите размер/цвет —</option>
+                    {(productList.find((p: any) => String(p.id) === exchangeProductId)?.variants || []).map((v: any) => (
+                      <option key={v.id} value={v.id}>{v.color}, {v.size} (остаток: {v.stock})</option>
+                    ))}
+                  </select>
+                )}
+                {exchangeError && <p style={{ color: "#E24B4A", fontSize: 12, marginBottom: 8 }}>{exchangeError}</p>}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => handleConfirmExchange(o.id, exchangingItemId)}
+                    style={{ padding: "8px 16px", background: "var(--text)", color: "var(--bg)", border: "none", fontSize: 12, cursor: "pointer" }}
+                  >
+                    Подтвердить обмен
+                  </button>
+                  <button
+                    onClick={handleCancelExchange}
+                    style={{ padding: "8px 16px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", fontSize: 12, cursor: "pointer" }}
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <select
             value={o.status}

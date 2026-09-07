@@ -54,6 +54,11 @@ class ExchangeRequest(BaseModel):
     comment: str | None = None
 
 
+
+class ExchangeVariantRequest(BaseModel):
+    new_variant_id: int
+
+
 class OrderStatusUpdate(BaseModel):
     status: str
 

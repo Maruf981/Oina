@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_customer, get_current_admin
 from app.models.customer import Customer
 from app.repositories import order as order_repo
-from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderItemOut, ReturnItemRequest, ExchangeRequest
+from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderItemOut, ReturnItemRequest, ExchangeRequest, ExchangeVariantRequest
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -215,6 +215,22 @@ def return_order_item(
     _: bool = Depends(get_current_admin),
 ):
     return order_repo.return_order_item(db, order_id, item_id, quantity=quantity)
+
+
+@router.patch("/{order_id}/items/{item_id}/exchange-variant", response_model=OrderItemOut)
+def exchange_item_variant(
+    order_id: int,
+    item_id: int,
+    data: ExchangeVariantRequest,
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin),
+):
+    """
+    Полный обмен варианта товара в заказе (админом вручную) — на любой другой товар/
+    размер/цвет/цену. Автоматически: возвращает старый вариант на склад, списывает
+    новый со склада, пересчитывает цену позиции и общую сумму заказа.
+    """
+    return order_repo.exchange_item_variant(db, order_id, item_id, data.new_variant_id)
 
 
 @router.patch("/{order_id}/status", response_model=OrderOut)

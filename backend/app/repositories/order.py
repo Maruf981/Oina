@@ -101,6 +101,59 @@ def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | 
     return item
 
 
+def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_id: int) -> OrderItem:
+    item = (
+        db.query(OrderItem)
+        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Order item not found")
+
+    remaining = item.quantity - item.returned_quantity
+    if remaining <= 0:
+        raise HTTPException(status_code=400, detail="Эта позиция уже полностью возвращена — обменивать нечего")
+
+    new_variant = db.query(ProductVariant).filter(ProductVariant.id == new_variant_id).first()
+    if not new_variant:
+        raise HTTPException(status_code=404, detail="Новый вариант товара не найден")
+
+    if new_variant.stock < remaining:
+        raise HTTPException(status_code=400, detail=f"Недостаточно остатка нового варианта (доступно: {new_variant.stock})")
+
+    old_variant = item.variant
+
+    old_variant.stock += remaining
+    record_movement(
+        db,
+        variant_id=old_variant.id,
+        movement_type="return",
+        quantity=remaining,
+        order_id=order_id,
+        note=f"Обмен — заказ №{order_id}, позиция №{item_id}: получен обратно старый вариант",
+    )
+
+    new_variant.stock -= remaining
+    record_movement(
+        db,
+        variant_id=new_variant.id,
+        movement_type="outgoing",
+        quantity=-remaining,
+        order_id=order_id,
+        note=f"Обмен — заказ №{order_id}, позиция №{item_id}: выдан новый вариант",
+    )
+
+    item.product_variant_id = new_variant_id
+    item.price_at_order = float(new_variant.product.price)
+
+    order = item.order
+    order.total = sum(float(i.price_at_order) * i.quantity for i in order.items)
+
+    db.commit()
+    db.refresh(item)
+    return item
+
+
 def update_status(db: Session, order: Order, new_status: str) -> Order:
     old_status = order.status
     restore_statuses = {OrderStatus.CANCELLED, OrderStatus.RETURNED}
