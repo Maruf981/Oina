@@ -38,7 +38,11 @@ def get_all(
         if size:
             query = query.filter(ProductVariant.size == size)
         if color:
-            query = query.filter(ProductVariant.color == color)
+            from sqlalchemy import func
+            normalized = color.strip().lower().replace("ё", "е")
+            query = query.filter(
+                func.lower(func.replace(ProductVariant.color, "ё", "е")) == normalized
+            )
         query = query.distinct()
     return query.all()
 
