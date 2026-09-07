@@ -433,6 +433,7 @@ async def cb_return_item(callback: CallbackQuery):
         await callback.answer("Позиция не найдена.", show_alert=True)
         return
     remaining = item["quantity"] - item["returned_quantity"]
+    logging.info(f"[DEBUG cb_return_item] uid={uid} item_id={item_id} remaining={remaining}")
 
     if remaining > 1:
         flow["flow"] = "cancel_qty"
@@ -477,6 +478,7 @@ async def cb_confirm(callback: CallbackQuery):
     pending = flow.get("pending", {})
     order_id = flow["order_id"]
     phone = flow["phone"]
+    logging.info(f"[DEBUG cb_confirm] uid={uid} pending={pending}")
 
     if pending.get("action") == "cancel_whole":
         status_code, body = await post_backend(f"/orders/{order_id}/cancel-request", {"phone": phone})
@@ -603,10 +605,12 @@ async def text_handler(message: Message):
 
     if flow and flow.get("flow") == "cancel_qty":
         remaining = flow.get("pending_remaining", 1)
+        logging.info(f"[DEBUG cancel_qty] uid={uid} text={text!r} remaining={remaining}")
         if not text.isdigit() or not (1 <= int(text) <= remaining):
             await message.answer(f"Введите число от 1 до {remaining}.")
             return
         quantity = int(text)
+        logging.info(f"[DEBUG cancel_qty] parsed quantity={quantity}")
         item_id = flow["pending_item_id"]
         item = next((i for i in flow.get("items", []) if i["id"] == item_id), None)
         title = item["title"] if item else "товар"
