@@ -4,7 +4,7 @@ import os
 
 import httpx
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 
 from knowledge_base import SYSTEM_PROMPT, TOOLS
@@ -25,16 +25,43 @@ dp = Dispatcher()
 # Сбрасывается при перезапуске бота. Для продакшена этого достаточно на первом этапе.
 conversation_history: dict[int, list[dict]] = {}
 awaiting_reset_phone: set[int] = set()  # user_id, ожидающие ввода телефона для сброса пароля
+user_flow: dict[int, dict] = {}  # user_id -> состояние многошаговых сценариев (статус/поиск/отмена)
 MAX_HISTORY_MESSAGES = 12  # храним последние N сообщений диалога (и user, и assistant)
 
+MENU_ORDER_STATUS = "📦 Статус заказа"
+MENU_CANCEL_RETURN = "❌ Отмена / возврат заказа"
+MENU_SEARCH = "🔍 Найти товар"
+MENU_RESET_PASS = "🔑 Забыли пароль"
+MENU_ASK = "💬 Задать вопрос"
 
-async def fetch_backend(path: str, params: dict) -> dict | list | None:
+MAIN_MENU = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text=MENU_ORDER_STATUS), KeyboardButton(text=MENU_CANCEL_RETURN)],
+        [KeyboardButton(text=MENU_SEARCH), KeyboardButton(text=MENU_RESET_PASS)],
+        [KeyboardButton(text=MENU_ASK)],
+    ],
+    resize_keyboard=True,
+)
+
+STATUS_LABELS_RU = {
+    "new": "Новый",
+    "awaiting_payment": "Ожидает оплаты",
+    "paid": "Оплачен",
+    "confirmed": "Подтверждён",
+    "shipped": "Отправлен",
+    "delivered": "Доставлен",
+    "cancelled": "Отменён",
+    "returned": "Возврат",
+}
+
+
+async def fetch_backend(path: str, params: dict | None = None) -> dict | list | None:
     """GET-запрос к backend с повторными попытками при 429 (временный троттлинг Render free-тарифа)."""
     delays = [3, 6, 10]
     async with httpx.AsyncClient(timeout=15) as client:
         for attempt in range(len(delays) + 1):
             try:
-                response = await client.get(f"{API_URL}{path}", params=params)
+                response = await client.get(f"{API_URL}{path}", params=params or {})
             except Exception as e:
                 logging.error(f"Backend request error: {e}")
                 return None
@@ -46,6 +73,27 @@ async def fetch_backend(path: str, params: dict) -> dict | list | None:
             logging.error(f"Backend request failed: {response.status_code} {response.text}")
             return None
     return None
+
+
+async def post_backend(path: str, json_body: dict) -> tuple[int, dict | None]:
+    """POST-запрос к backend, возвращает (статус_код, тело_ответа)."""
+    delays = [3, 6, 10]
+    async with httpx.AsyncClient(timeout=15) as client:
+        for attempt in range(len(delays) + 1):
+            try:
+                response = await client.post(f"{API_URL}{path}", json=json_body)
+            except Exception as e:
+                logging.error(f"Backend POST error: {e}")
+                return 0, None
+            if response.status_code == 429 and attempt < len(delays):
+                await asyncio.sleep(delays[attempt])
+                continue
+            try:
+                body = response.json()
+            except Exception:
+                body = None
+            return response.status_code, body
+    return 0, None
 
 
 async def lookup_order_by_phone(phone: str) -> list:
@@ -232,13 +280,26 @@ async def ask_claude(user_id: int, user_message: str) -> str:
     return reply_text
 
 
+def format_order_summary(order: dict) -> str:
+    status = STATUS_LABELS_RU.get(order.get("status"), order.get("status"))
+    lines = [f"Заказ №{order.get('id')} — {status} — {order.get('total')} смн"]
+    for item in order.get("items", []):
+        v = item.get("variant") or {}
+        title = v.get("title_ru", "Товар")
+        returned = " (возвращён)" if item.get("is_returned") else ""
+        lines.append(f"  — {title} ({v.get('color', '')}, {v.get('size', '')}) x{item.get('quantity')}{returned}")
+    return "\n".join(lines)
+
+
 @dp.message(F.text == "/start")
 async def start_handler(message: Message):
     conversation_history.pop(message.from_user.id, None)
+    user_flow.pop(message.from_user.id, None)
+    awaiting_reset_phone.discard(message.from_user.id)
     await message.answer(
         "Здравствуйте! 👋 Я помощник Oina.tj.\n\n"
-        "Могу ответить на вопросы о доставке, оплате, возврате и обмене товара.\n"
-        "Просто напишите свой вопрос."
+        "Выберите нужный пункт в меню ниже, или просто напишите свой вопрос.",
+        reply_markup=MAIN_MENU,
     )
 
 
@@ -250,6 +311,7 @@ async def reset_handler(message: Message):
 
 @dp.message(F.text == "/resetpass")
 async def reset_password_handler(message: Message):
+    user_flow.pop(message.from_user.id, None)
     awaiting_reset_phone.add(message.from_user.id)
     await message.answer(
         "Введите номер телефона, привязанный к вашему аккаунту на сайте Oina.tj "
@@ -257,12 +319,132 @@ async def reset_password_handler(message: Message):
     )
 
 
+@dp.message(F.text == MENU_ORDER_STATUS)
+async def menu_order_status(message: Message):
+    awaiting_reset_phone.discard(message.from_user.id)
+    user_flow[message.from_user.id] = {"flow": "order_status_phone"}
+    await message.answer("Введите номер телефона, на который оформлен заказ.")
+
+
+@dp.message(F.text == MENU_SEARCH)
+async def menu_search(message: Message):
+    awaiting_reset_phone.discard(message.from_user.id)
+    user_flow[message.from_user.id] = {"flow": "search_query"}
+    await message.answer("Что ищем? Напишите название товара (например «куртка»).")
+
+
+@dp.message(F.text == MENU_RESET_PASS)
+async def menu_reset_pass(message: Message):
+    user_flow.pop(message.from_user.id, None)
+    awaiting_reset_phone.add(message.from_user.id)
+    await message.answer(
+        "Введите номер телефона, привязанный к вашему аккаунту на сайте Oina.tj "
+        "(например 900123456), чтобы получить код для сброса пароля."
+    )
+
+
+@dp.message(F.text == MENU_ASK)
+async def menu_ask(message: Message):
+    awaiting_reset_phone.discard(message.from_user.id)
+    user_flow.pop(message.from_user.id, None)
+    await message.answer("Напишите ваш вопрос — я постараюсь помочь.")
+
+
+@dp.message(F.text == MENU_CANCEL_RETURN)
+async def menu_cancel_return(message: Message):
+    awaiting_reset_phone.discard(message.from_user.id)
+    user_flow[message.from_user.id] = {"flow": "cancel_order_number"}
+    await message.answer("Введите номер заказа, который хотите отменить или вернуть (например 26).")
+
+
+@dp.callback_query(F.data == "cancel_whole")
+async def cb_cancel_whole(callback: CallbackQuery):
+    uid = callback.from_user.id
+    flow = user_flow.get(uid)
+    if not flow or flow.get("flow") != "cancel_choose":
+        await callback.answer("Сессия истекла, начните заново.", show_alert=True)
+        return
+    flow["flow"] = "cancel_confirm"
+    flow["pending"] = {"action": "cancel_whole"}
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Да, отменить весь заказ", callback_data="confirm_yes"),
+        InlineKeyboardButton(text="Не надо", callback_data="confirm_no"),
+    ]])
+    await callback.message.answer(
+        f"Подтвердите: отменить заказ №{flow['order_id']} целиком?",
+        reply_markup=keyboard,
+    )
+    await callback.answer()
+
+
+@dp.callback_query(F.data.startswith("return_item:"))
+async def cb_return_item(callback: CallbackQuery):
+    uid = callback.from_user.id
+    flow = user_flow.get(uid)
+    if not flow or flow.get("flow") != "cancel_choose":
+        await callback.answer("Сессия истекла, начните заново.", show_alert=True)
+        return
+    item_id = int(callback.data.split(":")[1])
+    item_title = next((i["title"] for i in flow.get("items", []) if i["id"] == item_id), "товар")
+    flow["flow"] = "cancel_confirm"
+    flow["pending"] = {"action": "return_item", "item_id": item_id}
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Да, вернуть", callback_data="confirm_yes"),
+        InlineKeyboardButton(text="Не надо", callback_data="confirm_no"),
+    ]])
+    await callback.message.answer(
+        f"Подтвердите возврат: «{item_title}»?",
+        reply_markup=keyboard,
+    )
+    await callback.answer()
+
+
+@dp.callback_query(F.data.in_(["confirm_yes", "confirm_no"]))
+async def cb_confirm(callback: CallbackQuery):
+    uid = callback.from_user.id
+    flow = user_flow.get(uid)
+    if not flow or flow.get("flow") != "cancel_confirm":
+        await callback.answer("Сессия истекла, начните заново.", show_alert=True)
+        return
+
+    if callback.data == "confirm_no":
+        user_flow.pop(uid, None)
+        await callback.message.answer("Хорошо, отменено. Ничего не изменилось.")
+        await callback.answer()
+        return
+
+    pending = flow.get("pending", {})
+    order_id = flow["order_id"]
+    phone = flow["phone"]
+
+    if pending.get("action") == "cancel_whole":
+        status_code, body = await post_backend(f"/orders/{order_id}/cancel-request", {"phone": phone})
+        if status_code == 200:
+            await callback.message.answer(f"✅ Заказ №{order_id} отменён.")
+        else:
+            detail = (body or {}).get("detail", "Не удалось отменить заказ.")
+            await callback.message.answer(f"⚠️ {detail}")
+    elif pending.get("action") == "return_item":
+        item_id = pending["item_id"]
+        status_code, body = await post_backend(f"/orders/{order_id}/items/{item_id}/return-request", {"phone": phone})
+        if status_code == 200:
+            await callback.message.answer("✅ Товар отмечен как возвращённый.")
+        else:
+            detail = (body or {}).get("detail", "Не удалось оформить возврат.")
+            await callback.message.answer(f"⚠️ {detail}")
+
+    user_flow.pop(uid, None)
+    await callback.answer()
+
+
 @dp.message(F.text)
 async def text_handler(message: Message):
-    if message.from_user.id in awaiting_reset_phone:
-        awaiting_reset_phone.discard(message.from_user.id)
+    uid = message.from_user.id
+
+    if uid in awaiting_reset_phone:
+        awaiting_reset_phone.discard(uid)
         phone = message.text.strip()
-        result = await link_telegram_and_get_code(phone, message.from_user.id)
+        result = await link_telegram_and_get_code(phone, uid)
         if not result:
             await message.answer("Не удалось связаться с сервером. Попробуйте позже.")
             return
@@ -278,8 +460,85 @@ async def text_handler(message: Message):
         )
         return
 
+    flow = user_flow.get(uid)
+
+    if flow and flow.get("flow") == "order_status_phone":
+        phone = message.text.strip()
+        orders = await lookup_order_by_phone(phone)
+        user_flow.pop(uid, None)
+        if not orders:
+            await message.answer("Заказов с таким номером не найдено.")
+            return
+        text = "\n\n".join(format_order_summary(o) for o in orders[:5])
+        await message.answer(text)
+        return
+
+    if flow and flow.get("flow") == "search_query":
+        query = message.text.strip()
+        products = await search_products(query=query)
+        user_flow.pop(uid, None)
+        if not products:
+            await message.answer("Ничего не найдено. Попробуйте другой запрос.")
+            return
+        lines = []
+        for p in products[:8]:
+            sizes = ", ".join(sorted({v["size"] for v in p["available_variants"]})) or "нет в наличии"
+            lines.append(f"• {p['title']} — {p['price']} смн (размеры: {sizes})")
+        await message.answer("\n".join(lines))
+        return
+
+    if flow and flow.get("flow") == "cancel_order_number":
+        raw = message.text.strip()
+        if not raw.isdigit():
+            await message.answer("Номер заказа должен быть числом. Попробуйте ещё раз (например 26).")
+            return
+        flow["order_id"] = int(raw)
+        flow["flow"] = "cancel_phone"
+        await message.answer("Теперь введите номер телефона, на который оформлен этот заказ.")
+        return
+
+    if flow and flow.get("flow") == "cancel_phone":
+        phone = message.text.strip()
+        order_id = flow["order_id"]
+        order = await fetch_backend(f"/orders/{order_id}/verify", {"phone": phone})
+        if not order or not isinstance(order, dict):
+            user_flow.pop(uid, None)
+            await message.answer(
+                "Не удалось найти заказ с таким номером и телефоном. Проверьте данные и попробуйте снова через меню."
+            )
+            return
+
+        items = [
+            {"id": item["id"], "title": (item.get("variant") or {}).get("title_ru", "Товар")}
+            for item in order.get("items", [])
+            if not item.get("is_returned")
+        ]
+
+        flow["flow"] = "cancel_choose"
+        flow["phone"] = phone
+        flow["items"] = items
+
+        buttons = []
+        if order.get("status") in ("new", "awaiting_payment", "paid", "confirmed"):
+            buttons.append([InlineKeyboardButton(text="Отменить весь заказ", callback_data="cancel_whole")])
+        for item in items:
+            buttons.append([InlineKeyboardButton(text=f"Вернуть: {item['title']}", callback_data=f"return_item:{item['id']}")])
+
+        if not buttons:
+            user_flow.pop(uid, None)
+            await message.answer(
+                "Для этого заказа сейчас недоступна ни отмена, ни возврат через бота. Напишите нам напрямую."
+            )
+            return
+
+        await message.answer(
+            format_order_summary(order) + "\n\nЧто вы хотите сделать?",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+        )
+        return
+
     await bot.send_chat_action(message.chat.id, "typing")
-    reply = await ask_claude(message.from_user.id, message.text)
+    reply = await ask_claude(uid, message.text)
     await message.answer(reply)
 
 

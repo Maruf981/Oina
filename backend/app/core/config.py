@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = "change-me"
     FINANCE_PIN: str = "000000"
     BOT_TOKEN_ADMIN: str = ""
+    BOT_TOKEN_CLIENT: str = ""
     ADMIN_TELEGRAM_ID: int = 0
     ANTHROPIC_API_KEY: str = ""
 

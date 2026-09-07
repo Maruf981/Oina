@@ -85,6 +85,68 @@ def order_stats(db: Session = Depends(get_db), _: bool = Depends(get_current_adm
         "week": summarize(week_start),
         "month": summarize(month_start),
     }
+@router.get("/{order_id}/verify", response_model=OrderOut)
+def verify_order_for_customer(order_id: int, phone: str, db: Session = Depends(get_db)):
+    """
+    Публичный просмотр заказа для самообслуживания клиента через бота — требует
+    совпадения номера телефона с владельцем заказа вместо прав администратора.
+    """
+    from app.models.order import Order
+    from fastapi import HTTPException
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order or order.customer.phone != phone:
+        raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
+    return order
+
+
+@router.post("/{order_id}/cancel-request", response_model=OrderOut)
+def cancel_order_by_customer(
+    order_id: int,
+    data: dict,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Отмена всего заказа клиентом через бота — требует номер телефона владельца заказа.
+    Разрешена только пока заказ не отправлен (new/awaiting_payment/paid/confirmed).
+    """
+    from app.models.order import Order
+    from fastapi import HTTPException
+    phone = data.get("phone", "")
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order or order.customer.phone != phone:
+        raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
+    if order.status not in ("new", "awaiting_payment", "paid", "confirmed"):
+        raise HTTPException(status_code=400, detail="Заказ уже отправлен, отмена через бота недоступна — обратитесь в поддержку")
+    updated = order_repo.update_status(db, order, "cancelled")
+    text = f"❌ Отменён клиентом через бота: Заказ №{updated.id} — {updated.total} смн"
+    background_tasks.add_task(send_admin_notification, text)
+    return updated
+
+
+@router.post("/{order_id}/items/{item_id}/return-request", response_model=OrderItemOut)
+def return_item_by_customer(
+    order_id: int,
+    item_id: int,
+    data: dict,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Возврат одного товара клиентом через бота — требует номер телефона владельца заказа.
+    """
+    from app.models.order import Order
+    from fastapi import HTTPException
+    phone = data.get("phone", "")
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order or order.customer.phone != phone:
+        raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
+    result = order_repo.return_order_item(db, order_id, item_id)
+    text = f"↩️ Возврат товара клиентом через бота: Заказ №{order_id}, позиция №{item_id}"
+    background_tasks.add_task(send_admin_notification, text)
+    return result
+
+
 @router.get("/{order_id}", response_model=OrderOut)
 def get_order(order_id: int, db: Session = Depends(get_db)):
     from app.models.order import Order
@@ -123,4 +185,20 @@ def change_order_status(
         label = "❌ Отменён" if data.status == "cancelled" else "↩️ Возврат"
         text = f"{label}: Заказ №{updated.id} — {updated.total} смн"
         background_tasks.add_task(send_admin_notification, text)
+
+    status_labels_ru = {
+        "new": "Новый",
+        "awaiting_payment": "Ожидает оплаты",
+        "paid": "Оплачен",
+        "confirmed": "Подтверждён",
+        "shipped": "Отправлен",
+        "delivered": "Доставлен",
+        "cancelled": "Отменён",
+        "returned": "Возврат",
+    }
+    if updated.customer.telegram_id:
+        label = status_labels_ru.get(data.status, data.status)
+        customer_text = f"📦 Статус вашего заказа №{updated.id} изменён: {label}"
+        background_tasks.add_task(send_customer_notification, updated.customer.telegram_id, customer_text)
+
     return updated
