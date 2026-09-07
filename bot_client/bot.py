@@ -824,12 +824,15 @@ async def text_handler(message: Message):
         catalog_number = flow.get("current_catalog_number", "")
         user_flow.pop(uid, None)
 
+        def normalize(s: str) -> str:
+            return s.strip().lower().replace("ё", "е")
+
         available = False
         if catalog_number:
-            found_products = await search_products(query=catalog_number, color=desired_color, size=desired_size)
+            found_products = await search_products(query=catalog_number)
             for p in found_products:
                 for v in p.get("available_variants", []):
-                    if v.get("size") == desired_size and v.get("color") == desired_color:
+                    if normalize(v.get("size", "")) == normalize(desired_size) and normalize(v.get("color", "")) == normalize(desired_color):
                         available = True
                         break
 
