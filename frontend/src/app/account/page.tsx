@@ -69,6 +69,7 @@ export default function AccountPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState("");
 
   const [oldPassword, setOldPassword] = useState("");
@@ -140,6 +141,7 @@ export default function AccountPage() {
       if (res.ok) {
         await auth.refreshMe();
         setProfileMsg("Сохранено");
+        setEditingProfile(false);
       } else {
         const data = await res.json().catch(() => null);
         setProfileMsg(data?.detail || "Ошибка сохранения");
@@ -363,27 +365,46 @@ export default function AccountPage() {
 
         {tab === "profile" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <input placeholder="Имя" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-            <input placeholder="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
-            <input placeholder={lang === "ru" ? "Адрес доставки" : "Суроғаи расонидани мол"} value={address} onChange={(e) => setAddress(e.target.value)} style={inputStyle} />
-            <button
-              onClick={handleSaveProfile}
-              disabled={savingProfile}
-              style={{
-                padding: "12px",
-                background: "var(--text)",
-                color: "var(--bg)",
-                border: "none",
-                fontFamily: "var(--font-label)",
-                fontSize: 13,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-                cursor: "pointer",
-                opacity: savingProfile ? 0.6 : 1,
-              }}
-            >
-              {savingProfile ? (lang === "ru" ? "Сохраняем..." : "Сабт мешавад...") : (lang === "ru" ? "Сохранить" : "Сабт")}
-            </button>
+            <input placeholder="Имя" value={name} onChange={(e) => setName(e.target.value)} disabled={!editingProfile} style={{ ...inputStyle, opacity: editingProfile ? 1 : 0.6, cursor: editingProfile ? "text" : "default" }} />
+            <input placeholder="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!editingProfile} style={{ ...inputStyle, opacity: editingProfile ? 1 : 0.6, cursor: editingProfile ? "text" : "default" }} />
+            <input placeholder={lang === "ru" ? "Адрес доставки" : "Суроғаи расонидани мол"} value={address} onChange={(e) => setAddress(e.target.value)} disabled={!editingProfile} style={{ ...inputStyle, opacity: editingProfile ? 1 : 0.6, cursor: editingProfile ? "text" : "default" }} />
+            {editingProfile ? (
+              <button
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                style={{
+                  padding: "12px",
+                  background: "var(--text)",
+                  color: "var(--bg)",
+                  border: "none",
+                  fontFamily: "var(--font-label)",
+                  fontSize: 13,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                  opacity: savingProfile ? 0.6 : 1,
+                }}
+              >
+                {savingProfile ? (lang === "ru" ? "Сохраняем..." : "Сабт мешавад...") : (lang === "ru" ? "Сохранить" : "Сабт")}
+              </button>
+            ) : (
+              <button
+                onClick={() => { setEditingProfile(true); setProfileMsg(""); }}
+                style={{
+                  padding: "12px",
+                  background: "transparent",
+                  color: "var(--text)",
+                  border: "1px solid var(--line)",
+                  fontFamily: "var(--font-label)",
+                  fontSize: 13,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                }}
+              >
+                {lang === "ru" ? "Изменить" : "Тағйир додан"}
+              </button>
+            )}
             {profileMsg && <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{profileMsg}</span>}
           </div>
         )}

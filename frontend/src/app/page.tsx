@@ -1698,6 +1698,7 @@ function HomeInner() {
                   placeholder={lang === "ru" ? "Телефон" : "Телефон"}
                   value={authPhone}
                   onChange={(e) => setAuthPhone(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
                   style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
                 />
                 <input
@@ -1705,6 +1706,7 @@ function HomeInner() {
                   placeholder={lang === "ru" ? "Пароль" : "Парол"}
                   value={authPassword}
                   onChange={(e) => setAuthPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
                   style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
                 />
 
