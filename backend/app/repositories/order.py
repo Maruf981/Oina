@@ -67,7 +67,7 @@ def create_order(db: Session, data: OrderCreate) -> Order:
     return order
 
 
-def return_order_item(db: Session, order_id: int, item_id: int) -> OrderItem:
+def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | None = None) -> OrderItem:
     item = (
         db.query(OrderItem)
         .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
@@ -75,18 +75,26 @@ def return_order_item(db: Session, order_id: int, item_id: int) -> OrderItem:
     )
     if not item:
         raise HTTPException(status_code=404, detail="Order item not found")
-    if item.is_returned:
-        raise HTTPException(status_code=400, detail="Item already returned")
 
-    item.is_returned = True
-    item.variant.stock += item.quantity
+    remaining = item.quantity - item.returned_quantity
+    if remaining <= 0:
+        raise HTTPException(status_code=400, detail="Item already fully returned")
+
+    if quantity is None:
+        quantity = remaining
+    if quantity < 1 or quantity > remaining:
+        raise HTTPException(status_code=400, detail=f"Некорректное количество для возврата (доступно: {remaining})")
+
+    item.returned_quantity += quantity
+    item.is_returned = item.returned_quantity >= item.quantity
+    item.variant.stock += quantity
     record_movement(
         db,
         variant_id=item.product_variant_id,
         movement_type="return",
-        quantity=item.quantity,
+        quantity=quantity,
         order_id=order_id,
-        note=f"Частичный возврат — заказ №{order_id}, позиция №{item_id}",
+        note=f"Возврат — заказ №{order_id}, позиция №{item_id}, кол-во {quantity}",
     )
     db.commit()
     db.refresh(item)

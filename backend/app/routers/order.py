@@ -161,10 +161,11 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
 def return_order_item(
     order_id: int,
     item_id: int,
+    quantity: int | None = None,
     db: Session = Depends(get_db),
     _: bool = Depends(get_current_admin),
 ):
-    return order_repo.return_order_item(db, order_id, item_id)
+    return order_repo.return_order_item(db, order_id, item_id, quantity=quantity)
 
 
 @router.patch("/{order_id}/status", response_model=OrderOut)

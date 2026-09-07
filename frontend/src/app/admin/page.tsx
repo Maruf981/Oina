@@ -1869,12 +1869,13 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
 
   validOrders.forEach((o: Order) => {
     o.items.forEach((item) => {
-      if ((item as any).is_returned) return;
+      const effectiveQty = item.quantity - ((item as any).returned_quantity ?? 0);
+      if (effectiveQty <= 0) return;
       const info = variantInfo.get(item.product_variant_id);
       if (supplierFilter !== "" && info?.supplierId !== supplierFilter) return;
 
-      const revenue = item.price_at_order * item.quantity;
-      const cost = (info?.costPrice ?? 0) * item.quantity;
+      const revenue = item.price_at_order * effectiveQty;
+      const cost = (info?.costPrice ?? 0) * effectiveQty;
       totalRevenue += revenue;
       totalCost += cost;
 
@@ -2310,9 +2311,22 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
     });
     refreshOrders();
   };
-  const handleReturnItem = async (orderId: number, itemId: number) => {
-    if (!window.confirm("Оформить возврат этой позиции? Товар вернётся на склад, сумма будет исключена из выручки.")) return;
-    const res = await authFetch(`${API}/orders/${orderId}/items/${itemId}/return`, { method: "PATCH" });
+  const handleReturnItem = async (orderId: number, itemId: number, quantity: number, returnedQuantity: number) => {
+    const remaining = quantity - returnedQuantity;
+    let qtyToReturn = remaining;
+    if (remaining > 1) {
+      const input = window.prompt(`Сколько единиц вернуть? (доступно: ${remaining})`, String(remaining));
+      if (input === null) return;
+      const parsed = Number(input);
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > remaining) {
+        alert("Некорректное количество");
+        return;
+      }
+      qtyToReturn = parsed;
+    } else {
+      if (!window.confirm("Оформить возврат этой позиции? Товар вернётся на склад, сумма будет исключена из выручки.")) return;
+    }
+    const res = await authFetch(`${API}/orders/${orderId}/items/${itemId}/return?quantity=${qtyToReturn}`, { method: "PATCH" });
     if (!res.ok) {
       alert("Не удалось оформить возврат");
       return;
@@ -2447,12 +2461,16 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
                   {item.variant ? item.variant.title_ru : "Товар удалён"}
                   {item.variant && ` · ${t.catalogNumber} ${item.variant.catalog_number} · ${item.variant.color}, ${item.variant.size}`}
                   {" × "}{item.quantity}
-                  {(item as any).is_returned && <span style={{ marginLeft: 8, color: "#E24B4A", fontSize: 11 }}>ВОЗВРАЩЁН</span>}
+                  {(item as any).returned_quantity > 0 && (
+                    <span style={{ marginLeft: 8, color: "#E24B4A", fontSize: 11 }}>
+                      {(item as any).is_returned ? "ВОЗВРАЩЁН" : `ВОЗВРАЩЕНО ${(item as any).returned_quantity} из ${item.quantity}`}
+                    </span>
+                  )}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ color: "var(--text-muted)", textDecoration: (item as any).is_returned ? "line-through" : "none" }}>{item.price_at_order} смн</span>
                   {!(item as any).is_returned && (
-                    <span onClick={() => handleReturnItem(o.id, item.id)} style={{ cursor: "pointer", color: "#E24B4A", fontSize: 11, textDecoration: "underline" }}>Возврат</span>
+                    <span onClick={() => handleReturnItem(o.id, item.id, item.quantity, (item as any).returned_quantity ?? 0)} style={{ cursor: "pointer", color: "#E24B4A", fontSize: 11, textDecoration: "underline" }}>Возврат</span>
                   )}
                 </span>
               </div>

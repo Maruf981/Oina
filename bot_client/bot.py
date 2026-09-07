@@ -33,6 +33,7 @@ MENU_CANCEL_RETURN = "❌ Отмена / возврат заказа"
 MENU_SEARCH = "🔍 Найти товар"
 MENU_RESET_PASS = "🔑 Забыли пароль"
 MENU_ASK = "💬 Задать вопрос"
+MENU_TEXTS = {MENU_ORDER_STATUS, MENU_CANCEL_RETURN, MENU_SEARCH, MENU_RESET_PASS, MENU_ASK}
 
 MAIN_MENU = ReplyKeyboardMarkup(
     keyboard=[
@@ -53,6 +54,10 @@ STATUS_LABELS_RU = {
     "cancelled": "Отменён",
     "returned": "Возврат",
 }
+
+# Сценарии, внутри которых свободный текст (не команда меню) не должен уходить в ИИ-чат,
+# а должен либо обрабатываться самим сценарием, либо получать напоминание вернуться к кнопкам.
+CANCEL_FLOW_STATES = {"cancel_order_number", "cancel_phone", "cancel_choose", "cancel_qty", "cancel_confirm"}
 
 
 async def fetch_backend(path: str, params: dict | None = None) -> dict | list | None:
@@ -84,6 +89,27 @@ async def post_backend(path: str, json_body: dict) -> tuple[int, dict | None]:
                 response = await client.post(f"{API_URL}{path}", json=json_body)
             except Exception as e:
                 logging.error(f"Backend POST error: {e}")
+                return 0, None
+            if response.status_code == 429 and attempt < len(delays):
+                await asyncio.sleep(delays[attempt])
+                continue
+            try:
+                body = response.json()
+            except Exception:
+                body = None
+            return response.status_code, body
+    return 0, None
+
+
+async def patch_backend(path: str) -> tuple[int, dict | None]:
+    """PATCH-запрос к backend без тела (query-параметры уже в path), возвращает (статус_код, тело_ответа)."""
+    delays = [3, 6, 10]
+    async with httpx.AsyncClient(timeout=15) as client:
+        for attempt in range(len(delays) + 1):
+            try:
+                response = await client.patch(f"{API_URL}{path}")
+            except Exception as e:
+                logging.error(f"Backend PATCH error: {e}")
                 return 0, None
             if response.status_code == 429 and attempt < len(delays):
                 await asyncio.sleep(delays[attempt])
@@ -286,9 +312,26 @@ def format_order_summary(order: dict) -> str:
     for item in order.get("items", []):
         v = item.get("variant") or {}
         title = v.get("title_ru", "Товар")
-        returned = " (возвращён)" if item.get("is_returned") else ""
-        lines.append(f"  — {title} ({v.get('color', '')}, {v.get('size', '')}) x{item.get('quantity')}{returned}")
+        returned_qty = item.get("returned_quantity", 0)
+        qty = item.get("quantity", 1)
+        note = f" (возвращено {returned_qty} из {qty})" if returned_qty else ""
+        lines.append(f"  — {title} ({v.get('color', '')}, {v.get('size', '')}) x{qty}{note}")
     return "\n".join(lines)
+
+
+def build_cancel_keyboard(order: dict, items: list[dict]) -> InlineKeyboardMarkup | None:
+    buttons = []
+    if order.get("status") in ("new", "awaiting_payment", "paid", "confirmed"):
+        buttons.append([InlineKeyboardButton(text="Отменить весь заказ", callback_data="cancel_whole")])
+    for item in items:
+        remaining = item["quantity"] - item["returned_quantity"]
+        if remaining <= 0:
+            continue
+        label = f"Вернуть: {item['title']} (x{remaining})" if remaining > 1 else f"Вернуть: {item['title']}"
+        buttons.append([InlineKeyboardButton(text=label, callback_data=f"return_item:{item['id']}")])
+    if not buttons:
+        return None
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 @dp.message(F.text == "/start")
@@ -385,15 +428,30 @@ async def cb_return_item(callback: CallbackQuery):
         await callback.answer("Сессия истекла, начните заново.", show_alert=True)
         return
     item_id = int(callback.data.split(":")[1])
-    item_title = next((i["title"] for i in flow.get("items", []) if i["id"] == item_id), "товар")
+    item = next((i for i in flow.get("items", []) if i["id"] == item_id), None)
+    if not item:
+        await callback.answer("Позиция не найдена.", show_alert=True)
+        return
+    remaining = item["quantity"] - item["returned_quantity"]
+
+    if remaining > 1:
+        flow["flow"] = "cancel_qty"
+        flow["pending_item_id"] = item_id
+        flow["pending_remaining"] = remaining
+        await callback.message.answer(
+            f"«{item['title']}» — в заказе {remaining} шт. Сколько единиц вернуть? Напишите число от 1 до {remaining}."
+        )
+        await callback.answer()
+        return
+
     flow["flow"] = "cancel_confirm"
-    flow["pending"] = {"action": "return_item", "item_id": item_id}
+    flow["pending"] = {"action": "return_item", "item_id": item_id, "quantity": 1}
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Да, вернуть", callback_data="confirm_yes"),
         InlineKeyboardButton(text="Не надо", callback_data="confirm_no"),
     ]])
     await callback.message.answer(
-        f"Подтвердите возврат: «{item_title}»?",
+        f"Подтвердите возврат: «{item['title']}»?",
         reply_markup=keyboard,
     )
     await callback.answer()
@@ -426,9 +484,13 @@ async def cb_confirm(callback: CallbackQuery):
             await callback.message.answer(f"⚠️ {detail}")
     elif pending.get("action") == "return_item":
         item_id = pending["item_id"]
-        status_code, body = await post_backend(f"/orders/{order_id}/items/{item_id}/return-request", {"phone": phone})
+        quantity = pending.get("quantity")
+        status_code, body = await post_backend(
+            f"/orders/{order_id}/items/{item_id}/return-request",
+            {"phone": phone, "quantity": quantity},
+        )
         if status_code == 200:
-            await callback.message.answer("✅ Товар отмечен как возвращённый.")
+            await callback.message.answer("✅ Возврат оформлен.")
         else:
             detail = (body or {}).get("detail", "Не удалось оформить возврат.")
             await callback.message.answer(f"⚠️ {detail}")
@@ -440,10 +502,16 @@ async def cb_confirm(callback: CallbackQuery):
 @dp.message(F.text)
 async def text_handler(message: Message):
     uid = message.from_user.id
+    text = message.text.strip()
+
+    if text in MENU_TEXTS:
+        # Кнопки меню обрабатываются собственными хендлерами выше — сюда не попадём,
+        # но на всякий случай не даём такому тексту провалиться в сценарии ниже.
+        return
 
     if uid in awaiting_reset_phone:
         awaiting_reset_phone.discard(uid)
-        phone = message.text.strip()
+        phone = text
         result = await link_telegram_and_get_code(phone, uid)
         if not result:
             await message.answer("Не удалось связаться с сервером. Попробуйте позже.")
@@ -463,19 +531,17 @@ async def text_handler(message: Message):
     flow = user_flow.get(uid)
 
     if flow and flow.get("flow") == "order_status_phone":
-        phone = message.text.strip()
-        orders = await lookup_order_by_phone(phone)
+        orders = await lookup_order_by_phone(text)
         user_flow.pop(uid, None)
         if not orders:
             await message.answer("Заказов с таким номером не найдено.")
             return
-        text = "\n\n".join(format_order_summary(o) for o in orders[:5])
-        await message.answer(text)
+        reply_text = "\n\n".join(format_order_summary(o) for o in orders[:5])
+        await message.answer(reply_text)
         return
 
     if flow and flow.get("flow") == "search_query":
-        query = message.text.strip()
-        products = await search_products(query=query)
+        products = await search_products(query=text)
         user_flow.pop(uid, None)
         if not products:
             await message.answer("Ничего не найдено. Попробуйте другой запрос.")
@@ -488,17 +554,16 @@ async def text_handler(message: Message):
         return
 
     if flow and flow.get("flow") == "cancel_order_number":
-        raw = message.text.strip()
-        if not raw.isdigit():
+        if not text.isdigit():
             await message.answer("Номер заказа должен быть числом. Попробуйте ещё раз (например 26).")
             return
-        flow["order_id"] = int(raw)
+        flow["order_id"] = int(text)
         flow["flow"] = "cancel_phone"
         await message.answer("Теперь введите номер телефона, на который оформлен этот заказ.")
         return
 
     if flow and flow.get("flow") == "cancel_phone":
-        phone = message.text.strip()
+        phone = text
         order_id = flow["order_id"]
         order = await fetch_backend(f"/orders/{order_id}/verify", {"phone": phone})
         if not order or not isinstance(order, dict):
@@ -509,32 +574,58 @@ async def text_handler(message: Message):
             return
 
         items = [
-            {"id": item["id"], "title": (item.get("variant") or {}).get("title_ru", "Товар")}
+            {
+                "id": item["id"],
+                "title": (item.get("variant") or {}).get("title_ru", "Товар"),
+                "quantity": item.get("quantity", 1),
+                "returned_quantity": item.get("returned_quantity", 0),
+            }
             for item in order.get("items", [])
-            if not item.get("is_returned")
         ]
 
-        flow["flow"] = "cancel_choose"
-        flow["phone"] = phone
-        flow["items"] = items
-
-        buttons = []
-        if order.get("status") in ("new", "awaiting_payment", "paid", "confirmed"):
-            buttons.append([InlineKeyboardButton(text="Отменить весь заказ", callback_data="cancel_whole")])
-        for item in items:
-            buttons.append([InlineKeyboardButton(text=f"Вернуть: {item['title']}", callback_data=f"return_item:{item['id']}")])
-
-        if not buttons:
+        keyboard = build_cancel_keyboard(order, items)
+        if not keyboard:
             user_flow.pop(uid, None)
             await message.answer(
                 "Для этого заказа сейчас недоступна ни отмена, ни возврат через бота. Напишите нам напрямую."
             )
             return
 
+        flow["flow"] = "cancel_choose"
+        flow["phone"] = phone
+        flow["items"] = items
+
         await message.answer(
             format_order_summary(order) + "\n\nЧто вы хотите сделать?",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+            reply_markup=keyboard,
         )
+        return
+
+    if flow and flow.get("flow") == "cancel_qty":
+        remaining = flow.get("pending_remaining", 1)
+        if not text.isdigit() or not (1 <= int(text) <= remaining):
+            await message.answer(f"Введите число от 1 до {remaining}.")
+            return
+        quantity = int(text)
+        item_id = flow["pending_item_id"]
+        item = next((i for i in flow.get("items", []) if i["id"] == item_id), None)
+        title = item["title"] if item else "товар"
+
+        flow["flow"] = "cancel_confirm"
+        flow["pending"] = {"action": "return_item", "item_id": item_id, "quantity": quantity}
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="Да, вернуть", callback_data="confirm_yes"),
+            InlineKeyboardButton(text="Не надо", callback_data="confirm_no"),
+        ]])
+        await message.answer(
+            f"Подтвердите возврат: «{title}» — {quantity} шт.?",
+            reply_markup=keyboard,
+        )
+        return
+
+    if flow and flow.get("flow") in CANCEL_FLOW_STATES:
+        # Ждём нажатия inline-кнопки (cancel_choose / cancel_confirm), а пришёл свободный текст.
+        await message.answer("Пожалуйста, воспользуйтесь кнопками выше, чтобы продолжить, или напишите /start, чтобы начать заново.")
         return
 
     await bot.send_chat_action(message.chat.id, "typing")

@@ -32,9 +32,15 @@ class OrderItemOut(BaseModel):
     quantity: int
     price_at_order: float
     is_returned: bool = False
+    returned_quantity: int = 0
     variant: VariantBrief | None = None
     class Config:
         from_attributes = True
+
+
+class ReturnItemRequest(BaseModel):
+    phone: str
+    quantity: int | None = None
 
 
 class OrderStatusUpdate(BaseModel):
