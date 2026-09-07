@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_customer, get_current_admin
 from app.models.customer import Customer
 from app.repositories import order as order_repo
-from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderItemOut
+from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderItemOut, ReturnItemRequest
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -128,21 +128,21 @@ def cancel_order_by_customer(
 def return_item_by_customer(
     order_id: int,
     item_id: int,
-    data: dict,
+    data: ReturnItemRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     """
-    Возврат одного товара клиентом через бота — требует номер телефона владельца заказа.
+    Возврат одного товара (целиком или частично по количеству) клиентом через бота —
+    требует номер телефона владельца заказа.
     """
     from app.models.order import Order
     from fastapi import HTTPException
-    phone = data.get("phone", "")
     order = db.query(Order).filter(Order.id == order_id).first()
-    if not order or order.customer.phone != phone:
+    if not order or order.customer.phone != data.phone:
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
-    result = order_repo.return_order_item(db, order_id, item_id)
-    text = f"↩️ Возврат товара клиентом через бота: Заказ №{order_id}, позиция №{item_id}"
+    result = order_repo.return_order_item(db, order_id, item_id, quantity=data.quantity)
+    text = f"↩️ Возврат товара клиентом через бота: Заказ №{order_id}, позиция №{item_id}, кол-во {data.quantity or 'всё'}"
     background_tasks.add_task(send_admin_notification, text)
     return result
 
