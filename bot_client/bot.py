@@ -44,6 +44,16 @@ MAIN_MENU = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+CONTACT_SHARE_MENU = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="📱 Поделиться номером телефона", request_contact=True)],
+        [KeyboardButton(text=MENU_ORDER_STATUS), KeyboardButton(text=MENU_CANCEL_RETURN)],
+        [KeyboardButton(text=MENU_SEARCH), KeyboardButton(text=MENU_RESET_PASS)],
+        [KeyboardButton(text=MENU_ASK)],
+    ],
+    resize_keyboard=True,
+)
+
 STATUS_LABELS_RU = {
     "new": "Новый",
     "awaiting_payment": "Ожидает оплаты",
@@ -184,6 +194,28 @@ async def place_order(variant_id: int, quantity: int, customer_name: str, custom
                 detail = response.text
             return {"error": detail}
     return {"error": "Не удалось оформить заказ, попробуйте позже"}
+
+
+async def link_telegram_silent(phone: str, telegram_id: int) -> dict | None:
+    delays = [3, 6, 10]
+    async with httpx.AsyncClient(timeout=15) as client:
+        for attempt in range(len(delays) + 1):
+            try:
+                response = await client.post(
+                    f"{API_URL}/auth/link-telegram-silent",
+                    json={"phone": phone, "telegram_id": telegram_id},
+                )
+            except Exception as e:
+                logging.error(f"Silent link telegram error: {e}")
+                return None
+            if response.status_code == 200:
+                return response.json()
+            if response.status_code == 429 and attempt < len(delays):
+                await asyncio.sleep(delays[attempt])
+                continue
+            logging.error(f"Silent link telegram failed: {response.status_code} {response.text}")
+            return None
+    return None
 
 
 async def link_telegram_and_get_code(phone: str, telegram_id: int) -> dict | None:
@@ -341,9 +373,36 @@ async def start_handler(message: Message):
     awaiting_reset_phone.discard(message.from_user.id)
     await message.answer(
         "Здравствуйте! 👋 Я помощник Oina.tj.\n\n"
-        "Выберите нужный пункт в меню ниже, или просто напишите свой вопрос.",
-        reply_markup=MAIN_MENU,
+        "Поделитесь номером телефона (кнопка ниже) — тогда мы сможем присылать вам "
+        "уведомления о статусе заказа прямо сюда. Это необязательно, можно и без этого.\n\n"
+        "Выберите нужный пункт в меню, или просто напишите свой вопрос.",
+        reply_markup=CONTACT_SHARE_MENU,
     )
+
+
+@dp.message(F.contact)
+async def contact_handler(message: Message):
+    contact = message.contact
+    if contact.user_id and contact.user_id != message.from_user.id:
+        # прислан контакт другого человека, а не свой — игнорируем
+        await message.answer("Пожалуйста, поделитесь именно своим номером через кнопку.")
+        return
+
+    phone = contact.phone_number.lstrip("+")
+    if phone.startswith("992"):
+        phone = phone[3:]
+
+    result = await link_telegram_silent(phone, message.from_user.id)
+    if result and result.get("linked"):
+        await message.answer(
+            "Спасибо! Теперь мы сможем присылать вам уведомления о статусе заказа сюда.",
+            reply_markup=MAIN_MENU,
+        )
+    else:
+        await message.answer(
+            "Не нашли аккаунт с таким номером на сайте — ничего страшного, можно продолжить и без этого.",
+            reply_markup=MAIN_MENU,
+        )
 
 
 @dp.message(F.text == "/reset")

@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_customer, get_current_admin
 from app.core.security import hash_password, verify_password, create_access_token
 from app.models.customer import Customer
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, CustomerOut, UpdateProfileRequest, ChangePasswordRequest, DeleteAccountRequest, LinkTelegramRequest, VerifyResetCodeRequest
+from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, CustomerOut, UpdateProfileRequest, ChangePasswordRequest, DeleteAccountRequest, LinkTelegramRequest, VerifyResetCodeRequest, SilentLinkTelegramRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -103,6 +103,21 @@ def delete_account(
     current.telegram_id = None
     db.commit()
     return {"ok": True}
+@router.post("/link-telegram-silent")
+def link_telegram_silent(data: SilentLinkTelegramRequest, db: Session = Depends(get_db)):
+    """
+    Тихая привязка telegram_id к клиенту по номеру телефона — вызывается ботом при
+    первом сообщении (после того как клиент поделился контактом), без генерации кода.
+    Нужна только чтобы бэкенд знал, куда слать уведомления о статусе заказа.
+    """
+    customer = db.query(Customer).filter(Customer.phone == data.phone).first()
+    if not customer:
+        return {"linked": False}
+    customer.telegram_id = data.telegram_id
+    db.commit()
+    return {"linked": True, "name": customer.name}
+
+
 @router.post("/link-telegram")
 def link_telegram(data: LinkTelegramRequest, db: Session = Depends(get_db)):
     """

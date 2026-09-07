@@ -46,6 +46,11 @@ class LinkTelegramRequest(BaseModel):
     telegram_id: int
 
 
+class SilentLinkTelegramRequest(BaseModel):
+    phone: str
+    telegram_id: int
+
+
 class VerifyResetCodeRequest(BaseModel):
     phone: str
     code: str
