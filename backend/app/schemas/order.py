@@ -43,6 +43,15 @@ class ReturnItemRequest(BaseModel):
     quantity: int | None = None
 
 
+
+class ExchangeRequest(BaseModel):
+    phone: str
+    is_dushanbe: bool
+    desired_size: str
+    desired_color: str
+    comment: str | None = None
+
+
 class OrderStatusUpdate(BaseModel):
     status: str
 

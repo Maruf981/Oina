@@ -109,6 +109,10 @@ def update_status(db: Session, order: Order, new_status: str) -> Order:
 
     order.status = OrderStatus(new_status)
 
+    if new_status == "delivered" and not order.delivered_at:
+        from datetime import datetime
+        order.delivered_at = datetime.utcnow()
+
     if will_restore and not already_restored:
         for item in order.items:
             item.variant.stock += item.quantity

@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_customer, get_current_admin
 from app.models.customer import Customer
 from app.repositories import order as order_repo
-from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderItemOut, ReturnItemRequest
+from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderItemOut, ReturnItemRequest, ExchangeRequest
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -141,10 +141,57 @@ def return_item_by_customer(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order or order.customer.phone != data.phone:
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
+    if order.status == "delivered":
+        raise HTTPException(
+            status_code=400,
+            detail="Возврат недоступен — товар уже принят. Для обмена размера/цвета в течение 24 часов (48 часов для отдалённых районов) воспользуйтесь пунктом «Обмен» в боте.",
+        )
     result = order_repo.return_order_item(db, order_id, item_id, quantity=data.quantity)
     text = f"↩️ Возврат товара клиентом через бота: Заказ №{order_id}, позиция №{item_id}, кол-во {data.quantity or 'всё'}"
     background_tasks.add_task(send_admin_notification, text)
     return result
+
+
+@router.post("/{order_id}/exchange-request")
+def request_exchange(
+    order_id: int,
+    data: ExchangeRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Запрос на обмен размера/цвета клиентом через бота — доступен только в течение
+    24 часов (Душанбе) / 48 часов (другие регионы) после того, как заказ получил
+    статус "Доставлен". Не меняет заказ автоматически — только уведомляет админа,
+    решение и оформление обмена — вручную.
+    """
+    from app.models.order import Order
+    from fastapi import HTTPException
+    from datetime import datetime, timedelta
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order or order.customer.phone != data.phone:
+        raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
+    if order.status != "delivered" or not order.delivered_at:
+        raise HTTPException(status_code=400, detail="Обмен доступен только для доставленных заказов")
+
+    window_hours = 24 if data.is_dushanbe else 48
+    deadline = order.delivered_at + timedelta(hours=window_hours)
+    if datetime.utcnow() > deadline:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Срок обмена истёк ({window_hours} ч. после доставки). Обратитесь в поддержку.",
+        )
+
+    text = (
+        f"🔄 <b>Запрос на обмен — Заказ №{order.id}</b>\n"
+        f"Клиент: {order.customer.name or 'Без имени'} ({data.phone})\n"
+        f"Желаемый размер: {data.desired_size}\n"
+        f"Желаемый цвет: {data.desired_color}\n"
+        f"{f'Комментарий: {data.comment}' if data.comment else ''}"
+    )
+    background_tasks.add_task(send_admin_notification, text)
+    return {"ok": True}
 
 
 @router.get("/{order_id}", response_model=OrderOut)

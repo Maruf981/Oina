@@ -30,16 +30,17 @@ MAX_HISTORY_MESSAGES = 12  # храним последние N сообщени�
 
 MENU_ORDER_STATUS = "📦 Статус заказа"
 MENU_CANCEL_RETURN = "❌ Отмена / возврат заказа"
+MENU_EXCHANGE = "🔄 Обмен размера/цвета"
 MENU_SEARCH = "🔍 Найти товар"
 MENU_RESET_PASS = "🔑 Забыли пароль"
 MENU_ASK = "💬 Задать вопрос"
-MENU_TEXTS = {MENU_ORDER_STATUS, MENU_CANCEL_RETURN, MENU_SEARCH, MENU_RESET_PASS, MENU_ASK}
+MENU_TEXTS = {MENU_ORDER_STATUS, MENU_CANCEL_RETURN, MENU_EXCHANGE, MENU_SEARCH, MENU_RESET_PASS, MENU_ASK}
 
 MAIN_MENU = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text=MENU_ORDER_STATUS), KeyboardButton(text=MENU_CANCEL_RETURN)],
-        [KeyboardButton(text=MENU_SEARCH), KeyboardButton(text=MENU_RESET_PASS)],
-        [KeyboardButton(text=MENU_ASK)],
+        [KeyboardButton(text=MENU_EXCHANGE), KeyboardButton(text=MENU_SEARCH)],
+        [KeyboardButton(text=MENU_RESET_PASS), KeyboardButton(text=MENU_ASK)],
     ],
     resize_keyboard=True,
 )
@@ -48,8 +49,8 @@ CONTACT_SHARE_MENU = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📱 Поделиться номером телефона", request_contact=True)],
         [KeyboardButton(text=MENU_ORDER_STATUS), KeyboardButton(text=MENU_CANCEL_RETURN)],
-        [KeyboardButton(text=MENU_SEARCH), KeyboardButton(text=MENU_RESET_PASS)],
-        [KeyboardButton(text=MENU_ASK)],
+        [KeyboardButton(text=MENU_EXCHANGE), KeyboardButton(text=MENU_SEARCH)],
+        [KeyboardButton(text=MENU_RESET_PASS), KeyboardButton(text=MENU_ASK)],
     ],
     resize_keyboard=True,
 )
@@ -68,6 +69,7 @@ STATUS_LABELS_RU = {
 # Сценарии, внутри которых свободный текст (не команда меню) не должен уходить в ИИ-чат,
 # а должен либо обрабатываться самим сценарием, либо получать напоминание вернуться к кнопкам.
 CANCEL_FLOW_STATES = {"cancel_order_number", "cancel_phone", "cancel_choose", "cancel_qty", "cancel_confirm"}
+EXCHANGE_FLOW_STATES = {"exchange_order_number", "exchange_phone", "exchange_city", "exchange_size", "exchange_color"}
 
 
 async def fetch_backend(path: str, params: dict | None = None) -> dict | list | None:
@@ -240,6 +242,18 @@ async def link_telegram_and_get_code(phone: str, telegram_id: int) -> dict | Non
             logging.error(f"Link telegram failed: {response.status_code} {response.text}")
             return None
     return None
+
+
+async def request_exchange(order_id: int, phone: str, is_dushanbe: bool, desired_size: str, desired_color: str) -> tuple[int, dict | None]:
+    return await post_backend(
+        f"/orders/{order_id}/exchange-request",
+        {
+            "phone": phone,
+            "is_dushanbe": is_dushanbe,
+            "desired_size": desired_size,
+            "desired_color": desired_color,
+        },
+    )
 
 
 async def call_claude_api(history: list[dict]) -> dict:
@@ -452,6 +466,16 @@ async def menu_ask(message: Message):
     await message.answer("Напишите ваш вопрос — я постараюсь помочь.")
 
 
+@dp.message(F.text == MENU_EXCHANGE)
+async def menu_exchange(message: Message):
+    awaiting_reset_phone.discard(message.from_user.id)
+    user_flow[message.from_user.id] = {"flow": "exchange_order_number"}
+    await message.answer(
+        "Обмен размера или цвета возможен в течение 24 часов после доставки (для Душанбе) "
+        "или 48 часов (для других районов). Введите номер заказа."
+    )
+
+
 @dp.message(F.text == MENU_CANCEL_RETURN)
 async def menu_cancel_return(message: Message):
     awaiting_reset_phone.discard(message.from_user.id)
@@ -514,6 +538,19 @@ async def cb_return_item(callback: CallbackQuery):
         f"Подтвердите возврат: «{item['title']}»?",
         reply_markup=keyboard,
     )
+    await callback.answer()
+
+
+@dp.callback_query(F.data.in_(["exchange_city:dushanbe", "exchange_city:other"]))
+async def cb_exchange_city(callback: CallbackQuery):
+    uid = callback.from_user.id
+    flow = user_flow.get(uid)
+    if not flow or flow.get("flow") != "exchange_city":
+        await callback.answer("Сессия истекла, начните заново.", show_alert=True)
+        return
+    flow["is_dushanbe"] = callback.data == "exchange_city:dushanbe"
+    flow["flow"] = "exchange_size"
+    await callback.message.answer("Какой размер вам нужен?")
     await callback.answer()
 
 
@@ -684,6 +721,65 @@ async def text_handler(message: Message):
             f"Подтвердите возврат: «{title}» — {quantity} шт.?",
             reply_markup=keyboard,
         )
+        return
+
+    if flow and flow.get("flow") == "exchange_order_number":
+        if not text.isdigit():
+            await message.answer("Номер заказа должен быть числом. Попробуйте ещё раз.")
+            return
+        flow["order_id"] = int(text)
+        flow["flow"] = "exchange_phone"
+        await message.answer("Теперь введите номер телефона, на который оформлен этот заказ.")
+        return
+
+    if flow and flow.get("flow") == "exchange_phone":
+        phone = text
+        order_id = flow["order_id"]
+        order = await fetch_backend(f"/orders/{order_id}/verify", {"phone": phone})
+        if not order or not isinstance(order, dict):
+            user_flow.pop(uid, None)
+            await message.answer(
+                "Не удалось найти заказ с таким номером и телефоном. Проверьте данные и попробуйте снова через меню."
+            )
+            return
+        if order.get("status") != "delivered":
+            user_flow.pop(uid, None)
+            await message.answer("Обмен доступен только для уже доставленных заказов.")
+            return
+
+        flow["flow"] = "exchange_city"
+        flow["phone"] = phone
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="Душанбе", callback_data="exchange_city:dushanbe"),
+            InlineKeyboardButton(text="Другой город", callback_data="exchange_city:other"),
+        ]])
+        await message.answer("Вы находитесь в Душанбе или в другом городе?", reply_markup=keyboard)
+        return
+
+    if flow and flow.get("flow") == "exchange_size":
+        flow["desired_size"] = text
+        flow["flow"] = "exchange_color"
+        await message.answer("Какой цвет вам нужен?")
+        return
+
+    if flow and flow.get("flow") == "exchange_color":
+        flow["desired_color"] = text
+        order_id = flow["order_id"]
+        phone = flow["phone"]
+        is_dushanbe = flow.get("is_dushanbe", True)
+        desired_size = flow.get("desired_size", "")
+        user_flow.pop(uid, None)
+
+        status_code, body = await request_exchange(order_id, phone, is_dushanbe, desired_size, text)
+        if status_code == 200:
+            await message.answer("✅ Запрос на обмен отправлен администратору. С вами свяжутся в ближайшее время.")
+        else:
+            detail = (body or {}).get("detail", "Не удалось отправить запрос на обмен.")
+            await message.answer(f"⚠️ {detail}")
+        return
+
+    if flow and flow.get("flow") in EXCHANGE_FLOW_STATES:
+        await message.answer("Пожалуйста, воспользуйтесь кнопками выше, чтобы продолжить, или напишите /start, чтобы начать заново.")
         return
 
     if flow and flow.get("flow") in CANCEL_FLOW_STATES:

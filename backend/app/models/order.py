@@ -34,6 +34,7 @@ class Order(Base):
     comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
     total: Mapped[float] = mapped_column(Numeric(10, 2))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     customer: Mapped["Customer"] = relationship(back_populates="orders")
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")
