@@ -189,6 +189,7 @@ def request_exchange(
         f"Товар: {data.current_item}\n"
         f"Желаемый размер: {data.desired_size}\n"
         f"Желаемый цвет: {data.desired_color}\n"
+        f"{f'Наличие: {data.availability_note}' if data.availability_note else ''}\n"
         f"{f'Комментарий: {data.comment}' if data.comment else ''}"
     )
     background_tasks.add_task(send_admin_notification, text)

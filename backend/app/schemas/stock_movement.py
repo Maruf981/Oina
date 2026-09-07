@@ -10,6 +10,12 @@ class StockMovementCreate(BaseModel):
     note: str | None = None
 
 
+class StockMovementOutgoingCreate(BaseModel):
+    product_variant_id: int
+    quantity: int
+    note: str | None = None
+
+
 class StockMovementOut(BaseModel):
     id: int
     product_variant_id: int

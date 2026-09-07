@@ -50,6 +50,7 @@ class ExchangeRequest(BaseModel):
     current_item: str
     desired_size: str
     desired_color: str
+    availability_note: str | None = None
     comment: str | None = None
 
 

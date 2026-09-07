@@ -442,7 +442,7 @@ export default function AdminPage() {
           />
         )}
         {tab === "orders" && <OrdersTab t={t} orders={orders} authFetch={authFetch} refreshOrders={refreshOrders} lang={lang} />}
-        {tab === "warehouse" && <WarehouseTab products={products} suppliers={suppliers} incomingMovements={incomingMovements} />}
+        {tab === "warehouse" && <WarehouseTab products={products} suppliers={suppliers} incomingMovements={incomingMovements} authFetch={authFetch} refreshProducts={refreshProducts} />}
         {tab === "finance" && <FinanceTab orders={orders} products={products} suppliers={suppliers} authFetch={authFetch} />}
         {tab === "employees" && <EmployeesTab t={t} authFetch={authFetch} />}
         {tab === "banners" && <BannersTab t={t} authFetch={authFetch} products={products} categories={categories} />}
@@ -2018,7 +2018,52 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
   );
 }
 
-function WarehouseTab({ products, suppliers, incomingMovements }: any) {
+function WarehouseTab({ products, suppliers, incomingMovements, authFetch, refreshProducts }: any) {
+  const [outgoingVariantId, setOutgoingVariantId] = useState<string>("");
+  const [outgoingQty, setOutgoingQty] = useState("");
+  const [outgoingNote, setOutgoingNote] = useState("");
+  const [outgoingError, setOutgoingError] = useState("");
+  const [outgoingSuccess, setOutgoingSuccess] = useState("");
+
+  const allVariantsFlat: { variantId: number; label: string; stock: number }[] = [];
+  (Array.isArray(products) ? products : []).forEach((p: Product) => {
+    p.variants.forEach((v: any) => {
+      allVariantsFlat.push({
+        variantId: v.id,
+        label: `${p.title_ru} — ${p.catalog_number} · ${v.color}, ${v.size} (остаток: ${v.stock})`,
+        stock: v.stock,
+      });
+    });
+  });
+
+  const handleOutgoing = async () => {
+    setOutgoingError("");
+    setOutgoingSuccess("");
+    if (!outgoingVariantId || !outgoingQty) {
+      setOutgoingError("Выберите товар и укажите количество");
+      return;
+    }
+    const res = await authFetch(`${API}/stock-movements/outgoing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        product_variant_id: Number(outgoingVariantId),
+        quantity: Number(outgoingQty),
+        note: outgoingNote || null,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      setOutgoingError(err?.detail || "Не удалось списать товар");
+      return;
+    }
+    setOutgoingSuccess("Списано со склада");
+    setOutgoingVariantId("");
+    setOutgoingQty("");
+    setOutgoingNote("");
+    refreshProducts();
+  };
+
   const [supplierFilter, setSupplierFilter] = useState<number | "">("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [periodFilter, setPeriodFilter] = useState<"all" | "today" | "week" | "month">("all");
@@ -2174,6 +2219,43 @@ function WarehouseTab({ products, suppliers, incomingMovements }: any) {
 
   return (
     <div>
+      <div style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 24, maxWidth: 560 }}>
+        <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 14 }}>
+          Списать со склада (обмен, брак и т.п.)
+        </div>
+        <select
+          value={outgoingVariantId}
+          onChange={(e) => setOutgoingVariantId(e.target.value)}
+          style={{ width: "100%", padding: 10, marginBottom: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", boxSizing: "border-box" }}
+        >
+          <option value="">— Выберите товар —</option>
+          {allVariantsFlat.map((v) => (
+            <option key={v.variantId} value={v.variantId}>{v.label}</option>
+          ))}
+        </select>
+        <input
+          type="number"
+          placeholder="Количество"
+          value={outgoingQty}
+          onChange={(e) => setOutgoingQty(e.target.value)}
+          style={{ width: "100%", padding: 10, marginBottom: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", boxSizing: "border-box" }}
+        />
+        <input
+          placeholder="Причина (например: Обмен — заказ №34)"
+          value={outgoingNote}
+          onChange={(e) => setOutgoingNote(e.target.value)}
+          style={{ width: "100%", padding: 10, marginBottom: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", boxSizing: "border-box" }}
+        />
+        {outgoingError && <p style={{ color: "#E24B4A", fontSize: 13, marginBottom: 10 }}>{outgoingError}</p>}
+        {outgoingSuccess && <p style={{ color: "#4CAF50", fontSize: 13, marginBottom: 10 }}>{outgoingSuccess}</p>}
+        <button
+          onClick={handleOutgoing}
+          style={{ padding: "10px 20px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+        >
+          Списать
+        </button>
+      </div>
+
       <div style={{ display: "flex", gap: 20, marginBottom: 20, alignItems: "center", flexWrap: "wrap" }}>
         <select
           value={supplierFilter}

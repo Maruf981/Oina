@@ -45,6 +45,26 @@ def create_incoming(db: Session, data) -> StockMovement:
     return movement
 
 
+def create_outgoing(db: Session, data) -> StockMovement:
+    variant = db.query(ProductVariant).filter(ProductVariant.id == data.product_variant_id).first()
+    if not variant:
+        raise ValueError("Variant not found")
+    qty = abs(data.quantity)
+    if variant.stock < qty:
+        raise ValueError(f"Недостаточно остатка (доступно: {variant.stock})")
+    movement = record_movement(
+        db,
+        variant_id=data.product_variant_id,
+        movement_type="outgoing",
+        quantity=-qty,
+        note=data.note,
+    )
+    variant.stock -= qty
+    db.commit()
+    db.refresh(movement)
+    return movement
+
+
 def get_all(db: Session, product_variant_id: int | None = None, movement_type: str | None = None):
     query = db.query(StockMovement).order_by(StockMovement.created_at.desc())
     if product_variant_id is not None:

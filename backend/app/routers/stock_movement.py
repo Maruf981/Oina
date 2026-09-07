@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_admin
 from app.repositories import stock_movement as movement_repo
-from app.schemas.stock_movement import StockMovementCreate, StockMovementOut
+from app.schemas.stock_movement import StockMovementCreate, StockMovementOut, StockMovementOutgoingCreate
 
 router = APIRouter(prefix="/stock-movements", tags=["stock-movements"])
 
@@ -25,3 +25,16 @@ def create_incoming(
     _: bool = Depends(get_current_admin),
 ):
     return movement_repo.create_incoming(db, data)
+
+
+@router.post("/outgoing", response_model=StockMovementOut)
+def create_outgoing(
+    data: StockMovementOutgoingCreate,
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin),
+):
+    from fastapi import HTTPException
+    try:
+        return movement_repo.create_outgoing(db, data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

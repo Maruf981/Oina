@@ -244,7 +244,7 @@ async def link_telegram_and_get_code(phone: str, telegram_id: int) -> dict | Non
     return None
 
 
-async def request_exchange(order_id: int, phone: str, is_dushanbe: bool, current_item: str, desired_size: str, desired_color: str) -> tuple[int, dict | None]:
+async def request_exchange(order_id: int, phone: str, is_dushanbe: bool, current_item: str, desired_size: str, desired_color: str, availability_note: str) -> tuple[int, dict | None]:
     return await post_backend(
         f"/orders/{order_id}/exchange-request",
         {
@@ -253,6 +253,7 @@ async def request_exchange(order_id: int, phone: str, is_dushanbe: bool, current
             "current_item": current_item,
             "desired_size": desired_size,
             "desired_color": desired_color,
+            "availability_note": availability_note,
         },
     )
 
@@ -473,7 +474,10 @@ async def menu_exchange(message: Message):
     user_flow[message.from_user.id] = {"flow": "exchange_order_number"}
     await message.answer(
         "Обмен размера или цвета возможен в течение 24 часов после доставки (для Душанбе) "
-        "или 48 часов (для других районов). Введите номер заказа."
+        "или 48 часов (для других районов).\n\n"
+        "⚠️ Важное условие: товар должен быть в новом состоянии — без следов использования, "
+        "с бирками (если они были на товаре изначально). Иначе в обмене может быть отказано.\n\n"
+        "Введите номер заказа."
     )
 
 
@@ -556,6 +560,7 @@ async def cb_exchange_item(callback: CallbackQuery):
         return
 
     flow["current_item"] = f"{item['title']} ({item['color']}, {item['size']})"
+    flow["current_catalog_number"] = item.get("catalog_number", "")
     flow["flow"] = "exchange_city"
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Душанбе", callback_data="exchange_city:dushanbe"),
@@ -777,6 +782,7 @@ async def text_handler(message: Message):
                 "title": (item.get("variant") or {}).get("title_ru", "Товар"),
                 "color": (item.get("variant") or {}).get("color", ""),
                 "size": (item.get("variant") or {}).get("size", ""),
+                "catalog_number": (item.get("variant") or {}).get("catalog_number", ""),
             }
             for item in order.get("items", [])
         ]
@@ -809,17 +815,36 @@ async def text_handler(message: Message):
         return
 
     if flow and flow.get("flow") == "exchange_color":
-        flow["desired_color"] = text
+        desired_color = text
         order_id = flow["order_id"]
         phone = flow["phone"]
         is_dushanbe = flow.get("is_dushanbe", True)
         desired_size = flow.get("desired_size", "")
+        current_item = flow.get("current_item", "не указан")
+        catalog_number = flow.get("current_catalog_number", "")
         user_flow.pop(uid, None)
 
-        current_item = flow.get("current_item", "не указан")
-        status_code, body = await request_exchange(order_id, phone, is_dushanbe, current_item, desired_size, text)
+        available = False
+        if catalog_number:
+            found_products = await search_products(query=catalog_number, color=desired_color, size=desired_size)
+            for p in found_products:
+                for v in p.get("available_variants", []):
+                    if v.get("size") == desired_size and v.get("color") == desired_color:
+                        available = True
+                        break
+
+        availability_note = "В наличии" if available else "Нет в наличии"
+        status_code, body = await request_exchange(order_id, phone, is_dushanbe, current_item, desired_size, desired_color, availability_note)
+
         if status_code == 200:
-            await message.answer("✅ Запрос на обмен отправлен администратору. С вами свяжутся в ближайшее время.")
+            if available:
+                await message.answer("✅ Такой размер и цвет есть в наличии. Запрос отправлен администратору — с вами свяжутся в ближайшее время.")
+            else:
+                await message.answer(
+                    "😔 К сожалению, размера "
+                    f"{desired_size} и цвета {desired_color} сейчас нет в наличии. "
+                    "Мы всё равно передали ваш запрос администратору — он свяжется с вами, если сможет помочь."
+                )
         else:
             detail = (body or {}).get("detail", "Не удалось отправить запрос на обмен.")
             await message.answer(f"⚠️ {detail}")
