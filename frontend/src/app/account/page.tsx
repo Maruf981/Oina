@@ -86,11 +86,11 @@ export default function AccountPage() {
 
 
   useEffect(() => {
-    if (!auth.token) {
+    if (auth.initialized && !auth.token) {
       router.push("/");
       return;
     }
-  }, [auth.token]);
+  }, [auth.token, auth.initialized]);
 
   useEffect(() => {
     if (auth.customer) {

@@ -13,6 +13,7 @@ type Customer = {
 type AuthContextType = {
   customer: Customer | null;
   token: string | null;
+  initialized: boolean;
   login: (phone: string, password: string) => Promise<void>;
   register: (name: string, phone: string, password: string) => Promise<void>;
   logout: () => void;
@@ -26,12 +27,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("auth_token");
     if (saved) {
       setToken(saved);
-      fetchMe(saved);
+      fetchMe(saved).finally(() => setInitialized(true));
+    } else {
+      setInitialized(true);
     }
   }, []);
 
@@ -88,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ customer, token, login, register, logout, refreshMe }}>
+    <AuthContext.Provider value={{ customer, token, initialized, login, register, logout, refreshMe }}>
       {children}
     </AuthContext.Provider>
   );
