@@ -1663,6 +1663,7 @@ function HomeInner() {
                       placeholder={lang === "ru" ? "Новый пароль" : "Пароли нав"}
                       value={resetNewPassword}
                       onChange={(e) => setResetNewPassword(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleResetVerify()}
                       style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
                     />
                     {authError && <span style={{ color: "#c0504d", fontSize: 13 }}>{authError}</span>}
