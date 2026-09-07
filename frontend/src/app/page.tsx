@@ -1656,6 +1656,7 @@ function HomeInner() {
                       placeholder={lang === "ru" ? "6-значный код из Telegram" : "Рамзи 6-рақамӣ аз Telegram"}
                       value={resetCode}
                       onChange={(e) => setResetCode(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleResetVerify()}
                       style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
                     />
                     <input
