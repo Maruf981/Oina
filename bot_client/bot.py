@@ -69,7 +69,7 @@ STATUS_LABELS_RU = {
 # Сценарии, внутри которых свободный текст (не команда меню) не должен уходить в ИИ-чат,
 # а должен либо обрабатываться самим сценарием, либо получать напоминание вернуться к кнопкам.
 CANCEL_FLOW_STATES = {"cancel_order_number", "cancel_phone", "cancel_choose", "cancel_qty", "cancel_confirm"}
-EXCHANGE_FLOW_STATES = {"exchange_order_number", "exchange_phone", "exchange_city", "exchange_size", "exchange_color"}
+EXCHANGE_FLOW_STATES = {"exchange_order_number", "exchange_phone", "exchange_item_choose", "exchange_city", "exchange_size", "exchange_color"}
 
 
 async def fetch_backend(path: str, params: dict | None = None) -> dict | list | None:
@@ -244,12 +244,13 @@ async def link_telegram_and_get_code(phone: str, telegram_id: int) -> dict | Non
     return None
 
 
-async def request_exchange(order_id: int, phone: str, is_dushanbe: bool, desired_size: str, desired_color: str) -> tuple[int, dict | None]:
+async def request_exchange(order_id: int, phone: str, is_dushanbe: bool, current_item: str, desired_size: str, desired_color: str) -> tuple[int, dict | None]:
     return await post_backend(
         f"/orders/{order_id}/exchange-request",
         {
             "phone": phone,
             "is_dushanbe": is_dushanbe,
+            "current_item": current_item,
             "desired_size": desired_size,
             "desired_color": desired_color,
         },
@@ -541,6 +542,29 @@ async def cb_return_item(callback: CallbackQuery):
     await callback.answer()
 
 
+@dp.callback_query(F.data.startswith("exchange_item:"))
+async def cb_exchange_item(callback: CallbackQuery):
+    uid = callback.from_user.id
+    flow = user_flow.get(uid)
+    if not flow or flow.get("flow") != "exchange_item_choose":
+        await callback.answer("Сессия истекла, начните заново.", show_alert=True)
+        return
+    item_id = int(callback.data.split(":")[1])
+    item = next((i for i in flow.get("items", []) if i["id"] == item_id), None)
+    if not item:
+        await callback.answer("Товар не найден.", show_alert=True)
+        return
+
+    flow["current_item"] = f"{item['title']} ({item['color']}, {item['size']})"
+    flow["flow"] = "exchange_city"
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Душанбе", callback_data="exchange_city:dushanbe"),
+        InlineKeyboardButton(text="Другой город", callback_data="exchange_city:other"),
+    ]])
+    await callback.message.answer("Вы находитесь в Душанбе или в другом городе?", reply_markup=keyboard)
+    await callback.answer()
+
+
 @dp.callback_query(F.data.in_(["exchange_city:dushanbe", "exchange_city:other"]))
 async def cb_exchange_city(callback: CallbackQuery):
     uid = callback.from_user.id
@@ -747,13 +771,35 @@ async def text_handler(message: Message):
             await message.answer("Обмен доступен только для уже доставленных заказов.")
             return
 
-        flow["flow"] = "exchange_city"
+        items = [
+            {
+                "id": item["id"],
+                "title": (item.get("variant") or {}).get("title_ru", "Товар"),
+                "color": (item.get("variant") or {}).get("color", ""),
+                "size": (item.get("variant") or {}).get("size", ""),
+            }
+            for item in order.get("items", [])
+        ]
+        if not items:
+            user_flow.pop(uid, None)
+            await message.answer("В этом заказе нет товаров.")
+            return
+
+        flow["flow"] = "exchange_item_choose"
         flow["phone"] = phone
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="Душанбе", callback_data="exchange_city:dushanbe"),
-            InlineKeyboardButton(text="Другой город", callback_data="exchange_city:other"),
-        ]])
-        await message.answer("Вы находитесь в Душанбе или в другом городе?", reply_markup=keyboard)
+        flow["items"] = items
+
+        buttons = [
+            [InlineKeyboardButton(
+                text=f"{item['title']} ({item['color']}, {item['size']})",
+                callback_data=f"exchange_item:{item['id']}",
+            )]
+            for item in items
+        ]
+        await message.answer(
+            "Нашёл заказ №" + str(order_id) + ". Какой товар хотите обменять?",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+        )
         return
 
     if flow and flow.get("flow") == "exchange_size":
@@ -770,7 +816,8 @@ async def text_handler(message: Message):
         desired_size = flow.get("desired_size", "")
         user_flow.pop(uid, None)
 
-        status_code, body = await request_exchange(order_id, phone, is_dushanbe, desired_size, text)
+        current_item = flow.get("current_item", "не указан")
+        status_code, body = await request_exchange(order_id, phone, is_dushanbe, current_item, desired_size, text)
         if status_code == 200:
             await message.answer("✅ Запрос на обмен отправлен администратору. С вами свяжутся в ближайшее время.")
         else:

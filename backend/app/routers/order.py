@@ -186,6 +186,7 @@ def request_exchange(
     text = (
         f"🔄 <b>Запрос на обмен — Заказ №{order.id}</b>\n"
         f"Клиент: {order.customer.name or 'Без имени'} ({data.phone})\n"
+        f"Товар: {data.current_item}\n"
         f"Желаемый размер: {data.desired_size}\n"
         f"Желаемый цвет: {data.desired_color}\n"
         f"{f'Комментарий: {data.comment}' if data.comment else ''}"

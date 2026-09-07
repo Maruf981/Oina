@@ -47,6 +47,7 @@ class ReturnItemRequest(BaseModel):
 class ExchangeRequest(BaseModel):
     phone: str
     is_dushanbe: bool
+    current_item: str
     desired_size: str
     desired_color: str
     comment: str | None = None
