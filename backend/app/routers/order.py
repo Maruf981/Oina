@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
-from app.core.telegram_notify import send_admin_notification
+from app.core.telegram_notify import send_admin_notification, send_customer_notification
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
