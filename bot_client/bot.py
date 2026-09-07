@@ -462,13 +462,16 @@ async def cb_confirm(callback: CallbackQuery):
     uid = callback.from_user.id
     flow = user_flow.get(uid)
     if not flow or flow.get("flow") != "cancel_confirm":
-        await callback.answer("Сессия истекла, начните заново.", show_alert=True)
+        await callback.answer("Уже обработано или сессия истекла.", show_alert=True)
         return
 
+    # Сразу убираем состояние сценария — защита от двойного нажатия кнопки
+    # или повторной доставки того же callback от Telegram (webhook retry).
+    user_flow.pop(uid, None)
+    await callback.answer()
+
     if callback.data == "confirm_no":
-        user_flow.pop(uid, None)
         await callback.message.answer("Хорошо, отменено. Ничего не изменилось.")
-        await callback.answer()
         return
 
     pending = flow.get("pending", {})
@@ -494,9 +497,6 @@ async def cb_confirm(callback: CallbackQuery):
         else:
             detail = (body or {}).get("detail", "Не удалось оформить возврат.")
             await callback.message.answer(f"⚠️ {detail}")
-
-    user_flow.pop(uid, None)
-    await callback.answer()
 
 
 @dp.message(F.text)
