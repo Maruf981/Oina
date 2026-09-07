@@ -1624,6 +1624,8 @@ function HomeInner() {
                 {resetStep === "phone" ? (
                   <>
                     <input
+                      key="reset-phone-input"
+                      autoComplete="off"
                       placeholder={lang === "ru" ? "Телефон" : "Телефон"}
                       value={authPhone}
                       onChange={(e) => setAuthPhone(e.target.value)}
@@ -1643,8 +1645,15 @@ function HomeInner() {
                   </>
                 ) : (
                   <>
+                    <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                      {lang === "ru" ? "Телефон: " : "Телефон: "}{authPhone}
+                    </p>
                     <input
-                      placeholder={lang === "ru" ? "Код из Telegram" : "Рамз аз Telegram"}
+                      key="reset-code-input"
+                      autoComplete="off"
+                      name="oina-reset-otp-code"
+                      inputMode="numeric"
+                      placeholder={lang === "ru" ? "6-значный код из Telegram" : "Рамзи 6-рақамӣ аз Telegram"}
                       value={resetCode}
                       onChange={(e) => setResetCode(e.target.value)}
                       style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
