@@ -31,6 +31,7 @@ class OrderItemOut(BaseModel):
     product_variant_id: int
     quantity: int
     price_at_order: float
+    is_returned: bool = False
     variant: VariantBrief | None = None
     class Config:
         from_attributes = True

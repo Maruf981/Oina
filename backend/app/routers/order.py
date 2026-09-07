@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_customer, get_current_admin
 from app.models.customer import Customer
 from app.repositories import order as order_repo
-from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate
+from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderItemOut
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -93,6 +93,16 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
+
+
+@router.patch("/{order_id}/items/{item_id}/return", response_model=OrderItemOut)
+def return_order_item(
+    order_id: int,
+    item_id: int,
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin),
+):
+    return order_repo.return_order_item(db, order_id, item_id)
 
 
 @router.patch("/{order_id}/status", response_model=OrderOut)

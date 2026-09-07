@@ -24,6 +24,7 @@ dp = Dispatcher()
 # Простая память диалога в оперативной памяти процесса: user_id -> список сообщений.
 # Сбрасывается при перезапуске бота. Для продакшена этого достаточно на первом этапе.
 conversation_history: dict[int, list[dict]] = {}
+awaiting_reset_phone: set[int] = set()  # user_id, ожидающие ввода телефона для сброса пароля
 MAX_HISTORY_MESSAGES = 12  # храним последние N сообщений диалога (и user, и assistant)
 
 
@@ -109,6 +110,30 @@ async def place_order(variant_id: int, quantity: int, customer_name: str, custom
                 detail = response.text
             return {"error": detail}
     return {"error": "Не удалось оформить заказ, попробуйте позже"}
+
+
+async def link_telegram_and_get_code(phone: str, telegram_id: int) -> dict | None:
+    delays = [3, 6, 10]
+    async with httpx.AsyncClient(timeout=15) as client:
+        for attempt in range(len(delays) + 1):
+            try:
+                response = await client.post(
+                    f"{API_URL}/auth/link-telegram",
+                    json={"phone": phone, "telegram_id": telegram_id},
+                )
+            except Exception as e:
+                logging.error(f"Link telegram error: {e}")
+                return None
+            if response.status_code == 200:
+                return response.json()
+            if response.status_code == 429 and attempt < len(delays):
+                await asyncio.sleep(delays[attempt])
+                continue
+            if response.status_code == 404:
+                return {"error": "not_found"}
+            logging.error(f"Link telegram failed: {response.status_code} {response.text}")
+            return None
+    return None
 
 
 async def call_claude_api(history: list[dict]) -> dict:
@@ -223,8 +248,36 @@ async def reset_handler(message: Message):
     await message.answer("Диалог сброшен. Задайте новый вопрос.")
 
 
+@dp.message(F.text == "/resetpass")
+async def reset_password_handler(message: Message):
+    awaiting_reset_phone.add(message.from_user.id)
+    await message.answer(
+        "Введите номер телефона, привязанный к вашему аккаунту на сайте Oina.tj "
+        "(например 900123456), чтобы получить код для сброса пароля."
+    )
+
+
 @dp.message(F.text)
 async def text_handler(message: Message):
+    if message.from_user.id in awaiting_reset_phone:
+        awaiting_reset_phone.discard(message.from_user.id)
+        phone = message.text.strip()
+        result = await link_telegram_and_get_code(phone, message.from_user.id)
+        if not result:
+            await message.answer("Не удалось связаться с сервером. Попробуйте позже.")
+            return
+        if result.get("error") == "not_found":
+            await message.answer(
+                "Клиент с таким номером не найден. Проверьте номер или зарегистрируйтесь на сайте oina.tj."
+            )
+            return
+        code = result.get("code")
+        await message.answer(
+            f"Ваш код для сброса пароля: {code}\n\n"
+            "Введите этот код на сайте, чтобы задать новый пароль. Код действителен 10 минут."
+        )
+        return
+
     await bot.send_chat_action(message.chat.id, "typing")
     reply = await ask_claude(message.from_user.id, message.text)
     await message.answer(reply)

@@ -170,6 +170,8 @@ function HomeInner() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [landmark, setLandmark] = useState("");
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [orderComment, setOrderComment] = useState("");
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
   const [placing, setPlacing] = useState(false);
@@ -210,11 +212,15 @@ function HomeInner() {
     if (!customerPhone && auth.customer.phone) setCustomerPhone(auth.customer.phone);
     if (!deliveryAddress && auth.customer.address) setDeliveryAddress(auth.customer.address);
   }, [auth.customer]);
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authMode, setAuthMode] = useState<"login" | "register" | "reset">("login");
   const [authName, setAuthName] = useState("");
   const [authPhone, setAuthPhone] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const [resetStep, setResetStep] = useState<"phone" | "code">("phone");
+  const [resetCode, setResetCode] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const [resetSuccess, setResetSuccess] = useState("");
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<"success" | "error">("success");
@@ -342,16 +348,42 @@ function HomeInner() {
     }
   };
 
+  const handleResetVerify = async () => {
+    setAuthError("");
+    setResetSuccess("");
+    try {
+      const res = await fetch(`${API_URL}/auth/verify-reset-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: authPhone, code: resetCode, new_password: resetNewPassword }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || "reset failed");
+      }
+      setResetSuccess(lang === "ru" ? "Пароль изменён! Теперь можно войти." : "Парол иваз шуд! Ҳоло метавонед ворид шавед.");
+      setResetCode("");
+      setResetNewPassword("");
+    } catch {
+      setAuthError(lang === "ru" ? "Неверный или устаревший код" : "Рамз нодуруст ё кӯҳна аст");
+    }
+  };
+
   const handlePlaceOrder = async () => {
+    setAttemptedSubmit(true);
+    if (!customerName || !customerPhone || !deliveryAddress || !landmark || !isValidPhone(customerPhone)) {
+      return;
+    }
     setPlacing(true);
     try {
+      const fullAddress = `${deliveryAddress}, Ориентир: ${landmark}`;
       const res = await fetch(`${API_URL}/orders/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer_name: customerName,
           customer_phone: customerPhone,
-          delivery_address: deliveryAddress,
+          delivery_address: fullAddress,
           comment: orderComment,
           payment_method: paymentMethod,
           items: cart.items.map((item) => ({
@@ -1283,7 +1315,7 @@ function HomeInner() {
                 {cart.items.length > 0 && (
                   <div style={{ borderTop: "1px solid var(--line)", paddingTop: 16 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                      <span className="product-title" style={{ fontSize: 16 }}>Итого</span>
+                      <span className="product-title" style={{ fontSize: 16 }}>{t.cartTotal}</span>
                       <span className="price" style={{ fontSize: 16 }}>{cart.totalPrice} смн</span>
                     </div>
                     <button
@@ -1301,7 +1333,7 @@ function HomeInner() {
                         cursor: "pointer",
                       }}
                     >
-                      Оформить заказ
+                      {t.cartCheckoutButton}
                     </button>
                   </div>
                 )}
@@ -1310,33 +1342,60 @@ function HomeInner() {
 
             {checkoutStep === "form" && (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
-                <input
-                  placeholder="Имя"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
-                />
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: -6 }}>
+                  {t.checkoutRequiredNote}
+                </div>
                 <div>
                   <input
-                    placeholder="Телефон (+992900796328 или 900796328)"
+                    placeholder={`${t.checkoutName} *`}
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    style={{ width: "100%", padding: 12, background: "var(--surface)", border: attemptedSubmit && !customerName ? "1px solid #E24B4A" : "1px solid var(--line)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }}
+                  />
+                  {attemptedSubmit && !customerName && (
+                    <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 4 }}>{t.checkoutFillField}</div>
+                  )}
+                </div>
+                <div>
+                  <input
+                    placeholder="Телефон (+992ХХХХХХХХХ или 900ХХХХХХ) *"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    style={{ width: "100%", padding: 12, background: "var(--surface)", border: customerPhone && !isValidPhone(customerPhone) ? "1px solid #E24B4A" : "1px solid var(--line)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }}
+                    style={{ width: "100%", padding: 12, background: "var(--surface)", border: (customerPhone && !isValidPhone(customerPhone)) || (attemptedSubmit && !customerPhone) ? "1px solid #E24B4A" : "1px solid var(--line)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }}
                   />
                   {customerPhone && !isValidPhone(customerPhone) && (
                     <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 4 }}>
-                      {lang === "ru" ? "Формат: +992900796328 или 900796328" : "Формат: +992900796328 ё 900796328"}
+                      {lang === "ru" ? "Формат: +992ХХХХХХХХХ или 900ХХХХХХ" : "Формат: +992ХХХХХХХХХ ё 900ХХХХХХ"}
                     </div>
                   )}
+                  {attemptedSubmit && !customerPhone && (
+                    <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 4 }}>{t.checkoutFillField}</div>
+                  )}
                 </div>
-                <input
-                  placeholder="Адрес доставки"
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
-                />
+                <div>
+                  <input
+                    placeholder={`${t.checkoutAddress} *`}
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    style={{ width: "100%", padding: 12, background: "var(--surface)", border: attemptedSubmit && !deliveryAddress ? "1px solid #E24B4A" : "1px solid var(--line)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }}
+                  />
+                  {attemptedSubmit && !deliveryAddress && (
+                    <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 4 }}>{t.checkoutFillField}</div>
+                  )}
+                </div>
+                <div>
+                  <input
+                    placeholder={`${t.checkoutLandmark} *`}
+                    value={landmark}
+                    onChange={(e) => setLandmark(e.target.value)}
+                    style={{ width: "100%", padding: 12, background: "var(--surface)", border: attemptedSubmit && !landmark ? "1px solid #E24B4A" : "1px solid var(--line)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }}
+                  />
+                  {attemptedSubmit && !landmark && (
+                    <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 4 }}>{t.checkoutFillField}</div>
+                  )}
+                </div>
                 <textarea
-                  placeholder="Комментарий (необязательно)"
+                  placeholder={t.checkoutCommentPlaceholder}
                   value={orderComment}
                   onChange={(e) => setOrderComment(e.target.value)}
                   rows={3}
@@ -1345,7 +1404,7 @@ function HomeInner() {
 
                 <div>
                   <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 10 }}>
-                    Способ оплаты
+                    {t.checkoutPaymentMethod}
                   </div>
                   <div style={{ display: "flex", gap: 10 }}>
                     <div
@@ -1374,7 +1433,7 @@ function HomeInner() {
                         fontSize: 13,
                       }}
                     >
-                      Карта {!auth.customer && "(войдите)"}
+                      {t.checkoutCardLoginRequired.split(" ")[0]} {!auth.customer && `(${lang === "ru" ? "войдите" : "даромадан"})`}
                     </div>
                   </div>
                 </div>
@@ -1382,7 +1441,7 @@ function HomeInner() {
                 <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
                   <button
                     onClick={handlePlaceOrder}
-                    disabled={placing || !customerName || !customerPhone || !deliveryAddress || !isValidPhone(customerPhone)}
+                    disabled={placing}
                     style={{
                       width: "100%",
                       padding: "14px",
@@ -1397,20 +1456,20 @@ function HomeInner() {
                       opacity: placing ? 0.6 : 1,
                     }}
                   >
-                    {placing ? "Оформляем..." : "Подтвердить заказ"}
+                    {placing ? t.checkoutPlacing : t.checkoutConfirmOrder}
                   </button>
                   <span
                     onClick={() => setCheckoutStep("cart")}
                     style={{ textAlign: "center", cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}
                   >
-                    ← Назад в корзину
+                    {t.checkoutBackToCart}
                   </span>
                 </div>
               </div>
             )}
             {checkoutStep === "payment" && (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", gap: 20 }}>
-                <span className="product-title" style={{ fontSize: 18 }}>Заказ №{orderNumber} создан</span>
+                <span className="product-title" style={{ fontSize: 18 }}>{t.checkoutOrderCreated.replace("{id}", String(orderNumber))}</span>
 
                 {paymentMethod === "qr" ? (
                   <>
@@ -1427,10 +1486,10 @@ function HomeInner() {
                         fontSize: 12,
                       }}
                     >
-                      QR-код (макет)
+                      {t.checkoutQrMock}
                     </div>
                     <p style={{ color: "var(--text-muted)", fontSize: 13, maxWidth: 260 }}>
-                      Отсканируйте QR-код и оплатите {cart.totalPrice} смн. После оплаты заказ будет подтверждён автоматически.
+                      {t.checkoutScanQr.replace("{amount}", String(cart.totalPrice))}
                     </p>
                   </>
                 ) : (
@@ -1487,16 +1546,16 @@ function HomeInner() {
                     cursor: "pointer",
                   }}
                 >
-                  Я оплатил (макет)
+                  {t.checkoutPaidMock}
                 </button>
               </div>
             )}
 
             {checkoutStep === "done" && (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", gap: 16 }}>
-                <span className="product-title" style={{ fontSize: 20 }}>Спасибо за заказ!</span>
+                <span className="product-title" style={{ fontSize: 20 }}>{t.checkoutThankYou}</span>
                 <p style={{ color: "var(--text-muted)", fontSize: 14 }}>
-                  Заказ №{orderNumber} принят. Мы свяжемся с вами по телефону {customerPhone}.
+                  {t.checkoutOrderAccepted.replace("{id}", String(orderNumber)).replace("{phone}", customerPhone)}
                 </p>
                 <button
                   onClick={() => {
@@ -1519,7 +1578,7 @@ function HomeInner() {
                     cursor: "pointer",
                   }}
                 >
-                  Закрыть
+                  {t.checkoutClose}
                 </button>
               </div>
             )}
@@ -1555,63 +1614,130 @@ function HomeInner() {
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <span className="product-title" style={{ fontSize: 20 }}>
-                {authMode === "login" ? (lang === "ru" ? "Вход" : "Даромадан") : (lang === "ru" ? "Регистрация" : "Бақайдгирӣ")}
+                {authMode === "login" ? (lang === "ru" ? "Вход" : "Даромадан") : authMode === "register" ? (lang === "ru" ? "Регистрация" : "Бақайдгирӣ") : (lang === "ru" ? "Восстановление пароля" : "Барқарор кардани парол")}
               </span>
               <span onClick={handleCloseAuth} style={{ cursor: "pointer", fontSize: 20, color: "var(--text-muted)" }}>×</span>
             </div>
 
-            {authMode === "register" && (
-              <input
-                placeholder={lang === "ru" ? "Имя" : "Ном"}
-                value={authName}
-                onChange={(e) => setAuthName(e.target.value)}
-                style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
-              />
+            {authMode === "reset" ? (
+              <>
+                {resetStep === "phone" ? (
+                  <>
+                    <input
+                      placeholder={lang === "ru" ? "Телефон" : "Телефон"}
+                      value={authPhone}
+                      onChange={(e) => setAuthPhone(e.target.value)}
+                      style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
+                    />
+                    <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
+                      {lang === "ru"
+                        ? "Напишите нашему боту @Oina_help_bot команду /resetpass и введите этот же номер телефона — бот пришлёт код."
+                        : "Ба боти мо @Oina_help_bot фармони /resetpass нависед ва ҳамин рақами телефонро ворид кунед — бот рамзро мефиристад."}
+                    </p>
+                    <button
+                      onClick={() => setResetStep("code")}
+                      style={{ padding: "14px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+                    >
+                      {lang === "ru" ? "У меня есть код" : "Ман рамз дорам"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      placeholder={lang === "ru" ? "Код из Telegram" : "Рамз аз Telegram"}
+                      value={resetCode}
+                      onChange={(e) => setResetCode(e.target.value)}
+                      style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
+                    />
+                    <input
+                      type="password"
+                      placeholder={lang === "ru" ? "Новый пароль" : "Пароли нав"}
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
+                    />
+                    {authError && <span style={{ color: "#c0504d", fontSize: 13 }}>{authError}</span>}
+                    {resetSuccess && <span style={{ color: "#4CAF50", fontSize: 13 }}>{resetSuccess}</span>}
+                    <button
+                      onClick={handleResetVerify}
+                      style={{ padding: "14px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+                    >
+                      {lang === "ru" ? "Сменить пароль" : "Иваз кардани парол"}
+                    </button>
+                  </>
+                )}
+                <span
+                  onClick={() => { setAuthMode("login"); setResetStep("phone"); setAuthError(""); setResetSuccess(""); }}
+                  style={{ textAlign: "center", cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}
+                >
+                  {lang === "ru" ? "← Назад ко входу" : "← Ба воридшавӣ"}
+                </span>
+              </>
+            ) : (
+              <>
+                {authMode === "register" && (
+                  <input
+                    placeholder={lang === "ru" ? "Имя" : "Ном"}
+                    value={authName}
+                    onChange={(e) => setAuthName(e.target.value)}
+                    style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
+                  />
+                )}
+                <input
+                  placeholder={lang === "ru" ? "Телефон" : "Телефон"}
+                  value={authPhone}
+                  onChange={(e) => setAuthPhone(e.target.value)}
+                  style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
+                />
+                <input
+                  type="password"
+                  placeholder={lang === "ru" ? "Пароль" : "Парол"}
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
+                />
+
+                {authError && <span style={{ color: "#c0504d", fontSize: 13 }}>{authError}</span>}
+
+                <button
+                  onClick={handleAuthSubmit}
+                  style={{
+                    padding: "14px",
+                    background: "var(--text)",
+                    color: "var(--bg)",
+                    border: "none",
+                    fontFamily: "var(--font-label)",
+                    fontSize: 13,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    cursor: "pointer",
+                  }}
+                >
+                  {authMode === "login" ? (lang === "ru" ? "Войти" : "Даромадан") : (lang === "ru" ? "Зарегистрироваться" : "Бақайд гирифтан")}
+                </button>
+
+                {authMode === "login" && (
+                  <span
+                    onClick={() => { setAuthMode("reset"); setAuthError(""); }}
+                    style={{ textAlign: "center", cursor: "pointer", fontSize: 12, color: "var(--text-muted)", textDecoration: "underline" }}
+                  >
+                    {lang === "ru" ? "Забыли пароль?" : "Паролро фаромӯш кардед?"}
+                  </span>
+                )}
+
+                <span
+                  onClick={() => {
+                    setAuthMode(authMode === "login" ? "register" : "login");
+                    setAuthError("");
+                  }}
+                  style={{ textAlign: "center", cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}
+                >
+                  {authMode === "login"
+                    ? (lang === "ru" ? "Нет аккаунта? Зарегистрироваться" : "Ҳисоб надоред? Бақайд гиред")
+                    : (lang === "ru" ? "Уже есть аккаунт? Войти" : "Ҳисоб доред? Ворид шавед")}
+                </span>
+              </>
             )}
-            <input
-              placeholder={lang === "ru" ? "Телефон" : "Телефон"}
-              value={authPhone}
-              onChange={(e) => setAuthPhone(e.target.value)}
-              style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
-            />
-            <input
-              type="password"
-              placeholder={lang === "ru" ? "Пароль" : "Парол"}
-              value={authPassword}
-              onChange={(e) => setAuthPassword(e.target.value)}
-              style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
-            />
-
-            {authError && <span style={{ color: "#c0504d", fontSize: 13 }}>{authError}</span>}
-
-            <button
-              onClick={handleAuthSubmit}
-              style={{
-                padding: "14px",
-                background: "var(--text)",
-                color: "var(--bg)",
-                border: "none",
-                fontFamily: "var(--font-label)",
-                fontSize: 13,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-                cursor: "pointer",
-              }}
-            >
-              {authMode === "login" ? (lang === "ru" ? "Войти" : "Даромадан") : (lang === "ru" ? "Зарегистрироваться" : "Бақайд гирифтан")}
-            </button>
-
-            <span
-              onClick={() => {
-                setAuthMode(authMode === "login" ? "register" : "login");
-                setAuthError("");
-              }}
-              style={{ textAlign: "center", cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}
-            >
-              {authMode === "login"
-                ? (lang === "ru" ? "Нет аккаунта? Зарегистрироваться" : "Ҳисоб надоред? Бақайд гиред")
-                : (lang === "ru" ? "Уже есть аккаунт? Войти" : "Ҳисоб доред? Ворид шавед")}
-            </span>
           </div>
         </div>
       )}

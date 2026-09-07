@@ -47,6 +47,7 @@ class OrderItem(Base):
     product_variant_id: Mapped[int] = mapped_column(ForeignKey("product_variants.id"))
     quantity: Mapped[int] = mapped_column(default=1)
     price_at_order: Mapped[float] = mapped_column(Numeric(10, 2))
+    is_returned: Mapped[bool] = mapped_column(default=False, server_default='false')
 
     order: Mapped["Order"] = relationship(back_populates="items")
     variant: Mapped["ProductVariant"] = relationship()

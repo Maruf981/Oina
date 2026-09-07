@@ -39,3 +39,14 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 class DeleteAccountRequest(BaseModel):
     password: str
+
+
+class LinkTelegramRequest(BaseModel):
+    phone: str
+    telegram_id: int
+
+
+class VerifyResetCodeRequest(BaseModel):
+    phone: str
+    code: str
+    new_password: str

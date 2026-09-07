@@ -1869,6 +1869,7 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
 
   validOrders.forEach((o: Order) => {
     o.items.forEach((item) => {
+      if ((item as any).is_returned) return;
       const info = variantInfo.get(item.product_variant_id);
       if (supplierFilter !== "" && info?.supplierId !== supplierFilter) return;
 
@@ -2309,6 +2310,15 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
     });
     refreshOrders();
   };
+  const handleReturnItem = async (orderId: number, itemId: number) => {
+    if (!window.confirm("Оформить возврат этой позиции? Товар вернётся на склад, сумма будет исключена из выручки.")) return;
+    const res = await authFetch(`${API}/orders/${orderId}/items/${itemId}/return`, { method: "PATCH" });
+    if (!res.ok) {
+      alert("Не удалось оформить возврат");
+      return;
+    }
+    refreshOrders();
+  };
   const query = searchQuery.trim().toLowerCase();
   const searchedOrders = query
     ? orders.filter((o: Order) => {
@@ -2432,13 +2442,19 @@ function OrdersTab({ t, orders, authFetch, refreshOrders }: any) {
           {o.comment && <p style={{ color: "var(--accent)", fontSize: 13, marginBottom: 10 }}>💬 {o.comment}</p>}
           <div style={{ borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)", padding: "10px 0", marginBottom: 10 }}>
             {o.items.map((item) => (
-              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, marginBottom: 4, opacity: (item as any).is_returned ? 0.5 : 1 }}>
                 <span>
                   {item.variant ? item.variant.title_ru : "Товар удалён"}
                   {item.variant && ` · ${t.catalogNumber} ${item.variant.catalog_number} · ${item.variant.color}, ${item.variant.size}`}
                   {" × "}{item.quantity}
+                  {(item as any).is_returned && <span style={{ marginLeft: 8, color: "#E24B4A", fontSize: 11 }}>ВОЗВРАЩЁН</span>}
                 </span>
-                <span style={{ color: "var(--text-muted)" }}>{item.price_at_order} смн</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ color: "var(--text-muted)", textDecoration: (item as any).is_returned ? "line-through" : "none" }}>{item.price_at_order} смн</span>
+                  {!(item as any).is_returned && (
+                    <span onClick={() => handleReturnItem(o.id, item.id)} style={{ cursor: "pointer", color: "#E24B4A", fontSize: 11, textDecoration: "underline" }}>Возврат</span>
+                  )}
+                </span>
               </div>
             ))}
           </div>

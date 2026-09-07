@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_customer, get_current_admin
 from app.core.security import hash_password, verify_password, create_access_token
 from app.models.customer import Customer
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, CustomerOut, UpdateProfileRequest, ChangePasswordRequest, DeleteAccountRequest
+from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, CustomerOut, UpdateProfileRequest, ChangePasswordRequest, DeleteAccountRequest, LinkTelegramRequest, VerifyResetCodeRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -103,6 +103,49 @@ def delete_account(
     current.telegram_id = None
     db.commit()
     return {"ok": True}
+@router.post("/link-telegram")
+def link_telegram(data: LinkTelegramRequest, db: Session = Depends(get_db)):
+    """
+    Вызывается ботом (bot_client), когда клиент присылает номер телефона
+    в ответ на команду /reset. Привязывает telegram_id к клиенту (если ещё
+    не привязан) и генерирует одноразовый код для сброса пароля.
+    """
+    import random
+    from datetime import datetime, timedelta
+
+    customer = db.query(Customer).filter(Customer.phone == data.phone).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Клиент с таким номером не найден")
+
+    customer.telegram_id = data.telegram_id
+    code = f"{random.randint(0, 999999):06d}"
+    customer.reset_code = code
+    customer.reset_code_expires = datetime.utcnow() + timedelta(minutes=10)
+    db.commit()
+
+    return {"code": code, "name": customer.name}
+
+
+@router.post("/verify-reset-code")
+def verify_reset_code(data: VerifyResetCodeRequest, db: Session = Depends(get_db)):
+    from datetime import datetime
+
+    customer = db.query(Customer).filter(Customer.phone == data.phone).first()
+    if not customer or not customer.reset_code or not customer.reset_code_expires:
+        raise HTTPException(status_code=400, detail="Код не запрошен или устарел")
+    if customer.reset_code_expires < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Код истёк, запросите новый")
+    if customer.reset_code != data.code:
+        raise HTTPException(status_code=400, detail="Неверный код")
+
+    customer.password_hash = hash_password(data.new_password)
+    customer.reset_code = None
+    customer.reset_code_expires = None
+    db.commit()
+
+    return {"ok": True}
+
+
 @router.post("/admin-login")
 def admin_login(data: LoginRequest):
     if data.password != settings.ADMIN_PASSWORD:

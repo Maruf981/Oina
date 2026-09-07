@@ -14,6 +14,8 @@ class Customer(Base):
     name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     phone: Mapped[str] = mapped_column(String(30), unique=True, index=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    reset_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    reset_code_expires: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     address: Mapped[str | None] = mapped_column(String(300), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

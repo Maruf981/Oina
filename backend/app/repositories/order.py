@@ -67,6 +67,32 @@ def create_order(db: Session, data: OrderCreate) -> Order:
     return order
 
 
+def return_order_item(db: Session, order_id: int, item_id: int) -> OrderItem:
+    item = (
+        db.query(OrderItem)
+        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Order item not found")
+    if item.is_returned:
+        raise HTTPException(status_code=400, detail="Item already returned")
+
+    item.is_returned = True
+    item.variant.stock += item.quantity
+    record_movement(
+        db,
+        variant_id=item.product_variant_id,
+        movement_type="return",
+        quantity=item.quantity,
+        order_id=order_id,
+        note=f"Частичный возврат — заказ №{order_id}, позиция №{item_id}",
+    )
+    db.commit()
+    db.refresh(item)
+    return item
+
+
 def update_status(db: Session, order: Order, new_status: str) -> Order:
     old_status = order.status
     restore_statuses = {OrderStatus.CANCELLED, OrderStatus.RETURNED}
