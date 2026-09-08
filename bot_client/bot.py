@@ -23,7 +23,6 @@ dp = Dispatcher()
 
 # Простая память диалога в оперативной памяти процесса: user_id -> список сообщений.
 # Сбрасывается при перезапуске бота. Для продакшена этого достаточно на первом этапе.
-conversation_history: dict[int, list[dict]] = {}
 awaiting_reset_phone: set[int] = set()  # user_id, ожидающие ввода телефона для сброса пароля
 user_flow: dict[int, dict] = {}  # user_id -> состояние многошаговых сценариев (статус/поиск/отмена/обмен)
 MAX_HISTORY_MESSAGES = 12  # храним последние N сообщений диалога (и user, и assistant)
@@ -125,6 +124,27 @@ async def patch_backend(path: str) -> tuple[int, dict | None]:
                 response = await client.patch(f"{API_URL}{path}")
             except Exception as e:
                 logging.error(f"Backend PATCH error: {e}")
+                return 0, None
+            if response.status_code == 429 and attempt < len(delays):
+                await asyncio.sleep(delays[attempt])
+                continue
+            try:
+                body = response.json()
+            except Exception:
+                body = None
+            return response.status_code, body
+    return 0, None
+
+
+async def post_backend_put(path: str, json_body: dict) -> tuple[int, dict | None]:
+    """PUT-запрос к backend, возвращает (статус_код, тело_ответа)."""
+    delays = [3, 6, 10]
+    async with httpx.AsyncClient(timeout=15) as client:
+        for attempt in range(len(delays) + 1):
+            try:
+                response = await client.put(f"{API_URL}{path}", json=json_body)
+            except Exception as e:
+                logging.error(f"Backend PUT error: {e}")
                 return 0, None
             if response.status_code == 429 and attempt < len(delays):
                 await asyncio.sleep(delays[attempt])
@@ -298,6 +318,17 @@ async def escalate_to_admin(question: str, phone: str | None = None) -> bool:
     return status_code == 200
 
 
+async def fetch_conversation_history(telegram_id: int) -> list[dict]:
+    result = await fetch_backend(f"/bot-conversations/{telegram_id}")
+    if isinstance(result, dict):
+        return result.get("history", [])
+    return []
+
+
+async def save_conversation_history(telegram_id: int, history: list[dict]) -> None:
+    await post_backend_put(f"/bot-conversations/{telegram_id}", {"history": history})
+
+
 async def call_claude_api(history: list[dict]) -> dict:
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
@@ -322,7 +353,7 @@ async def call_claude_api(history: list[dict]) -> dict:
 
 
 async def ask_claude(user_id: int, user_message: str) -> str:
-    history = conversation_history.setdefault(user_id, [])
+    history = await fetch_conversation_history(user_id)
     history.append({"role": "user", "content": user_message})
     history = history[-MAX_HISTORY_MESSAGES:]
 
@@ -401,7 +432,7 @@ async def ask_claude(user_id: int, user_message: str) -> str:
         reply_text = "Извините, не удалось сформировать ответ. Попробуйте переформулировать вопрос."
 
     history.append({"role": "assistant", "content": reply_text})
-    conversation_history[user_id] = history[-MAX_HISTORY_MESSAGES:]
+    await save_conversation_history(user_id, history[-MAX_HISTORY_MESSAGES:])
 
     return reply_text
 
@@ -450,7 +481,7 @@ def build_variant_buttons(product: dict) -> InlineKeyboardMarkup | None:
 
 @dp.message(F.text == "/start")
 async def start_handler(message: Message):
-    conversation_history.pop(message.from_user.id, None)
+    await save_conversation_history(message.from_user.id, [])
     user_flow.pop(message.from_user.id, None)
     awaiting_reset_phone.discard(message.from_user.id)
     await message.answer(
@@ -489,7 +520,7 @@ async def contact_handler(message: Message):
 
 @dp.message(F.text == "/reset")
 async def reset_handler(message: Message):
-    conversation_history.pop(message.from_user.id, None)
+    await save_conversation_history(message.from_user.id, [])
     await message.answer("Диалог сброшен. Задайте новый вопрос.")
 
 
