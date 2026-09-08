@@ -293,6 +293,11 @@ async def request_exchange(
     )
 
 
+async def escalate_to_admin(question: str, phone: str | None = None) -> bool:
+    status_code, _ = await post_backend("/support/escalate", {"question": question, "phone": phone})
+    return status_code == 200
+
+
 async def call_claude_api(history: list[dict]) -> dict:
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
@@ -326,7 +331,8 @@ async def ask_claude(user_id: int, user_message: str) -> str:
     for _ in range(max_tool_rounds):
         data = await call_claude_api(history)
         if not data:
-            return "Извините, сейчас не могу ответить. Попробуйте чуть позже или напишите нам напрямую."
+            await escalate_to_admin(f"(автоматически) API недоступен, последний вопрос клиента: {user_message}")
+            return "Извините, сейчас не могу ответить. Я передал ваш вопрос администратору — с вами свяжутся."
 
         content_blocks = data.get("content", [])
 
@@ -360,6 +366,17 @@ async def ask_claude(user_id: int, user_message: str) -> str:
                     "type": "tool_result",
                     "tool_use_id": block.get("id"),
                     "content": str(order_result),
+                })
+            elif block.get("name") == "escalate_to_human":
+                tool_input = block.get("input", {})
+                sent = await escalate_to_admin(
+                    tool_input.get("question", user_message),
+                    tool_input.get("phone"),
+                )
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.get("id"),
+                    "content": "Вопрос передан администратору." if sent else "Не удалось передать вопрос, попробуйте позже.",
                 })
             elif block.get("name") == "search_products":
                 tool_input = block.get("input", {})
