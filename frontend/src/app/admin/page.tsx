@@ -2380,6 +2380,33 @@ const ORDER_STATUS_LABELS: Record<string, string> = {
 };
 
 function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
+  const [couriers, setCouriers] = useState<any[]>([]);
+  const [assigningOrderId, setAssigningOrderId] = useState<number | null>(null);
+  const [courierError, setCourierError] = useState("");
+
+  useEffect(() => {
+    authFetch(`${API}/employees/`)
+      .then((r: any) => r.json())
+      .then((data: any) => setCouriers(Array.isArray(data) ? data : []));
+  }, []);
+
+  const handleAssignCourier = async (orderId: number, courierId: string) => {
+    if (!courierId) return;
+    setCourierError("");
+    const res = await authFetch(`${API}/orders/${orderId}/assign-courier`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courier_id: Number(courierId) }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      setCourierError(err?.detail || "Не удалось назначить доставщика");
+      return;
+    }
+    setAssigningOrderId(null);
+    refreshOrders();
+  };
+
   const [exchangingItemId, setExchangingItemId] = useState<number | null>(null);
   const [exchangeProductId, setExchangeProductId] = useState("");
   const [exchangeVariantId, setExchangeVariantId] = useState("");
@@ -2652,6 +2679,27 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
               <option key={value} value={value}>{label}</option>
             ))}
           </select>
+          <div style={{ marginTop: 10 }}>
+            {(o as any).courier_id ? (
+              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                Доставщик: {couriers.find((c: any) => c.id === (o as any).courier_id)?.name || "—"}
+              </span>
+            ) : (
+              <select
+                value=""
+                onChange={(e) => { setAssigningOrderId(o.id); handleAssignCourier(o.id, e.target.value); }}
+                style={{ padding: 8, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12 }}
+              >
+                <option value="">— Назначить доставщика —</option>
+                {couriers.filter((c: any) => !c.is_archived).map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.name}{!c.telegram_id ? " (Telegram не подключён)" : ""}</option>
+                ))}
+              </select>
+            )}
+            {assigningOrderId === o.id && courierError && (
+              <p style={{ color: "#E24B4A", fontSize: 12, marginTop: 6 }}>{courierError}</p>
+            )}
+          </div>
         </div>
       ))}
       {totalPages > 1 && (

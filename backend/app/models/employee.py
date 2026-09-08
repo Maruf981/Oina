@@ -1,6 +1,6 @@
 from datetime import datetime, date
 
-from sqlalchemy import String, Numeric, Boolean, Date, DateTime, func
+from sqlalchemy import String, Numeric, Boolean, Date, DateTime, BigInteger, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -14,6 +14,7 @@ class Employee(Base):
     role: Mapped[str | None] = mapped_column(String(100), nullable=True)
     salary: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    telegram_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, unique=True)
     address: Mapped[str | None] = mapped_column(String(300), nullable=True)
     hire_date: Mapped["date | None"] = mapped_column(Date, nullable=True)
     photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

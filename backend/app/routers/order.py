@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
-from app.core.telegram_notify import send_admin_notification, send_customer_notification
+from app.core.telegram_notify import send_admin_notification, send_customer_notification, send_admin_bot_message
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -231,6 +231,98 @@ def exchange_item_variant(
     новый со склада, пересчитывает цену позиции и общую сумму заказа.
     """
     return order_repo.exchange_item_variant(db, order_id, item_id, data.new_variant_id)
+
+
+@router.patch("/{order_id}/assign-courier")
+def assign_courier(
+    order_id: int,
+    data: dict,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin),
+):
+    """
+    Назначает доставщика (сотрудника) на заказ и отправляет ему в Telegram детали
+    заказа с кнопками "Доставлено" / "Не удалось".
+    """
+    from app.models.order import Order
+    from app.models.employee import Employee
+    from fastapi import HTTPException
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    courier_id = data.get("courier_id")
+    employee = db.query(Employee).filter(Employee.id == courier_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Доставщик не найден")
+    if not employee.telegram_id:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{employee.name} ещё не подключил Telegram — попросите его написать боту @Oina_admin_bot и поделиться номером телефона",
+        )
+
+    order.courier_id = courier_id
+    db.commit()
+    db.refresh(order)
+
+    items_text = "\n".join(
+        f"— {item.variant.product.title_ru} ({item.variant.color}, {item.variant.size}) x{item.quantity}"
+        for item in order.items
+    )
+    text = (
+        f"🚚 <b>Вам назначена доставка — Заказ №{order.id}</b>\n"
+        f"Клиент: {order.customer.name or 'Без имени'} ({order.customer.phone})\n"
+        f"Адрес: {order.delivery_address or '—'}\n"
+        f"Сумма: {order.total} смн\n"
+        f"{items_text}"
+    )
+    reply_markup = {
+        "inline_keyboard": [[
+            {"text": "✅ Доставлено", "callback_data": f"courier_delivered:{order.id}"},
+            {"text": "❌ Не удалось", "callback_data": f"courier_failed:{order.id}"},
+        ]]
+    }
+    background_tasks.add_task(send_admin_bot_message, employee.telegram_id, text, reply_markup)
+
+    return {"ok": True, "courier_id": courier_id, "courier_name": employee.name}
+
+
+@router.post("/{order_id}/courier-status")
+def courier_status(
+    order_id: int,
+    data: dict,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Обновление статуса доставки самим доставщиком через бота — требует совпадения
+    telegram_id с тем, кто реально назначен на этот заказ.
+    """
+    from app.models.order import Order
+    from app.models.employee import Employee
+    from fastapi import HTTPException
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order or not order.courier_id:
+        raise HTTPException(status_code=404, detail="Заказ не найден или доставщик не назначен")
+
+    employee = db.query(Employee).filter(Employee.id == order.courier_id).first()
+    telegram_id = data.get("telegram_id")
+    if not employee or employee.telegram_id != telegram_id:
+        raise HTTPException(status_code=403, detail="Вы не назначены на этот заказ")
+
+    status = data.get("status")
+    if status == "delivered":
+        order_repo.update_status(db, order, "delivered")
+        return {"ok": True}
+    elif status == "failed":
+        text = f"❌ Доставщик {employee.name} не смог доставить заказ №{order.id}"
+        background_tasks.add_task(send_admin_notification, text)
+        return {"ok": True}
+    else:
+        raise HTTPException(status_code=400, detail="Некорректный статус")
 
 
 @router.patch("/{order_id}/status", response_model=OrderOut)

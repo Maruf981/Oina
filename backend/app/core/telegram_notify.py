@@ -37,3 +37,21 @@ async def send_customer_notification(telegram_id: int, text: str) -> None:
             )
     except Exception:
         pass
+
+
+async def send_admin_bot_message(chat_id: int, text: str, reply_markup: dict | None = None) -> None:
+    if not settings.BOT_TOKEN_ADMIN or not chat_id:
+        return
+    url = f"https://api.telegram.org/bot{settings.BOT_TOKEN_ADMIN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+    }
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(url, json=payload)
+    except Exception:
+        pass

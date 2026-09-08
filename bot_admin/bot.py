@@ -43,6 +43,11 @@ cancel_menu = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+courier_contact_menu = ReplyKeyboardMarkup(
+    keyboard=[[KeyboardButton(text="📱 Поделиться номером телефона", request_contact=True)]],
+    resize_keyboard=True,
+)
+
 done_menu = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text="✅ Готово")], [KeyboardButton(text="❌ Отмена")]],
     resize_keyboard=True,
@@ -71,10 +76,87 @@ async def get_admin_token() -> str:
 @dp.message(Command("start"))
 async def cmd_start(message: Message, state: FSMContext):
     if not is_admin(message.from_user.id):
-        await message.answer("Доступ запрещён.")
+        await state.clear()
+        await message.answer(
+            "Здравствуйте! Если вы доставщик Oina.tj — поделитесь номером телефона, "
+            "чтобы получать заказы для доставки.",
+            reply_markup=courier_contact_menu,
+        )
         return
     await state.clear()
     await message.answer("Добро пожаловать в админ-бот Oina.tj", reply_markup=main_menu)
+
+
+@dp.message(F.contact)
+async def courier_contact_handler(message: Message):
+    if is_admin(message.from_user.id):
+        return
+    contact = message.contact
+    if contact.user_id and contact.user_id != message.from_user.id:
+        await message.answer("Пожалуйста, поделитесь именно своим номером через кнопку.")
+        return
+    phone = contact.phone_number.lstrip("+")
+    if phone.startswith("992"):
+        phone = phone[3:]
+    async with httpx.AsyncClient(timeout=15) as client:
+        try:
+            res = await client.post(
+                f"{API_BASE_URL}/employees/link-telegram-silent",
+                json={"phone": phone, "telegram_id": message.from_user.id},
+            )
+            result = res.json()
+        except Exception:
+            result = {}
+    if result.get("linked"):
+        await message.answer(
+            f"Спасибо, {result.get('name', '')}! Теперь вам будут приходить назначенные заказы для доставки."
+        )
+    else:
+        await message.answer(
+            "Не нашли сотрудника с таким номером телефона. Обратитесь к администратору Oina.tj."
+        )
+
+
+@dp.callback_query(F.data.startswith("courier_delivered:"))
+async def cb_courier_delivered(callback: CallbackQuery):
+    order_id = int(callback.data.split(":")[1])
+    async with httpx.AsyncClient(timeout=15) as client:
+        try:
+            res = await client.post(
+                f"{API_BASE_URL}/orders/{order_id}/courier-status",
+                json={"telegram_id": callback.from_user.id, "status": "delivered"},
+            )
+            ok = res.status_code == 200
+        except Exception:
+            ok = False
+    if ok:
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.answer(f"✅ Отмечено: заказ №{order_id} доставлен.")
+    else:
+        await callback.answer("Не удалось обновить статус. Попробуйте позже.", show_alert=True)
+        return
+    await callback.answer()
+
+
+@dp.callback_query(F.data.startswith("courier_failed:"))
+async def cb_courier_failed(callback: CallbackQuery):
+    order_id = int(callback.data.split(":")[1])
+    async with httpx.AsyncClient(timeout=15) as client:
+        try:
+            res = await client.post(
+                f"{API_BASE_URL}/orders/{order_id}/courier-status",
+                json={"telegram_id": callback.from_user.id, "status": "failed"},
+            )
+            ok = res.status_code == 200
+        except Exception:
+            ok = False
+    if ok:
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.answer(f"Понял, администратор уведомлён о проблеме с заказом №{order_id}.")
+    else:
+        await callback.answer("Не удалось отправить. Попробуйте позже.", show_alert=True)
+        return
+    await callback.answer()
 
 
 @dp.message(F.text == "❌ Отмена")

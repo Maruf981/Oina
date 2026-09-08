@@ -21,6 +21,7 @@ class EmployeeOut(EmployeeBase):
     id: int
     photo_url: str | None = None
     is_archived: bool = False
+    telegram_id: int | None = None
     created_at: datetime
 
     class Config:
