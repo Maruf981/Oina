@@ -21,7 +21,7 @@ def link_telegram_courier(data: LinkTelegramCourierRequest, db: Session = Depend
     Публичная привязка telegram_id к сотруднику (доставщику) по номеру телефона —
     вызывается ботом при первом контакте, без прав администратора.
     """
-    employee = db.query(Employee).filter(Employee.phone == data.phone).first()
+    employee = db.query(Employee).filter(Employee.phone == data.phone, Employee.is_archived == False).first()
     if not employee:
         return {"linked": False}
     employee.telegram_id = data.telegram_id

@@ -255,7 +255,7 @@ def assign_courier(
 
     courier_id = data.get("courier_id")
     employee = db.query(Employee).filter(Employee.id == courier_id).first()
-    if not employee:
+    if not employee or employee.is_archived:
         raise HTTPException(status_code=404, detail="Доставщик не найден")
     if not employee.telegram_id:
         raise HTTPException(
