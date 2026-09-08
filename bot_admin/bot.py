@@ -98,6 +98,8 @@ async def courier_contact_handler(message: Message):
     phone = contact.phone_number.lstrip("+")
     if phone.startswith("992"):
         phone = phone[3:]
+    import logging
+    logging.info(f"[DEBUG courier_contact] raw={contact.phone_number!r} normalized={phone!r}")
     async with httpx.AsyncClient(timeout=15) as client:
         try:
             res = await client.post(
