@@ -1027,7 +1027,11 @@ async def text_handler(message: Message):
 
     await bot.send_chat_action(message.chat.id, "typing")
     reply = await ask_claude(uid, message.text)
-    await message.answer(reply)
+    formatted_reply = reply.replace("**", "*")
+    try:
+        await message.answer(formatted_reply, parse_mode="Markdown")
+    except Exception:
+        await message.answer(reply)
 
 
 from aiohttp import web
