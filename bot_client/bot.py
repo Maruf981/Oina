@@ -25,7 +25,7 @@ dp = Dispatcher()
 # Сбрасывается при перезапуске бота. Для продакшена этого достаточно на первом этапе.
 conversation_history: dict[int, list[dict]] = {}
 awaiting_reset_phone: set[int] = set()  # user_id, ожидающие ввода телефона для сброса пароля
-user_flow: dict[int, dict] = {}  # user_id -> состояние многошаговых сценариев (статус/поиск/отмена)
+user_flow: dict[int, dict] = {}  # user_id -> состояние многошаговых сценариев (статус/поиск/отмена/обмен)
 MAX_HISTORY_MESSAGES = 12  # храним последние N сообщений диалога (и user, и assistant)
 
 MENU_ORDER_STATUS = "📦 Статус заказа"
@@ -69,7 +69,10 @@ STATUS_LABELS_RU = {
 # Сценарии, внутри которых свободный текст (не команда меню) не должен уходить в ИИ-чат,
 # а должен либо обрабатываться самим сценарием, либо получать напоминание вернуться к кнопкам.
 CANCEL_FLOW_STATES = {"cancel_order_number", "cancel_phone", "cancel_choose", "cancel_qty", "cancel_confirm"}
-EXCHANGE_FLOW_STATES = {"exchange_order_number", "exchange_phone", "exchange_item_choose", "exchange_city", "exchange_size", "exchange_color"}
+EXCHANGE_FLOW_STATES = {
+    "exchange_order_number", "exchange_phone", "exchange_item_choose", "exchange_type_choose",
+    "exchange_category_choose", "exchange_product_choose", "exchange_variant_choose", "exchange_city",
+}
 
 
 async def fetch_backend(path: str, params: dict | None = None) -> dict | list | None:
@@ -168,6 +171,28 @@ async def search_products(query: str = "", color: str = "", size: str = "") -> l
     return simplified
 
 
+async def fetch_categories() -> list:
+    result = await fetch_backend("/categories/")
+    return result if isinstance(result, list) else []
+
+
+async def fetch_products_by_category(category_id: int) -> list:
+    result = await fetch_backend("/products/", {"category_id": category_id})
+    if not isinstance(result, list):
+        return []
+    simplified = []
+    for p in result[:15]:
+        has_stock = any(v.get("stock", 0) > 0 for v in p.get("variants", []))
+        if not has_stock:
+            continue
+        simplified.append({
+            "title": p.get("title_ru"),
+            "catalog_number": p.get("catalog_number"),
+            "price": p.get("price"),
+        })
+    return simplified
+
+
 async def place_order(variant_id: int, quantity: int, customer_name: str, customer_phone: str, delivery_address: str) -> dict:
     payload = {
         "customer_name": customer_name,
@@ -244,7 +269,16 @@ async def link_telegram_and_get_code(phone: str, telegram_id: int) -> dict | Non
     return None
 
 
-async def request_exchange(order_id: int, phone: str, is_dushanbe: bool, current_item: str, desired_size: str, desired_color: str, availability_note: str) -> tuple[int, dict | None]:
+async def request_exchange(
+    order_id: int,
+    phone: str,
+    is_dushanbe: bool,
+    current_item: str,
+    desired_size: str,
+    desired_color: str,
+    availability_note: str,
+    comment: str | None = None,
+) -> tuple[int, dict | None]:
     return await post_backend(
         f"/orders/{order_id}/exchange-request",
         {
@@ -254,6 +288,7 @@ async def request_exchange(order_id: int, phone: str, is_dushanbe: bool, current
             "desired_size": desired_size,
             "desired_color": desired_color,
             "availability_note": availability_note,
+            "comment": comment,
         },
     )
 
@@ -379,6 +414,20 @@ def build_cancel_keyboard(order: dict, items: list[dict]) -> InlineKeyboardMarku
         buttons.append([InlineKeyboardButton(text=label, callback_data=f"return_item:{item['id']}")])
     if not buttons:
         return None
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def build_variant_buttons(product: dict) -> InlineKeyboardMarkup | None:
+    variants = product.get("available_variants", [])
+    if not variants:
+        return None
+    buttons = [
+        [InlineKeyboardButton(
+            text=f"{v['color']}, {v['size']} — {product['price']} смн",
+            callback_data=f"exchange_pick_variant:{v['variant_id']}",
+        )]
+        for v in variants
+    ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -521,7 +570,6 @@ async def cb_return_item(callback: CallbackQuery):
         await callback.answer("Позиция не найдена.", show_alert=True)
         return
     remaining = item["quantity"] - item["returned_quantity"]
-    logging.info(f"[DEBUG cb_return_item] uid={uid} item_id={item_id} remaining={remaining}")
 
     if remaining > 1:
         flow["flow"] = "cancel_qty"
@@ -561,6 +609,133 @@ async def cb_exchange_item(callback: CallbackQuery):
 
     flow["current_item"] = f"{item['title']} ({item['color']}, {item['size']})"
     flow["current_catalog_number"] = item.get("catalog_number", "")
+    flow["flow"] = "exchange_type_choose"
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Тот же товар, другой размер/цвет", callback_data="exchange_type:same")],
+        [InlineKeyboardButton(text="Другой товар", callback_data="exchange_type:other")],
+    ])
+    await callback.message.answer("На что хотите поменять?", reply_markup=keyboard)
+    await callback.answer()
+
+
+@dp.callback_query(F.data.in_(["exchange_type:same", "exchange_type:other"]))
+async def cb_exchange_type(callback: CallbackQuery):
+    uid = callback.from_user.id
+    flow = user_flow.get(uid)
+    if not flow or flow.get("flow") != "exchange_type_choose":
+        await callback.answer("Сессия истекла, начните заново.", show_alert=True)
+        return
+
+    if callback.data == "exchange_type:same":
+        catalog_number = flow.get("current_catalog_number", "")
+        found = await search_products(query=catalog_number)
+        product = next((p for p in found if p.get("catalog_number") == catalog_number), None)
+        if not product:
+            await callback.message.answer("Не удалось найти данные по этому товару. Попробуйте позже.")
+            await callback.answer()
+            return
+
+        keyboard = build_variant_buttons(product)
+        if not keyboard:
+            await callback.message.answer("К сожалению, других размеров/цветов этого товара сейчас нет в наличии.")
+            await callback.answer()
+            return
+
+        flow["new_product_title"] = product["title"]
+        flow["new_catalog_number"] = product["catalog_number"]
+        flow["new_price"] = product["price"]
+        flow["variant_lookup"] = {v["variant_id"]: v for v in product.get("available_variants", [])}
+        flow["flow"] = "exchange_variant_choose"
+        await callback.message.answer("Выберите доступный вариант:", reply_markup=keyboard)
+        await callback.answer()
+        return
+
+    categories = await fetch_categories()
+    top_level = [c for c in categories if not c.get("parent_id") and not c.get("is_archived")]
+    if not top_level:
+        await callback.message.answer("Не удалось загрузить категории. Попробуйте позже.")
+        await callback.answer()
+        return
+
+    buttons = [[InlineKeyboardButton(text=c["name"], callback_data=f"exchange_category:{c['id']}")] for c in top_level]
+    flow["flow"] = "exchange_category_choose"
+    await callback.message.answer("Выберите категорию:", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+    await callback.answer()
+
+
+@dp.callback_query(F.data.startswith("exchange_category:"))
+async def cb_exchange_category(callback: CallbackQuery):
+    uid = callback.from_user.id
+    flow = user_flow.get(uid)
+    if not flow or flow.get("flow") != "exchange_category_choose":
+        await callback.answer("Сессия истекла, начните заново.", show_alert=True)
+        return
+    category_id = int(callback.data.split(":")[1])
+    products = await fetch_products_by_category(category_id)
+    if not products:
+        await callback.message.answer("В этой категории сейчас нет товаров в наличии. Выберите другую категорию или напишите /start.")
+        await callback.answer()
+        return
+
+    flow["category_products"] = {p["catalog_number"]: p for p in products}
+    flow["flow"] = "exchange_product_choose"
+    buttons = [
+        [InlineKeyboardButton(
+            text=f"{p['title']} (арт. {p['catalog_number']}) — {p['price']} смн",
+            callback_data=f"exchange_product:{p['catalog_number']}",
+        )]
+        for p in products
+    ]
+    await callback.message.answer("Выберите товар:", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+    await callback.answer()
+
+
+@dp.callback_query(F.data.startswith("exchange_product:"))
+async def cb_exchange_product(callback: CallbackQuery):
+    uid = callback.from_user.id
+    flow = user_flow.get(uid)
+    if not flow or flow.get("flow") != "exchange_product_choose":
+        await callback.answer("Сессия истекла, начните заново.", show_alert=True)
+        return
+    catalog_number = callback.data.split(":", 1)[1]
+
+    found = await search_products(query=catalog_number)
+    product = next((p for p in found if p.get("catalog_number") == catalog_number), None)
+    if not product:
+        await callback.message.answer("Не удалось найти данные по этому товару. Попробуйте позже.")
+        await callback.answer()
+        return
+
+    keyboard = build_variant_buttons(product)
+    if not keyboard:
+        await callback.message.answer("К сожалению, этого товара сейчас нет в наличии. Выберите другой.")
+        await callback.answer()
+        return
+
+    flow["new_product_title"] = product["title"]
+    flow["new_catalog_number"] = product["catalog_number"]
+    flow["new_price"] = product["price"]
+    flow["variant_lookup"] = {v["variant_id"]: v for v in product.get("available_variants", [])}
+    flow["flow"] = "exchange_variant_choose"
+    await callback.message.answer("Выберите доступный вариант:", reply_markup=keyboard)
+    await callback.answer()
+
+
+@dp.callback_query(F.data.startswith("exchange_pick_variant:"))
+async def cb_exchange_pick_variant(callback: CallbackQuery):
+    uid = callback.from_user.id
+    flow = user_flow.get(uid)
+    if not flow or flow.get("flow") != "exchange_variant_choose":
+        await callback.answer("Сессия истекла, начните заново.", show_alert=True)
+        return
+    variant_id = int(callback.data.split(":")[1])
+    info = flow.get("variant_lookup", {}).get(variant_id)
+    if not info:
+        await callback.answer("Вариант не найден.", show_alert=True)
+        return
+
+    flow["new_size"] = info["size"]
+    flow["new_color"] = info["color"]
     flow["flow"] = "exchange_city"
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Душанбе", callback_data="exchange_city:dushanbe"),
@@ -575,12 +750,31 @@ async def cb_exchange_city(callback: CallbackQuery):
     uid = callback.from_user.id
     flow = user_flow.get(uid)
     if not flow or flow.get("flow") != "exchange_city":
-        await callback.answer("Сессия истекла, начните заново.", show_alert=True)
+        await callback.answer("Уже обработано или сессия истекла.", show_alert=True)
         return
-    flow["is_dushanbe"] = callback.data == "exchange_city:dushanbe"
-    flow["flow"] = "exchange_size"
-    await callback.message.answer("Какой размер вам нужен?")
+
+    is_dushanbe = callback.data == "exchange_city:dushanbe"
+    order_id = flow["order_id"]
+    phone = flow["phone"]
+    current_item = flow.get("current_item", "не указан")
+    new_size = flow.get("new_size", "")
+    new_color = flow.get("new_color", "")
+    new_product_title = flow.get("new_product_title", "")
+    new_catalog_number = flow.get("new_catalog_number", "")
+    new_price = flow.get("new_price", "")
+
+    user_flow.pop(uid, None)
     await callback.answer()
+
+    comment = f"Новый товар: {new_product_title} (арт. {new_catalog_number}) — {new_price} смн"
+    status_code, body = await request_exchange(
+        order_id, phone, is_dushanbe, current_item, new_size, new_color, "В наличии", comment,
+    )
+    if status_code == 200:
+        await callback.message.answer("✅ Такой вариант есть в наличии. Запрос отправлен администратору — с вами свяжутся в ближайшее время.")
+    else:
+        detail = (body or {}).get("detail", "Не удалось отправить запрос на обмен.")
+        await callback.message.answer(f"⚠️ {detail}")
 
 
 @dp.callback_query(F.data.in_(["confirm_yes", "confirm_no"]))
@@ -603,7 +797,6 @@ async def cb_confirm(callback: CallbackQuery):
     pending = flow.get("pending", {})
     order_id = flow["order_id"]
     phone = flow["phone"]
-    logging.info(f"[DEBUG cb_confirm] uid={uid} pending={pending}")
 
     if pending.get("action") == "cancel_whole":
         status_code, body = await post_backend(f"/orders/{order_id}/cancel-request", {"phone": phone})
@@ -730,12 +923,10 @@ async def text_handler(message: Message):
 
     if flow and flow.get("flow") == "cancel_qty":
         remaining = flow.get("pending_remaining", 1)
-        logging.info(f"[DEBUG cancel_qty] uid={uid} text={text!r} remaining={remaining}")
         if not text.isdigit() or not (1 <= int(text) <= remaining):
             await message.answer(f"Введите число от 1 до {remaining}.")
             return
         quantity = int(text)
-        logging.info(f"[DEBUG cancel_qty] parsed quantity={quantity}")
         item_id = flow["pending_item_id"]
         item = next((i for i in flow.get("items", []) if i["id"] == item_id), None)
         title = item["title"] if item else "товар"
@@ -806,51 +997,6 @@ async def text_handler(message: Message):
             "Нашёл заказ №" + str(order_id) + ". Какой товар хотите обменять?",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
         )
-        return
-
-    if flow and flow.get("flow") == "exchange_size":
-        flow["desired_size"] = text
-        flow["flow"] = "exchange_color"
-        await message.answer("Какой цвет вам нужен?")
-        return
-
-    if flow and flow.get("flow") == "exchange_color":
-        desired_color = text
-        order_id = flow["order_id"]
-        phone = flow["phone"]
-        is_dushanbe = flow.get("is_dushanbe", True)
-        desired_size = flow.get("desired_size", "")
-        current_item = flow.get("current_item", "не указан")
-        catalog_number = flow.get("current_catalog_number", "")
-        user_flow.pop(uid, None)
-
-        def normalize(s: str) -> str:
-            return s.strip().lower().replace("ё", "е")
-
-        available = False
-        if catalog_number:
-            found_products = await search_products(query=catalog_number)
-            for p in found_products:
-                for v in p.get("available_variants", []):
-                    if normalize(v.get("size", "")) == normalize(desired_size) and normalize(v.get("color", "")) == normalize(desired_color):
-                        available = True
-                        break
-
-        availability_note = "В наличии" if available else "Нет в наличии"
-        status_code, body = await request_exchange(order_id, phone, is_dushanbe, current_item, desired_size, desired_color, availability_note)
-
-        if status_code == 200:
-            if available:
-                await message.answer("✅ Такой размер и цвет есть в наличии. Запрос отправлен администратору — с вами свяжутся в ближайшее время.")
-            else:
-                await message.answer(
-                    "😔 К сожалению, размера "
-                    f"{desired_size} и цвета {desired_color} сейчас нет в наличии. "
-                    "Мы всё равно передали ваш запрос администратору — он свяжется с вами, если сможет помочь."
-                )
-        else:
-            detail = (body or {}).get("detail", "Не удалось отправить запрос на обмен.")
-            await message.answer(f"⚠️ {detail}")
         return
 
     if flow and flow.get("flow") in EXCHANGE_FLOW_STATES:
