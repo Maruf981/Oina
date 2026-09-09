@@ -17,6 +17,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN_CLIENT")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 CLAUDE_MODEL = "claude-sonnet-4-6"
 API_URL = os.getenv("API_URL", "https://oina.onrender.com")
+BOT_INTERNAL_SECRET = os.getenv("BOT_INTERNAL_SECRET", "")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -251,6 +252,7 @@ async def link_telegram_silent(phone: str, telegram_id: int) -> dict | None:
                 response = await client.post(
                     f"{API_URL}/auth/link-telegram-silent",
                     json={"phone": phone, "telegram_id": telegram_id},
+                    headers={"X-Bot-Secret": BOT_INTERNAL_SECRET},
                 )
             except Exception as e:
                 logging.error(f"Silent link telegram error: {e}")
@@ -273,6 +275,7 @@ async def link_telegram_and_get_code(phone: str, telegram_id: int) -> dict | Non
                 response = await client.post(
                     f"{API_URL}/auth/link-telegram",
                     json={"phone": phone, "telegram_id": telegram_id},
+                    headers={"X-Bot-Secret": BOT_INTERNAL_SECRET},
                 )
             except Exception as e:
                 logging.error(f"Link telegram error: {e}")

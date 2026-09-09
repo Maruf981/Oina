@@ -16,6 +16,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_TELEGRAM_ID = int(os.getenv("ADMIN_TELEGRAM_ID"))
 API_BASE_URL = os.getenv("API_BASE_URL")
 ADMIN_API_PASSWORD = os.getenv("ADMIN_API_PASSWORD")
+BOT_INTERNAL_SECRET = os.getenv("BOT_INTERNAL_SECRET", "")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
@@ -105,6 +106,7 @@ async def courier_contact_handler(message: Message):
             res = await client.post(
                 f"{API_BASE_URL}/employees/link-telegram-silent",
                 json={"phone": phone, "telegram_id": message.from_user.id},
+                headers={"X-Bot-Secret": BOT_INTERNAL_SECRET},
             )
             result = res.json()
         except Exception:
