@@ -81,7 +81,7 @@ async def fetch_backend(path: str, params: dict | None = None) -> dict | list | 
     async with httpx.AsyncClient(timeout=15) as client:
         for attempt in range(len(delays) + 1):
             try:
-                response = await client.get(f"{API_URL}{path}", params=params or {})
+                response = await client.get(f"{API_URL}{path}", params=params or {}, headers={"X-Bot-Secret": BOT_INTERNAL_SECRET})
             except Exception as e:
                 logging.error(f"Backend request error: {e}")
                 return None
@@ -143,7 +143,7 @@ async def post_backend_put(path: str, json_body: dict) -> tuple[int, dict | None
     async with httpx.AsyncClient(timeout=15) as client:
         for attempt in range(len(delays) + 1):
             try:
-                response = await client.put(f"{API_URL}{path}", json=json_body)
+                response = await client.put(f"{API_URL}{path}", json=json_body, headers={"X-Bot-Secret": BOT_INTERNAL_SECRET})
             except Exception as e:
                 logging.error(f"Backend PUT error: {e}")
                 return 0, None
