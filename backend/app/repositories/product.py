@@ -142,7 +142,9 @@ def create(db: Session, data: ProductCreate) -> Product:
     variants_data = data.variants
     product_data = data.model_dump(exclude={"variants", "catalog_number"})
 
-    next_number = db.query(Product).count() + 1
+    all_numbers = [row[0] for row in db.query(Product.catalog_number).all()]
+    numeric_numbers = [int(n) for n in all_numbers if n and n.isdigit()]
+    next_number = max(numeric_numbers, default=0) + 1
     product_data["catalog_number"] = f"{next_number:03d}"
 
     if not product_data.get("title_tj"):
