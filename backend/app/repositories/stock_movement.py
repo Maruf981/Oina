@@ -55,7 +55,7 @@ def create_outgoing(db: Session, data) -> StockMovement:
     movement = record_movement(
         db,
         variant_id=data.product_variant_id,
-        movement_type="outgoing",
+        movement_type="writeoff",
         quantity=-qty,
         note=data.note,
     )
