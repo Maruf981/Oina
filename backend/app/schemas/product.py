@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 class SizeGuideRow(BaseModel):
     size: str
     chest: str | None = None
@@ -20,7 +20,7 @@ class CategoryBrief(BaseModel):
 class ProductVariantBase(BaseModel):
     size: str
     color: str
-    stock: int = 0
+    stock: int = Field(default=0, ge=0)
     sku: str | None = None
 
 
