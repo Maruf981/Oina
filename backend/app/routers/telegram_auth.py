@@ -7,7 +7,10 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.core.config import settings
-from app.core.security import create_access_token
+from app.core.database import get_db
+from app.core.security import create_admin_access_token
+from fastapi import Depends
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/telegram-auth", tags=["telegram-auth"])
 
@@ -41,7 +44,7 @@ def verify_telegram_init_data(init_data: str, bot_token: str) -> dict:
 
 
 @router.post("/admin")
-def telegram_admin_login(data: TelegramAuthRequest):
+def telegram_admin_login(data: TelegramAuthRequest, db: Session = Depends(get_db)):
     parsed = verify_telegram_init_data(data.init_data, settings.BOT_TOKEN_ADMIN)
 
     import json
@@ -51,5 +54,6 @@ def telegram_admin_login(data: TelegramAuthRequest):
     if telegram_id != settings.ADMIN_TELEGRAM_ID:
         raise HTTPException(status_code=403, detail="Not the admin")
 
-    token = create_access_token(0)
+    from app.repositories.admin_settings import get_current_version
+    token = create_admin_access_token(get_current_version(db))
     return {"access_token": token, "token_type": "bearer"}

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_customer, get_current_admin, verify_bot_secret
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import hash_password, verify_password, create_access_token, create_admin_access_token
 from app.models.customer import Customer
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, CustomerOut, UpdateProfileRequest, ChangePasswordRequest, DeleteAccountRequest, LinkTelegramRequest, VerifyResetCodeRequest, SilentLinkTelegramRequest
 
@@ -176,11 +176,24 @@ def verify_reset_code(data: VerifyResetCodeRequest, db: Session = Depends(get_db
 
 
 @router.post("/admin-login")
-def admin_login(data: LoginRequest):
+def admin_login(data: LoginRequest, db: Session = Depends(get_db)):
     if data.password != settings.ADMIN_PASSWORD:
         raise HTTPException(status_code=401, detail="Invalid admin password")
-    token = create_access_token(0)
+    from app.repositories.admin_settings import get_current_version
+    token = create_admin_access_token(get_current_version(db))
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/revoke-admin-sessions")
+def revoke_admin_sessions(db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    """
+    Отзывает ВСЕ ранее выданные admin-токены (например, если один из них
+    утёк). После вызова текущая сессия тоже станет недействительной —
+    потребуется войти заново.
+    """
+    from app.repositories.admin_settings import revoke_all_admin_sessions
+    new_version = revoke_all_admin_sessions(db)
+    return {"ok": True, "new_token_version": new_version}
 
 @router.post("/verify-finance-pin")
 def verify_finance_pin(data: dict, _: bool = Depends(get_current_admin)):
