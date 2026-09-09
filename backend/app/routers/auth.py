@@ -149,7 +149,10 @@ MAX_RESET_CODE_ATTEMPTS = 5
 def verify_reset_code(data: VerifyResetCodeRequest, db: Session = Depends(get_db)):
     from datetime import datetime
 
-    customer = db.query(Customer).filter(Customer.phone == data.phone).first()
+    # SELECT ... FOR UPDATE — блокирует строку клиента на время проверки, чтобы
+    # параллельные запросы (перебор кода в несколько потоков) сериализовались,
+    # а не читали одно и то же значение reset_code_attempts до чужого commit.
+    customer = db.query(Customer).filter(Customer.phone == data.phone).with_for_update().first()
     if not customer or not customer.reset_code or not customer.reset_code_expires:
         raise HTTPException(status_code=400, detail="Код не запрошен или устарел")
     if customer.reset_code_expires < datetime.utcnow():
