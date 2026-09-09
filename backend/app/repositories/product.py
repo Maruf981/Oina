@@ -71,8 +71,6 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
     for key, value in product_data.items():
         setattr(product, key, value)
 
-    from app.models.order import OrderItem
-
     existing_by_key = {(v.size, v.color): v for v in product.variants}
     incoming_keys = {(v.size, v.color) for v in data.variants}
     next_idx = len(existing_by_key) + 1
@@ -118,13 +116,16 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
 
     for key, existing in existing_by_key.items():
         if key not in incoming_keys:
-            has_orders = db.query(OrderItem).filter(
-                OrderItem.product_variant_id == existing.id
-            ).first() is not None
-            if has_orders:
+            if existing.stock != 0:
+                removed_qty = existing.stock
+                record_movement(
+                    db,
+                    variant_id=existing.id,
+                    movement_type="adjustment",
+                    quantity=-removed_qty,
+                    note="Вариант удалён из формы товара",
+                )
                 existing.stock = 0
-            else:
-                db.delete(existing)
 
     db.commit()
     db.refresh(product)
