@@ -73,7 +73,13 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
 
     existing_by_key = {(v.size, v.color): v for v in product.variants}
     incoming_keys = {(v.size, v.color) for v in data.variants}
-    next_idx = len(existing_by_key) + 1
+    existing_suffixes = []
+    for v in product.variants:
+        if v.sku and v.sku.startswith(f"{product.catalog_number}-"):
+            suffix = v.sku[len(f"{product.catalog_number}-"):]
+            if suffix.isdigit():
+                existing_suffixes.append(int(suffix))
+    next_idx = max(existing_suffixes, default=0) + 1
 
     for variant in data.variants:
         key = (variant.size, variant.color)
