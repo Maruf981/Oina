@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import time
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, HTTPException
@@ -9,6 +10,8 @@ from app.core.config import settings
 from app.core.security import create_access_token
 
 router = APIRouter(prefix="/telegram-auth", tags=["telegram-auth"])
+
+MAX_INIT_DATA_AGE_SECONDS = 24 * 60 * 60  # 24 часа — рекомендация Telegram
 
 
 class TelegramAuthRequest(BaseModel):
@@ -24,8 +27,15 @@ def verify_telegram_init_data(init_data: str, bot_token: str) -> dict:
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
     secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
     calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
-    if calculated_hash != received_hash:
+    if not hmac.compare_digest(calculated_hash, received_hash):
         raise HTTPException(status_code=401, detail="Invalid Telegram signature")
+
+    auth_date = parsed.get("auth_date")
+    if not auth_date or not auth_date.isdigit():
+        raise HTTPException(status_code=401, detail="Missing or invalid auth_date")
+    age = time.time() - int(auth_date)
+    if age > MAX_INIT_DATA_AGE_SECONDS or age < -60:
+        raise HTTPException(status_code=401, detail="Telegram init data expired, reopen the app")
 
     return parsed
 
