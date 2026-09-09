@@ -57,6 +57,7 @@ def create_outgoing(db: Session, data) -> StockMovement:
         variant_id=data.product_variant_id,
         movement_type="writeoff",
         quantity=-qty,
+        cost_price_at_time=variant.product.cost_price,
         note=data.note,
     )
     variant.stock -= qty
