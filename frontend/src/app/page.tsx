@@ -1621,6 +1621,8 @@ function HomeInner() {
               <span onClick={handleCloseAuth} style={{ cursor: "pointer", fontSize: 20, color: "var(--text-muted)" }}>×</span>
             </div>
 
+            <form onSubmit={(e) => e.preventDefault()} autoComplete="off" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
             {authMode === "reset" ? (
               <>
                 {resetStep === "phone" ? (
@@ -1663,6 +1665,7 @@ function HomeInner() {
                     />
                     <input
                       type="password"
+                      autoComplete="new-password"
                       placeholder={lang === "ru" ? "Новый пароль" : "Пароли нав"}
                       value={resetNewPassword}
                       onChange={(e) => setResetNewPassword(e.target.value)}
@@ -1705,6 +1708,7 @@ function HomeInner() {
                 />
                 <input
                   type="password"
+                  autoComplete={authMode === "login" ? "current-password" : "new-password"}
                   placeholder={lang === "ru" ? "Пароль" : "Парол"}
                   value={authPassword}
                   onChange={(e) => setAuthPassword(e.target.value)}
@@ -1753,6 +1757,7 @@ function HomeInner() {
                 </span>
               </>
             )}
+          </form>
           </div>
         </div>
       )}
