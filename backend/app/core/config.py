@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
 
-    ADMIN_PASSWORD: str = "change-me"
-    FINANCE_PIN: str = "000000"
+    ADMIN_PASSWORD: str
+    FINANCE_PIN: str
     BOT_TOKEN_ADMIN: str = ""
     BOT_TOKEN_CLIENT: str = ""
     ADMIN_TELEGRAM_ID: int = 0

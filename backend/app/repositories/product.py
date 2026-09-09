@@ -130,8 +130,9 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
                 record_movement(
                     db,
                     variant_id=existing.id,
-                    movement_type="adjustment",
+                    movement_type="writeoff",
                     quantity=-removed_qty,
+                    cost_price_at_time=existing.product.cost_price,
                     note="Вариант удалён из формы товара",
                 )
                 existing.stock = 0
