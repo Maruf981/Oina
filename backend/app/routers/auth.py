@@ -136,9 +136,13 @@ def link_telegram(data: LinkTelegramRequest, db: Session = Depends(get_db)):
     code = f"{random.randint(0, 999999):06d}"
     customer.reset_code = code
     customer.reset_code_expires = datetime.utcnow() + timedelta(minutes=10)
+    customer.reset_code_attempts = 0
     db.commit()
 
     return {"code": code, "name": customer.name}
+
+
+MAX_RESET_CODE_ATTEMPTS = 5
 
 
 @router.post("/verify-reset-code")
@@ -150,12 +154,22 @@ def verify_reset_code(data: VerifyResetCodeRequest, db: Session = Depends(get_db
         raise HTTPException(status_code=400, detail="Код не запрошен или устарел")
     if customer.reset_code_expires < datetime.utcnow():
         raise HTTPException(status_code=400, detail="Код истёк, запросите новый")
+    if customer.reset_code_attempts >= MAX_RESET_CODE_ATTEMPTS:
+        customer.reset_code = None
+        customer.reset_code_expires = None
+        customer.reset_code_attempts = 0
+        db.commit()
+        raise HTTPException(status_code=400, detail="Слишком много неверных попыток. Запросите новый код")
     if customer.reset_code != data.code:
-        raise HTTPException(status_code=400, detail="Неверный код")
+        customer.reset_code_attempts += 1
+        db.commit()
+        remaining = MAX_RESET_CODE_ATTEMPTS - customer.reset_code_attempts
+        raise HTTPException(status_code=400, detail=f"Неверный код. Осталось попыток: {remaining}")
 
     customer.password_hash = hash_password(data.new_password)
     customer.reset_code = None
     customer.reset_code_expires = None
+    customer.reset_code_attempts = 0
     db.commit()
 
     return {"ok": True}
