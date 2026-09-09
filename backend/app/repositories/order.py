@@ -96,6 +96,10 @@ def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | 
         order_id=order_id,
         note=f"Возврат — заказ №{order_id}, позиция №{item_id}, кол-во {quantity}",
     )
+
+    order = item.order
+    order.total = sum(float(i.price_at_order) * (i.quantity - i.returned_quantity) for i in order.items)
+
     db.commit()
     db.refresh(item)
     return item
@@ -137,7 +141,7 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     record_movement(
         db,
         variant_id=new_variant.id,
-        movement_type="outgoing",
+        movement_type="sale",
         quantity=-remaining,
         order_id=order_id,
         note=f"Обмен — заказ №{order_id}, позиция №{item_id}: выдан новый вариант",
@@ -147,7 +151,7 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     item.price_at_order = float(new_variant.product.price)
 
     order = item.order
-    order.total = sum(float(i.price_at_order) * i.quantity for i in order.items)
+    order.total = sum(float(i.price_at_order) * (i.quantity - i.returned_quantity) for i in order.items)
 
     db.commit()
     db.refresh(item)
@@ -168,12 +172,15 @@ def update_status(db: Session, order: Order, new_status: str) -> Order:
 
     if will_restore and not already_restored:
         for item in order.items:
-            item.variant.stock += item.quantity
+            remaining = item.quantity - item.returned_quantity
+            if remaining <= 0:
+                continue
+            item.variant.stock += remaining
             record_movement(
                 db,
                 variant_id=item.product_variant_id,
                 movement_type="return",
-                quantity=item.quantity,
+                quantity=remaining,
                 order_id=order.id,
                 note=f"Заказ №{order.id} — {new_status}",
             )
