@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     BOT_TOKEN_CLIENT: str = ""
     ADMIN_TELEGRAM_ID: int = 0
     ANTHROPIC_API_KEY: str = ""
+    BOT_INTERNAL_SECRET: str = ""
 
     class Config:
         env_file = ".env"

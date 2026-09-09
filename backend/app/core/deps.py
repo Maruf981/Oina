@@ -1,9 +1,25 @@
+import hmac
+
 from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import decode_access_token
+from app.core.config import settings
 from app.models.customer import Customer
+
+
+def verify_bot_secret(x_bot_secret: str | None = Header(default=None)) -> bool:
+    """
+    Проверка внутреннего секрета между backend и Telegram-ботами (bot_client, bot_admin).
+    Защищает эндпоинты вида link-telegram(-silent), которые не должны быть вызываемы
+    напрямую кем угодно через API — только самими ботами, знающими общий секрет.
+    """
+    if not settings.BOT_INTERNAL_SECRET or not x_bot_secret:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if not hmac.compare_digest(x_bot_secret, settings.BOT_INTERNAL_SECRET):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return True
 
 
 def get_current_customer(

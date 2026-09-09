@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_admin
+from app.core.deps import get_current_admin, verify_bot_secret
 from app.models.employee import Employee
 from app.schemas.employee import EmployeeCreate, EmployeeOut
 from pydantic import BaseModel
@@ -16,7 +16,7 @@ class LinkTelegramCourierRequest(BaseModel):
 
 
 @router.post("/link-telegram-silent")
-def link_telegram_courier(data: LinkTelegramCourierRequest, db: Session = Depends(get_db)):
+def link_telegram_courier(data: LinkTelegramCourierRequest, db: Session = Depends(get_db), _: bool = Depends(verify_bot_secret)):
     """
     Публичная привязка telegram_id к сотруднику (доставщику) по номеру телефона —
     вызывается ботом при первом контакте, без прав администратора.

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.deps import get_current_customer, get_current_admin
+from app.core.deps import get_current_customer, get_current_admin, verify_bot_secret
 from app.core.security import hash_password, verify_password, create_access_token
 from app.models.customer import Customer
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, CustomerOut, UpdateProfileRequest, ChangePasswordRequest, DeleteAccountRequest, LinkTelegramRequest, VerifyResetCodeRequest, SilentLinkTelegramRequest
@@ -104,7 +104,7 @@ def delete_account(
     db.commit()
     return {"ok": True}
 @router.post("/link-telegram-silent")
-def link_telegram_silent(data: SilentLinkTelegramRequest, db: Session = Depends(get_db)):
+def link_telegram_silent(data: SilentLinkTelegramRequest, db: Session = Depends(get_db), _: bool = Depends(verify_bot_secret)):
     """
     Тихая привязка telegram_id к клиенту по номеру телефона — вызывается ботом при
     первом сообщении (после того как клиент поделился контактом), без генерации кода.
@@ -119,7 +119,7 @@ def link_telegram_silent(data: SilentLinkTelegramRequest, db: Session = Depends(
 
 
 @router.post("/link-telegram")
-def link_telegram(data: LinkTelegramRequest, db: Session = Depends(get_db)):
+def link_telegram(data: LinkTelegramRequest, db: Session = Depends(get_db), _: bool = Depends(verify_bot_secret)):
     """
     Вызывается ботом (bot_client), когда клиент присылает номер телефона
     в ответ на команду /reset. Привязывает telegram_id к клиенту (если ещё
