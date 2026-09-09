@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.models.product import Product, ProductVariant
 from app.schemas.product import ProductCreate
 from app.services.translate import translate_to_tj
@@ -142,47 +143,66 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
 
 def create(db: Session, data: ProductCreate) -> Product:
     variants_data = data.variants
-    product_data = data.model_dump(exclude={"variants", "catalog_number"})
+    base_product_data = data.model_dump(exclude={"variants", "catalog_number"})
 
-    all_numbers = [row[0] for row in db.query(Product.catalog_number).all()]
-    numeric_numbers = [int(n) for n in all_numbers if n and n.isdigit()]
-    next_number = max(numeric_numbers, default=0) + 1
-    product_data["catalog_number"] = f"{next_number:03d}"
+    # Переводы не зависят от catalog_number — считаем один раз, вне цикла повторов
+    if not base_product_data.get("title_tj"):
+        base_product_data["title_tj"] = translate_to_tj(base_product_data.get("title_ru"))
+    if not base_product_data.get("description_tj"):
+        base_product_data["description_tj"] = translate_to_tj(base_product_data.get("description_ru"))
+    if not base_product_data.get("material_tj"):
+        base_product_data["material_tj"] = translate_to_tj(base_product_data.get("material_ru"))
+    if not base_product_data.get("country_of_origin_tj"):
+        base_product_data["country_of_origin_tj"] = translate_to_tj(base_product_data.get("country_of_origin_ru"))
+    if not base_product_data.get("care_instructions_tj"):
+        base_product_data["care_instructions_tj"] = translate_to_tj(base_product_data.get("care_instructions_ru"))
+    if not base_product_data.get("season_tj"):
+        base_product_data["season_tj"] = translate_to_tj(base_product_data.get("season_ru"))
+    if not base_product_data.get("pattern_tj"):
+        base_product_data["pattern_tj"] = translate_to_tj(base_product_data.get("pattern_ru"))
 
-    if not product_data.get("title_tj"):
-        product_data["title_tj"] = translate_to_tj(product_data.get("title_ru"))
-    if not product_data.get("description_tj"):
-        product_data["description_tj"] = translate_to_tj(product_data.get("description_ru"))
-    if not product_data.get("material_tj"):
-        product_data["material_tj"] = translate_to_tj(product_data.get("material_ru"))
-    if not product_data.get("country_of_origin_tj"):
-        product_data["country_of_origin_tj"] = translate_to_tj(product_data.get("country_of_origin_ru"))
-    if not product_data.get("care_instructions_tj"):
-        product_data["care_instructions_tj"] = translate_to_tj(product_data.get("care_instructions_ru"))
-    if not product_data.get("season_tj"):
-        product_data["season_tj"] = translate_to_tj(product_data.get("season_ru"))
-    if not product_data.get("pattern_tj"):
-        product_data["pattern_tj"] = translate_to_tj(product_data.get("pattern_ru"))
+    max_retries = 3
+    for attempt in range(max_retries):
+        product_data = dict(base_product_data)
+        all_numbers = [row[0] for row in db.query(Product.catalog_number).all()]
+        numeric_numbers = [int(n) for n in all_numbers if n and n.isdigit()]
+        next_number = max(numeric_numbers, default=0) + 1
+        product_data["catalog_number"] = f"{next_number:03d}"
 
-    product = Product(**product_data)
-    db.add(product)
-    db.flush()
-    for idx, variant in enumerate(variants_data, start=1):
-        variant_data = variant.model_dump(exclude={"sku"})
-        generated_sku = f"{product.catalog_number}-{idx}"
-        new_variant = ProductVariant(product_id=product.id, sku=generated_sku, **variant_data)
-        db.add(new_variant)
-        if variant_data.get("stock", 0) > 0:
+        product = Product(**product_data)
+        db.add(product)
+        try:
             db.flush()
-            record_movement(
-                db,
-                variant_id=new_variant.id,
-                movement_type="incoming",
-                quantity=variant_data["stock"],
-                cost_price_at_time=product.cost_price,
-                supplier_id=product.supplier_id,
-                note="Начальный остаток при создании товара",
-            )
-    db.commit()
-    db.refresh(product)
-    return product
+        except IntegrityError:
+            db.rollback()
+            if attempt == max_retries - 1:
+                raise
+            continue
+
+        for idx, variant in enumerate(variants_data, start=1):
+            variant_data = variant.model_dump(exclude={"sku"})
+            generated_sku = f"{product.catalog_number}-{idx}"
+            new_variant = ProductVariant(product_id=product.id, sku=generated_sku, **variant_data)
+            db.add(new_variant)
+            if variant_data.get("stock", 0) > 0:
+                db.flush()
+                record_movement(
+                    db,
+                    variant_id=new_variant.id,
+                    movement_type="incoming",
+                    quantity=variant_data["stock"],
+                    cost_price_at_time=product.cost_price,
+                    supplier_id=product.supplier_id,
+                    note="Начальный остаток при создании товара",
+                )
+
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            if attempt == max_retries - 1:
+                raise
+            continue
+
+        db.refresh(product)
+        return product
