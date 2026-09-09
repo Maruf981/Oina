@@ -654,6 +654,8 @@ function HomeInner() {
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <input
             type="text"
+            autoComplete="off"
+            name="oina-site-search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={lang === "ru" ? "Поиск товаров..." : "Ҷустуҷӯи молҳо..."}
