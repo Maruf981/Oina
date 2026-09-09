@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.models.stock_movement import StockMovement
 from app.models.product import ProductVariant
 
@@ -18,6 +19,7 @@ def record_movement(
     order_id: int | None = None,
     supplier_id: int | None = None,
     note: str | None = None,
+    idempotency_key: str | None = None,
 ) -> StockMovement:
     movement = StockMovement(
         product_variant_id=variant_id,
@@ -27,12 +29,19 @@ def record_movement(
         order_id=order_id,
         supplier_id=supplier_id,
         note=note,
+        idempotency_key=idempotency_key,
     )
     db.add(movement)
     return movement
 
 
 def create_incoming(db: Session, data) -> StockMovement:
+    idempotency_key = getattr(data, "idempotency_key", None)
+    if idempotency_key:
+        existing = db.query(StockMovement).filter(StockMovement.idempotency_key == idempotency_key).first()
+        if existing:
+            return existing
+
     variant = get_variant_locked(db, data.product_variant_id)
     if not variant:
         raise ValueError("Variant not found")
@@ -44,14 +53,29 @@ def create_incoming(db: Session, data) -> StockMovement:
         cost_price_at_time=data.cost_price_at_time,
         supplier_id=data.supplier_id,
         note=data.note,
+        idempotency_key=idempotency_key,
     )
     variant.stock += abs(data.quantity)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if idempotency_key:
+            existing = db.query(StockMovement).filter(StockMovement.idempotency_key == idempotency_key).first()
+            if existing:
+                return existing
+        raise
     db.refresh(movement)
     return movement
 
 
 def create_outgoing(db: Session, data) -> StockMovement:
+    idempotency_key = getattr(data, "idempotency_key", None)
+    if idempotency_key:
+        existing = db.query(StockMovement).filter(StockMovement.idempotency_key == idempotency_key).first()
+        if existing:
+            return existing
+
     variant = get_variant_locked(db, data.product_variant_id)
     if not variant:
         raise ValueError("Variant not found")
@@ -65,9 +89,18 @@ def create_outgoing(db: Session, data) -> StockMovement:
         quantity=-qty,
         cost_price_at_time=variant.product.cost_price,
         note=data.note,
+        idempotency_key=idempotency_key,
     )
     variant.stock -= qty
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if idempotency_key:
+            existing = db.query(StockMovement).filter(StockMovement.idempotency_key == idempotency_key).first()
+            if existing:
+                return existing
+        raise
     db.refresh(movement)
     return movement
 

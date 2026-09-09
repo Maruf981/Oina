@@ -8,12 +8,14 @@ class StockMovementCreate(BaseModel):
     cost_price_at_time: float | None = None
     supplier_id: int | None = None
     note: str | None = None
+    idempotency_key: str | None = None
 
 
 class StockMovementOutgoingCreate(BaseModel):
     product_variant_id: int
     quantity: int
     note: str | None = None
+    idempotency_key: str | None = None
 
 
 class StockMovementOut(BaseModel):

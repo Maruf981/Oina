@@ -15,6 +15,7 @@ class StockMovement(Base):
     order_id: Mapped[int | None] = mapped_column(ForeignKey("orders.id"), nullable=True)
     supplier_id: Mapped[int | None] = mapped_column(ForeignKey("suppliers.id"), nullable=True)
     note: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     variant: Mapped["ProductVariant"] = relationship()
