@@ -453,7 +453,7 @@ function HomeInner() {
           setVisibleCount((prev) => prev + 20);
         }
       },
-      { rootMargin: "400px" }
+      { rootMargin: "150px" }
     );
     observer.observe(el);
     return () => observer.disconnect();

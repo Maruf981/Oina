@@ -32,6 +32,8 @@ def update(db: Session, category_id: int, data: CategoryCreate) -> Category | No
     db.commit()
     db.refresh(category)
     return category
+
+
 def archive(db: Session, category_id: int) -> Category | None:
     category = get_by_id(db, category_id)
     if not category:
