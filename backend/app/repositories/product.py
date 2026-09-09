@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.product import Product, ProductVariant
 from app.schemas.product import ProductCreate
 from app.services.translate import translate_to_tj
-from app.repositories.stock_movement import record_movement
+from app.repositories.stock_movement import record_movement, get_variant_locked
 
 
 def get_all(
@@ -85,6 +85,7 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
         key = (variant.size, variant.color)
         existing = existing_by_key.get(key)
         if existing:
+            existing = get_variant_locked(db, existing.id)
             delta = variant.stock - existing.stock
             if delta != 0:
                 record_movement(
@@ -122,6 +123,7 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
 
     for key, existing in existing_by_key.items():
         if key not in incoming_keys:
+            existing = get_variant_locked(db, existing.id)
             if existing.stock != 0:
                 removed_qty = existing.stock
                 record_movement(

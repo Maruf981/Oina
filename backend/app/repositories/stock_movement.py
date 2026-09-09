@@ -3,6 +3,12 @@ from app.models.stock_movement import StockMovement
 from app.models.product import ProductVariant
 
 
+def get_variant_locked(db: Session, variant_id: int) -> ProductVariant | None:
+    """Читает вариант товара с блокировкой строки (SELECT ... FOR UPDATE),
+    чтобы защититься от гонки при одновременном изменении остатка."""
+    return db.query(ProductVariant).filter(ProductVariant.id == variant_id).with_for_update().first()
+
+
 def record_movement(
     db: Session,
     variant_id: int,
@@ -27,7 +33,7 @@ def record_movement(
 
 
 def create_incoming(db: Session, data) -> StockMovement:
-    variant = db.query(ProductVariant).filter(ProductVariant.id == data.product_variant_id).first()
+    variant = get_variant_locked(db, data.product_variant_id)
     if not variant:
         raise ValueError("Variant not found")
     movement = record_movement(
@@ -46,7 +52,7 @@ def create_incoming(db: Session, data) -> StockMovement:
 
 
 def create_outgoing(db: Session, data) -> StockMovement:
-    variant = db.query(ProductVariant).filter(ProductVariant.id == data.product_variant_id).first()
+    variant = get_variant_locked(db, data.product_variant_id)
     if not variant:
         raise ValueError("Variant not found")
     qty = abs(data.quantity)

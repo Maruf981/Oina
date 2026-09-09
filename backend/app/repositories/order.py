@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.customer import Customer
 from app.models.order import Order, OrderItem, OrderStatus, PaymentMethod
 from app.models.product import ProductVariant
-from app.repositories.stock_movement import record_movement
+from app.repositories.stock_movement import record_movement, get_variant_locked
 from app.schemas.order import OrderCreate
 
 
@@ -25,7 +25,7 @@ def create_order(db: Session, data: OrderCreate) -> Order:
     order_items = []
 
     for item in data.items:
-        variant = db.query(ProductVariant).filter(ProductVariant.id == item.product_variant_id).first()
+        variant = get_variant_locked(db, item.product_variant_id)
         if not variant:
             raise HTTPException(status_code=404, detail=f"Variant {item.product_variant_id} not found")
         if variant.stock < item.quantity:
@@ -85,9 +85,11 @@ def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | 
     if quantity < 1 or quantity > remaining:
         raise HTTPException(status_code=400, detail=f"Некорректное количество для возврата (доступно: {remaining})")
 
+    variant = get_variant_locked(db, item.product_variant_id)
+
     item.returned_quantity += quantity
     item.is_returned = item.returned_quantity >= item.quantity
-    item.variant.stock += quantity
+    variant.stock += quantity
     record_movement(
         db,
         variant_id=item.product_variant_id,
@@ -118,14 +120,16 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     if remaining <= 0:
         raise HTTPException(status_code=400, detail="Эта позиция уже полностью возвращена — обменивать нечего")
 
-    new_variant = db.query(ProductVariant).filter(ProductVariant.id == new_variant_id).first()
+    lock_ids = sorted(set([item.product_variant_id, new_variant_id]))
+    locked = {vid: get_variant_locked(db, vid) for vid in lock_ids}
+
+    old_variant = locked[item.product_variant_id]
+    new_variant = locked[new_variant_id]
     if not new_variant:
         raise HTTPException(status_code=404, detail="Новый вариант товара не найден")
 
     if new_variant.stock < remaining:
         raise HTTPException(status_code=400, detail=f"Недостаточно остатка нового варианта (доступно: {new_variant.stock})")
-
-    old_variant = item.variant
 
     old_variant.stock += remaining
     record_movement(
@@ -175,7 +179,8 @@ def update_status(db: Session, order: Order, new_status: str) -> Order:
             remaining = item.quantity - item.returned_quantity
             if remaining <= 0:
                 continue
-            item.variant.stock += remaining
+            variant = get_variant_locked(db, item.product_variant_id)
+            variant.stock += remaining
             record_movement(
                 db,
                 variant_id=item.product_variant_id,
