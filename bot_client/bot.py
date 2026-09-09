@@ -496,7 +496,8 @@ async def start_handler(message: Message):
 @dp.message(F.contact)
 async def contact_handler(message: Message):
     contact = message.contact
-    if contact.user_id and contact.user_id != message.from_user.id:
+    uid = message.from_user.id
+    if contact.user_id and contact.user_id != uid:
         # прислан контакт другого человека, а не свой — игнорируем
         await message.answer("Пожалуйста, поделитесь именно своим номером через кнопку.")
         return
@@ -505,7 +506,27 @@ async def contact_handler(message: Message):
     if phone.startswith("992"):
         phone = phone[3:]
 
-    result = await link_telegram_silent(phone, message.from_user.id)
+    if uid in awaiting_reset_phone:
+        awaiting_reset_phone.discard(uid)
+        result = await link_telegram_and_get_code(phone, uid)
+        if not result:
+            await message.answer("Не удалось связаться с сервером. Попробуйте позже.", reply_markup=MAIN_MENU)
+            return
+        if result.get("error") == "not_found":
+            await message.answer(
+                "Клиент с таким номером не найден. Проверьте, что вы зарегистрированы на сайте oina.tj с этим номером.",
+                reply_markup=MAIN_MENU,
+            )
+            return
+        code = result.get("code")
+        await message.answer(
+            f"Ваш код для сброса пароля: {code}\n\n"
+            "Введите этот код на сайте, чтобы задать новый пароль. Код действителен 10 минут.",
+            reply_markup=MAIN_MENU,
+        )
+        return
+
+    result = await link_telegram_silent(phone, uid)
     if result and result.get("linked"):
         await message.answer(
             "Спасибо! Теперь мы сможем присылать вам уведомления о статусе заказа сюда.",
@@ -529,8 +550,9 @@ async def reset_password_handler(message: Message):
     user_flow.pop(message.from_user.id, None)
     awaiting_reset_phone.add(message.from_user.id)
     await message.answer(
-        "Введите номер телефона, привязанный к вашему аккаунту на сайте Oina.tj "
-        "(например 900123456), чтобы получить код для сброса пароля."
+        "Чтобы получить код для сброса пароля, поделитесь своим номером телефона "
+        "через кнопку ниже — это подтвердит, что аккаунт действительно ваш.",
+        reply_markup=CONTACT_SHARE_MENU,
     )
 
 
@@ -553,8 +575,9 @@ async def menu_reset_pass(message: Message):
     user_flow.pop(message.from_user.id, None)
     awaiting_reset_phone.add(message.from_user.id)
     await message.answer(
-        "Введите номер телефона, привязанный к вашему аккаунту на сайте Oina.tj "
-        "(например 900123456), чтобы получить код для сброса пароля."
+        "Чтобы получить код для сброса пароля, поделитесь своим номером телефона "
+        "через кнопку ниже — это подтвердит, что аккаунт действительно ваш.",
+        reply_markup=CONTACT_SHARE_MENU,
     )
 
 
@@ -878,21 +901,14 @@ async def text_handler(message: Message):
         return
 
     if uid in awaiting_reset_phone:
-        awaiting_reset_phone.discard(uid)
-        phone = text
-        result = await link_telegram_and_get_code(phone, uid)
-        if not result:
-            await message.answer("Не удалось связаться с сервером. Попробуйте позже.")
-            return
-        if result.get("error") == "not_found":
-            await message.answer(
-                "Клиент с таким номером не найден. Проверьте номер или зарегистрируйтесь на сайте oina.tj."
-            )
-            return
-        code = result.get("code")
+        # Номер телефона для сброса пароля принимается ТОЛЬКО через кнопку
+        # "Поделиться номером телефона" (Telegram подтверждает владение номером).
+        # Свободный текст сюда больше не принимаем — раньше это позволяло
+        # получить код сброса пароля для ЧУЖОГО номера, просто напечатав его.
         await message.answer(
-            f"Ваш код для сброса пароля: {code}\n\n"
-            "Введите этот код на сайте, чтобы задать новый пароль. Код действителен 10 минут."
+            "Пожалуйста, нажмите кнопку «📱 Поделиться номером телефона» ниже, "
+            "чтобы получить код для сброса пароля.",
+            reply_markup=CONTACT_SHARE_MENU,
         )
         return
 
