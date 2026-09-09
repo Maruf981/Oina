@@ -2024,6 +2024,8 @@ function WarehouseTab({ products, suppliers, incomingMovements, authFetch, refre
   const [outgoingNote, setOutgoingNote] = useState("");
   const [outgoingError, setOutgoingError] = useState("");
   const [outgoingSuccess, setOutgoingSuccess] = useState("");
+  const [outgoingSubmitting, setOutgoingSubmitting] = useState(false);
+  const outgoingSubmittingRef = useRef(false);
 
   const allVariantsFlat: { variantId: number; label: string; stock: number }[] = [];
   (Array.isArray(products) ? products : []).forEach((p: Product) => {
@@ -2037,31 +2039,44 @@ function WarehouseTab({ products, suppliers, incomingMovements, authFetch, refre
   });
 
   const handleOutgoing = async () => {
+    if (outgoingSubmittingRef.current) return;
     setOutgoingError("");
     setOutgoingSuccess("");
     if (!outgoingVariantId || !outgoingQty) {
       setOutgoingError("Выберите товар и укажите количество");
       return;
     }
-    const res = await authFetch(`${API}/stock-movements/outgoing`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        product_variant_id: Number(outgoingVariantId),
-        quantity: Number(outgoingQty),
-        note: outgoingNote || null,
-      }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => null);
-      setOutgoingError(err?.detail || "Не удалось списать товар");
-      return;
+    outgoingSubmittingRef.current = true;
+    setOutgoingSubmitting(true);
+    const idempotencyKey =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`;
+    try {
+      const res = await authFetch(`${API}/stock-movements/outgoing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_variant_id: Number(outgoingVariantId),
+          quantity: Number(outgoingQty),
+          note: outgoingNote || null,
+          idempotency_key: idempotencyKey,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        setOutgoingError(err?.detail || "Не удалось списать товар");
+        return;
+      }
+      setOutgoingSuccess("Списано со склада");
+      setOutgoingVariantId("");
+      setOutgoingQty("");
+      setOutgoingNote("");
+      refreshProducts();
+    } finally {
+      outgoingSubmittingRef.current = false;
+      setOutgoingSubmitting(false);
     }
-    setOutgoingSuccess("Списано со склада");
-    setOutgoingVariantId("");
-    setOutgoingQty("");
-    setOutgoingNote("");
-    refreshProducts();
   };
 
   const [supplierFilter, setSupplierFilter] = useState<number | "">("");
@@ -2250,9 +2265,10 @@ function WarehouseTab({ products, suppliers, incomingMovements, authFetch, refre
         {outgoingSuccess && <p style={{ color: "#4CAF50", fontSize: 13, marginBottom: 10 }}>{outgoingSuccess}</p>}
         <button
           onClick={handleOutgoing}
-          style={{ padding: "10px 20px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+          disabled={outgoingSubmitting}
+          style={{ padding: "10px 20px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: outgoingSubmitting ? "not-allowed" : "pointer", opacity: outgoingSubmitting ? 0.6 : 1 }}
         >
-          Списать
+          {outgoingSubmitting ? "Списываю..." : "Списать"}
         </button>
       </div>
 
