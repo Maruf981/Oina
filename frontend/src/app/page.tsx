@@ -166,7 +166,10 @@ function HomeInner() {
   const [filterSize, setFilterSize] = useState("");
   const [filterColor, setFilterColor] = useState("");
   const [sortOption, setSortOption] = useState("");
-  const [filterOptions, setFilterOptions] = useState<{ sizes: string[]; colors: { name: string; hex: string }[] }>({ sizes: [], colors: [] });
+  const [filterOptions, setFilterOptions] = useState<{ sizes: string[]; colors: { name: string; hex: string }[]; materials: string[]; seasons: string[] }>({ sizes: [], colors: [], materials: [], seasons: [] });
+  const [filterMaterial, setFilterMaterial] = useState("");
+  const [filterSeason, setFilterSeason] = useState("");
+  const [filterBrandOnly, setFilterBrandOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<"cart" | "form" | "payment" | "done">("cart");
   const [customerName, setCustomerName] = useState("");
@@ -426,6 +429,9 @@ function HomeInner() {
       if (selectedCategoryId) params.set("category_id", String(selectedCategoryId));
       if (searchParams.get("recommended") === "1") params.set("recommended_only", "true");
       if (sortOption) params.set("sort", sortOption);
+      if (filterMaterial) params.set("material", filterMaterial);
+      if (filterSeason) params.set("season", filterSeason);
+      if (filterBrandOnly) params.set("brand_only", "true");
       fetch(`${API_URL}/products/?${params.toString()}`, { signal: controller.signal })
         .then((res) => res.json())
         .then((data) => {
@@ -440,7 +446,7 @@ function HomeInner() {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams, sortOption]);
+  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams, sortOption, filterMaterial, filterSeason, filterBrandOnly]);
   useEffect(() => {
     fetch(`${API_URL}/products/?recommended_only=true`)
       .then((res) => res.json())
@@ -456,8 +462,10 @@ function HomeInner() {
         setFilterOptions(data);
         if (filterSize && !data.sizes.includes(filterSize)) setFilterSize("");
         if (filterColor && !data.colors.some((c: { name: string }) => c.name === filterColor)) setFilterColor("");
+        if (filterMaterial && !data.materials.includes(filterMaterial)) setFilterMaterial("");
+        if (filterSeason && !data.seasons.includes(filterSeason)) setFilterSeason("");
       })
-      .catch(() => setFilterOptions({ sizes: [], colors: [] }));
+      .catch(() => setFilterOptions({ sizes: [], colors: [], materials: [], seasons: [] }));
   }, [selectedCategoryId]);
   useEffect(() => {
     const el = loadMoreRef.current;
@@ -764,12 +772,55 @@ function HomeInner() {
                 />
               ))}
             </div>
+            <select
+              value={filterMaterial}
+              onChange={(e) => setFilterMaterial(e.target.value)}
+              style={{
+                padding: "8px",
+                background: "var(--surface)",
+                border: "1px solid var(--line)",
+                color: "var(--text)",
+                fontSize: 13,
+              }}
+            >
+              <option value="">{lang === "ru" ? "Материал" : "Матоъ"}</option>
+              {filterOptions.materials.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            <select
+              value={filterSeason}
+              onChange={(e) => setFilterSeason(e.target.value)}
+              style={{
+                padding: "8px",
+                background: "var(--surface)",
+                border: "1px solid var(--line)",
+                color: "var(--text)",
+                fontSize: 13,
+              }}
+            >
+              <option value="">{lang === "ru" ? "Сезон" : "Мавсим"}</option>
+              {filterOptions.seasons.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={filterBrandOnly}
+                onChange={(e) => setFilterBrandOnly(e.target.checked)}
+              />
+              {lang === "ru" ? "Только бренды" : "Танҳо брендҳо"}
+            </label>
             <span
               onClick={() => {
                 setMinPrice("");
                 setMaxPrice("");
                 setFilterSize("");
                 setFilterColor("");
+                setFilterMaterial("");
+                setFilterSeason("");
+                setFilterBrandOnly(false);
               }}
               style={{
                 cursor: "pointer",
