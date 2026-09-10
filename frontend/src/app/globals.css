@@ -27,7 +27,19 @@ html, body {
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 
+.city-selector {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 20px;
+  z-index: 1;
+}
+
 @media (max-width: 640px) {
+  .city-selector {
+    left: 90px;
+  }
+
   .city-selector-label {
     display: none;
   }

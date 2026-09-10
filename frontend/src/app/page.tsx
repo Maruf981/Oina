@@ -543,6 +543,7 @@ function HomeInner() {
         </div>
 
         <span
+          className="city-selector"
           onClick={toggleCity}
           style={{
             cursor: "pointer",
@@ -553,8 +554,6 @@ function HomeInner() {
             fontSize: 12,
             letterSpacing: "0.04em",
             color: "var(--text-muted)",
-            flexShrink: 0,
-            zIndex: 1,
           }}
           title={lang === "ru" ? "Сменить город" : "Шаҳрро иваз кунед"}
         >
