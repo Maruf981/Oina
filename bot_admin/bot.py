@@ -100,7 +100,7 @@ def is_admin(user_id: int) -> bool:
 
 
 async def get_admin_token() -> str:
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=20) as client:
         res = await client.post(
             f"{API_BASE_URL}/auth/admin-login",
             json={"phone": "bot", "password": ADMIN_API_PASSWORD},
@@ -241,10 +241,14 @@ async def categories_handler(message: Message):
 async def orders_handler(message: Message):
     if not is_admin(message.from_user.id):
         return
-    token = await get_admin_token()
-    async with httpx.AsyncClient() as client:
-        res = await client.get(f"{API_BASE_URL}/orders/", headers={"Authorization": f"Bearer {token}"})
-        orders = res.json()
+    try:
+        token = await get_admin_token()
+        async with httpx.AsyncClient(timeout=20) as client:
+            res = await client.get(f"{API_BASE_URL}/orders/", headers={"Authorization": f"Bearer {token}"})
+            orders = res.json()
+    except httpx.TimeoutException:
+        await message.answer("Сервер долго не отвечает (возможно, ещё просыпается после простоя). Попробуйте ещё раз через несколько секунд.")
+        return
     if not orders:
         await message.answer("Заказов пока нет.")
         return
@@ -268,13 +272,17 @@ async def cb_set_status(callback: CallbackQuery):
         return
     _, order_id_str, new_status = callback.data.split(":")
     order_id = int(order_id_str)
-    token = await get_admin_token()
-    async with httpx.AsyncClient() as client:
-        res = await client.patch(
-            f"{API_BASE_URL}/orders/{order_id}/status",
-            json={"status": new_status},
-            headers={"Authorization": f"Bearer {token}"},
-        )
+    try:
+        token = await get_admin_token()
+        async with httpx.AsyncClient(timeout=20) as client:
+            res = await client.patch(
+                f"{API_BASE_URL}/orders/{order_id}/status",
+                json={"status": new_status},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+    except httpx.TimeoutException:
+        await callback.answer("Сервер долго не отвечает. Попробуйте ещё раз.", show_alert=True)
+        return
     if res.status_code == 200:
         label = STATUS_LABELS_RU.get(new_status, new_status)
         new_text = (callback.message.text or "") + f"\n\n✅ Статус изменён на: {label}"
