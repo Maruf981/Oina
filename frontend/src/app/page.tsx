@@ -236,6 +236,8 @@ function HomeInner() {
   const [resetSuccess, setResetSuccess] = useState("");
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [quickAddProductId, setQuickAddProductId] = useState<number | null>(null);
+  const [quickAddSize, setQuickAddSize] = useState("");
   const [toastType, setToastType] = useState<"success" | "error">("success");
 
   const localized = (ru: string, tj: string | null) => (lang === "tj" && tj ? tj : ru);
@@ -1280,7 +1282,27 @@ function HomeInner() {
                 <div
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (p.variants.length > 0) router.push(`/product/${p.id}`);
+                    const inStock = p.variants.filter((v) => v.stock > 0);
+                    if (inStock.length === 0) return;
+                    if (inStock.length === 1) {
+                      const v = inStock[0];
+                      cart.addItem({
+                        variantId: v.id,
+                        productId: p.id,
+                        title: localized(p.title_ru, p.title_tj),
+                        catalogNumber: p.catalog_number,
+                        price: p.price,
+                        size: v.size,
+                        color: v.color,
+                      }).then((res) => {
+                        setToastType(res.ok ? "success" : "error");
+                        setToastMessage(res.ok ? (lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд") : (res.error || (lang === "ru" ? "Не удалось добавить" : "Илова нашуд")));
+                        setTimeout(() => setToastMessage(null), 3000);
+                      });
+                      return;
+                    }
+                    setQuickAddSize("");
+                    setQuickAddProductId(quickAddProductId === p.id ? null : p.id);
                   }}
                   style={{
                     position: "absolute",
@@ -1292,8 +1314,8 @@ function HomeInner() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    cursor: p.variants.length === 0 ? "not-allowed" : "pointer",
-                    opacity: p.variants.length === 0 ? 0.4 : 1,
+                    cursor: p.variants.some((v) => v.stock > 0) ? "pointer" : "not-allowed",
+                    opacity: p.variants.some((v) => v.stock > 0) ? 1 : 0.4,
                   }}
                 >
                   <svg
@@ -1319,6 +1341,79 @@ function HomeInner() {
                     <line x1="18" y1="16" x2="18" y2="21" stroke="var(--accent)" strokeWidth="0.7" />
                   </svg>
                 </div>
+                {quickAddProductId === p.id && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: "absolute",
+                      bottom: 8,
+                      left: 8,
+                      right: 8,
+                      background: "var(--bg)",
+                      border: "1px solid var(--line)",
+                      padding: 10,
+                      zIndex: 5,
+                    }}
+                  >
+                    {!quickAddSize ? (
+                      <>
+                        <div style={{ fontSize: 11, marginBottom: 6, color: "var(--text-muted)" }}>
+                          {lang === "ru" ? "Выберите размер" : "Андозаро интихоб кунед"}
+                        </div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {Array.from(new Set(p.variants.filter((v) => v.stock > 0).map((v) => v.size))).map((s) => (
+                            <span
+                              key={s}
+                              onClick={() => setQuickAddSize(s)}
+                              style={{ padding: "4px 8px", border: "1px solid var(--line)", cursor: "pointer", fontSize: 12, background: "var(--surface)" }}
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 11, marginBottom: 6, color: "var(--text-muted)" }}>
+                          {lang === "ru" ? "Выберите цвет" : "Рангро интихоб кунед"}
+                        </div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {p.variants.filter((v) => v.stock > 0 && v.size === quickAddSize).map((v) => (
+                            <span
+                              key={v.id}
+                              onClick={() => {
+                                cart.addItem({
+                                  variantId: v.id,
+                                  productId: p.id,
+                                  title: localized(p.title_ru, p.title_tj),
+                                  catalogNumber: p.catalog_number,
+                                  price: p.price,
+                                  size: v.size,
+                                  color: v.color,
+                                }).then((res) => {
+                                  setToastType(res.ok ? "success" : "error");
+                                  setToastMessage(res.ok ? (lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд") : (res.error || (lang === "ru" ? "Не удалось добавить" : "Илова нашуд")));
+                                  setTimeout(() => setToastMessage(null), 3000);
+                                });
+                                setQuickAddProductId(null);
+                              }}
+                              title={v.color}
+                              style={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: "50%",
+                                background: filterOptions.colors.find((c) => c.name === v.color)?.hex || "#999999",
+                                cursor: "pointer",
+                                display: "inline-block",
+                                boxShadow: "0 0 0 1px var(--line)",
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
               <div
                 onClick={() => router.push(`/product/${p.id}`)}
