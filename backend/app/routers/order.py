@@ -357,6 +357,13 @@ def change_order_status(
     if updated.customer.telegram_id:
         label = status_labels_ru.get(data.status, data.status)
         customer_text = f"📦 Статус вашего заказа №{updated.id} изменён: {label}"
+        if data.status == "shipped" and updated.courier_id:
+            from app.models.employee import Employee
+            courier = db.query(Employee).filter(Employee.id == updated.courier_id).first()
+            if courier:
+                customer_text += f"\n\n🚚 Доставщик: {courier.name}"
+                if courier.phone:
+                    customer_text += f"\n📞 {courier.phone}"
         background_tasks.add_task(send_customer_notification, updated.customer.telegram_id, customer_text)
 
     return updated
