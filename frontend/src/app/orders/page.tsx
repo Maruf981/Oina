@@ -34,7 +34,7 @@ type Order = {
   items: OrderItem[];
 };
 
-const statusLabels: Record<string, string> = {
+const statusLabelsRu: Record<string, string> = {
   new: "Новый",
   awaiting_payment: "Ожидает оплаты",
   paid: "Оплачен",
@@ -42,6 +42,18 @@ const statusLabels: Record<string, string> = {
   shipped: "Отправлен",
   delivered: "Доставлен",
   cancelled: "Отменён",
+  returned: "Возврат",
+};
+
+const statusLabelsTj: Record<string, string> = {
+  new: "Нав",
+  awaiting_payment: "Дар интизори пардохт",
+  paid: "Пардохта шуд",
+  confirmed: "Тасдиқ шуд",
+  shipped: "Фиристода шуд",
+  delivered: "Расонида шуд",
+  cancelled: "Бекор карда шуд",
+  returned: "Баргардонида шуд",
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -90,11 +102,12 @@ export default function OrdersPage() {
         {orders.map((order) => (
           <div key={order.id} style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-              <span className="product-title" style={{ fontSize: 16 }}>Заказ №{order.id}</span>
+              <span className="product-title" style={{ fontSize: 16 }}>{lang === "ru" ? `Заказ №${order.id}` : `Фармоиши №${order.id}`}</span>
               <span className="price">{order.total} смн</span>
             </div>
             <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 10 }}>
-              {statusLabels[order.status] || order.status} · {new Date(order.created_at).toLocaleDateString("ru-RU")}
+              {(lang === "ru" ? statusLabelsRu : statusLabelsTj)[order.status] || order.status} ·{" "}
+              {new Date(order.created_at).toLocaleDateString(lang === "ru" ? "ru-RU" : "tg-TJ")}
             </div>
             {order.delivery_address && (
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 10 }}>{order.delivery_address}</p>
