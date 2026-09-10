@@ -61,6 +61,40 @@ class SearchState(StatesGroup):
     waiting_query = State()
 
 
+STATUS_LABELS_RU = {
+    "new": "Новый",
+    "awaiting_payment": "Ожидает оплаты",
+    "paid": "Оплачен",
+    "confirmed": "Подтверждён",
+    "shipped": "Отправлен",
+    "delivered": "Доставлен",
+    "cancelled": "Отменён",
+    "returned": "Возврат",
+}
+
+NEXT_STATUS_OPTIONS = {
+    "new": [("✅ Подтвердить", "confirmed"), ("❌ Отменить", "cancelled")],
+    "awaiting_payment": [("💰 Оплачен", "paid"), ("❌ Отменить", "cancelled")],
+    "paid": [("✅ Подтвердить", "confirmed"), ("❌ Отменить", "cancelled")],
+    "confirmed": [("🚚 Отправить", "shipped"), ("❌ Отменить", "cancelled")],
+    "shipped": [("📬 Доставлено", "delivered")],
+    "delivered": [],
+    "cancelled": [],
+    "returned": [],
+}
+
+
+def build_status_keyboard(order_id: int, current_status: str) -> InlineKeyboardMarkup | None:
+    options = NEXT_STATUS_OPTIONS.get(current_status, [])
+    if not options:
+        return None
+    buttons = [
+        [InlineKeyboardButton(text=label, callback_data=f"setstatus:{order_id}:{new_status}")]
+        for label, new_status in options
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
 def is_admin(user_id: int) -> bool:
     return user_id == ADMIN_TELEGRAM_ID
 
@@ -215,12 +249,39 @@ async def orders_handler(message: Message):
         await message.answer("Заказов пока нет.")
         return
     for order in orders[:5]:
+        status = order["status"]
+        label = STATUS_LABELS_RU.get(status, status)
+        keyboard = build_status_keyboard(order["id"], status)
         await message.answer(
             f"Заказ №{order['id']}\n"
-            f"Статус: {order['status']}\n"
+            f"Статус: {label}\n"
             f"Сумма: {order['total']} смн\n"
-            f"Адрес: {order.get('delivery_address', '—')}"
+            f"Адрес: {order.get('delivery_address', '—')}",
+            reply_markup=keyboard,
         )
+
+
+@dp.callback_query(F.data.startswith("setstatus:"))
+async def cb_set_status(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    _, order_id_str, new_status = callback.data.split(":")
+    order_id = int(order_id_str)
+    token = await get_admin_token()
+    async with httpx.AsyncClient() as client:
+        res = await client.patch(
+            f"{API_BASE_URL}/orders/{order_id}/status",
+            json={"status": new_status},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    if res.status_code == 200:
+        label = STATUS_LABELS_RU.get(new_status, new_status)
+        new_text = (callback.message.text or "") + f"\n\n✅ Статус изменён на: {label}"
+        await callback.message.edit_text(new_text)
+        await callback.answer("Готово")
+    else:
+        await callback.answer("Не удалось изменить статус. Попробуйте позже.", show_alert=True)
 
 
 @dp.message(F.text == "📋 Мои черновики")
