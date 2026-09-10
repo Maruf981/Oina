@@ -165,6 +165,7 @@ function HomeInner() {
   const [maxPrice, setMaxPrice] = useState("");
   const [filterSize, setFilterSize] = useState("");
   const [filterColor, setFilterColor] = useState("");
+  const [sortOption, setSortOption] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<"cart" | "form" | "payment" | "done">("cart");
   const [customerName, setCustomerName] = useState("");
@@ -423,6 +424,7 @@ function HomeInner() {
       if (filterColor) params.set("color", filterColor);
       if (selectedCategoryId) params.set("category_id", String(selectedCategoryId));
       if (searchParams.get("recommended") === "1") params.set("recommended_only", "true");
+      if (sortOption) params.set("sort", sortOption);
       fetch(`${API_URL}/products/?${params.toString()}`, { signal: controller.signal })
         .then((res) => res.json())
         .then((data) => {
@@ -437,7 +439,7 @@ function HomeInner() {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams]);
+  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams, sortOption]);
   useEffect(() => {
     fetch(`${API_URL}/products/?recommended_only=true`)
       .then((res) => res.json())
@@ -1058,8 +1060,29 @@ function HomeInner() {
         </div>
       )}
 
-      <div style={{ padding: "8px 40px 16px" }}>
+      <div style={{ padding: "8px 40px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <h2 className="product-title" style={{ fontSize: 22 }}>{t.allCategories}</h2>
+        <select
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value)}
+          style={{
+            padding: "8px 12px",
+            background: "var(--surface)",
+            border: "1px solid var(--line)",
+            color: "var(--text)",
+            fontFamily: "var(--font-body)",
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          <option value="">{t.sortDefault}</option>
+          <option value="popularity">{t.sortPopularity}</option>
+          <option value="price_asc">{t.sortPriceAsc}</option>
+          <option value="price_desc">{t.sortPriceDesc}</option>
+          <option value="newest">{t.sortNewest}</option>
+          <option value="rating">{t.sortRating}</option>
+          <option value="discount">{t.sortDiscount}</option>
+        </select>
       </div>
 
 
