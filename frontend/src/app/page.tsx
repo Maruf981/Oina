@@ -1471,6 +1471,10 @@ function HomeInner() {
                   <span className="price" style={{ color: "#4CAF50" }}>{p.price} смн</span>
                 </span>
               </div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                <span>🚚</span>
+                <span>{city === "dushanbe" ? (lang === "ru" ? "Завтра" : "Пагоҳ") : (lang === "ru" ? "В регион" : "Ба минтақа")}</span>
+              </div>
               <StarRating avgRating={p.avg_rating} reviewCount={p.review_count} />
             </div>
           ))}

@@ -7,6 +7,7 @@ import { useAuth } from "../../auth-context";
 import { SiteHeader } from "../../site-header";
 import { useTheme } from "../../theme-context";
 import { useLang } from "../../lang-context";
+import { useCity } from "../../city-context";
 import { translations, Lang } from "../../translations";
 
 type Variant = {
@@ -153,6 +154,7 @@ export default function ProductDetailClient() {
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const { theme } = useTheme();
   const { lang } = useLang();
+  const { city } = useCity();
   const [shareCopied, setShareCopied] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
 
@@ -592,8 +594,17 @@ export default function ProductDetailClient() {
               )}
             </div>
 
-            <div className="price" style={{ fontSize: 22, marginBottom: 24, color: "#4CAF50" }}>
+            <div className="price" style={{ fontSize: 22, marginBottom: 8, color: "#4CAF50" }}>
               {product.price} смн
+            </div>
+
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 24, display: "flex", alignItems: "center", gap: 6 }}>
+              <span>🚚</span>
+              <span>
+                {city === "dushanbe"
+                  ? (lang === "ru" ? "Доставка за 24 часа по Душанбе" : "Дар давоми 24 соат дар Душанбе расонида мешавад")
+                  : (lang === "ru" ? "Доставка в другие города — через доверенное лицо" : "Ба шаҳрҳои дигар — тавассути шахси боэътимод")}
+              </span>
             </div>
 
             {product.variants.length > 0 && (
