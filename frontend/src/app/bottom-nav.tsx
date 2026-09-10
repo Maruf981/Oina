@@ -92,8 +92,6 @@ export function BottomNav() {
   const [lang, setLang] = useState<"ru" | "tj">("ru");
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [ordersCount, setOrdersCount] = useState(0);
-  if (pathname.startsWith("/admin")) return null;
-
   useEffect(() => {
     const saved = localStorage.getItem("lang") as "ru" | "tj" | null;
     if (saved) setLang(saved);
@@ -125,6 +123,8 @@ export function BottomNav() {
       .then((data) => setOrdersCount(Array.isArray(data) ? data.length : 0))
       .catch(() => setOrdersCount(0));
   }, [auth.token, pathname]);
+
+  if (pathname.startsWith("/admin")) return null;
 
   const tabs = tabsByLang[lang];
 
