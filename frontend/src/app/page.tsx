@@ -131,9 +131,13 @@ function StarRating({ avgRating, reviewCount }: { avgRating: number | null; revi
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 function HomeInner() {
+  const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(() => {
+    const v = searchParams.get("category_id");
+    return v ? Number(v) : null;
+  });
   const [openMegaMenu, setOpenMegaMenu] = useState<number | null>(null);
   useEffect(() => {
     fetch(`${API_URL}/categories/`)
@@ -160,18 +164,21 @@ function HomeInner() {
   const { theme, toggleTheme } = useTheme();
   const { lang, toggleLang } = useLang();
   const [cartOpen, setCartOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
-  const [filterSize, setFilterSize] = useState("");
-  const [filterColor, setFilterColor] = useState("");
-  const [sortOption, setSortOption] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("search") || "");
+  const [minPrice, setMinPrice] = useState(() => searchParams.get("min_price") || "");
+  const [maxPrice, setMaxPrice] = useState(() => searchParams.get("max_price") || "");
+  const [filterSize, setFilterSize] = useState(() => searchParams.get("size") || "");
+  const [filterColor, setFilterColor] = useState(() => searchParams.get("color") || "");
+  const [sortOption, setSortOption] = useState(() => searchParams.get("sort") || "");
   const [filterOptions, setFilterOptions] = useState<{ sizes: string[]; colors: { name: string; hex: string }[]; materials: { ru: string; tj: string }[]; seasons: { ru: string; tj: string }[] }>({ sizes: [], colors: [], materials: [], seasons: [] });
-  const [filterMaterial, setFilterMaterial] = useState("");
-  const [filterSeason, setFilterSeason] = useState("");
-  const [filterBrandOnly, setFilterBrandOnly] = useState(false);
-  const [filterInStock, setFilterInStock] = useState(false);
-  const [filterOnSale, setFilterOnSale] = useState(false);
+  const [filterMaterial, setFilterMaterial] = useState(() => searchParams.get("material") || "");
+  const [filterSeason, setFilterSeason] = useState(() => searchParams.get("season") || "");
+  const [filterBrandOnly, setFilterBrandOnly] = useState(() => searchParams.get("brand_only") === "true");
+  const [filterInStock, setFilterInStock] = useState(() => searchParams.get("in_stock_only") === "true");
+  const [filterOnSale, setFilterOnSale] = useState(() => searchParams.get("on_sale_only") === "true");
+  const [filterRecommendedOnly, setFilterRecommendedOnly] = useState(
+    () => searchParams.get("recommended") === "1" || searchParams.get("recommended_only") === "true"
+  );
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<"cart" | "form" | "payment" | "done">("cart");
   const [customerName, setCustomerName] = useState("");
@@ -194,7 +201,6 @@ function HomeInner() {
       router.replace("/");
     }
   };
-  const searchParams = useSearchParams();
   useEffect(() => {
     setAuthOpen(searchParams.get("login") === "1");
   }, [searchParams]);
@@ -429,13 +435,17 @@ function HomeInner() {
       if (filterSize) params.set("size", filterSize);
       if (filterColor) params.set("color", filterColor);
       if (selectedCategoryId) params.set("category_id", String(selectedCategoryId));
-      if (searchParams.get("recommended") === "1") params.set("recommended_only", "true");
+      if (filterRecommendedOnly) params.set("recommended_only", "true");
       if (sortOption) params.set("sort", sortOption);
       if (filterMaterial) params.set("material", filterMaterial);
       if (filterSeason) params.set("season", filterSeason);
       if (filterBrandOnly) params.set("brand_only", "true");
       if (filterInStock) params.set("in_stock_only", "true");
       if (filterOnSale) params.set("on_sale_only", "true");
+      const newQuery = params.toString();
+      if (newQuery !== searchParams.toString()) {
+        router.replace(newQuery ? `/?${newQuery}` : "/", { scroll: false });
+      }
       fetch(`${API_URL}/products/?${params.toString()}`, { signal: controller.signal })
         .then((res) => res.json())
         .then((data) => {
@@ -450,7 +460,7 @@ function HomeInner() {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams, sortOption, filterMaterial, filterSeason, filterBrandOnly, filterInStock, filterOnSale]);
+  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams, sortOption, filterMaterial, filterSeason, filterBrandOnly, filterInStock, filterOnSale, filterRecommendedOnly]);
   useEffect(() => {
     fetch(`${API_URL}/products/?recommended_only=true`)
       .then((res) => res.json())
