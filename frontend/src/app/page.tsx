@@ -166,7 +166,7 @@ function HomeInner() {
   const [filterSize, setFilterSize] = useState("");
   const [filterColor, setFilterColor] = useState("");
   const [sortOption, setSortOption] = useState("");
-  const [filterOptions, setFilterOptions] = useState<{ sizes: string[]; colors: { name: string; hex: string }[]; materials: string[]; seasons: string[] }>({ sizes: [], colors: [], materials: [], seasons: [] });
+  const [filterOptions, setFilterOptions] = useState<{ sizes: string[]; colors: { name: string; hex: string }[]; materials: { ru: string; tj: string }[]; seasons: { ru: string; tj: string }[] }>({ sizes: [], colors: [], materials: [], seasons: [] });
   const [filterMaterial, setFilterMaterial] = useState("");
   const [filterSeason, setFilterSeason] = useState("");
   const [filterBrandOnly, setFilterBrandOnly] = useState(false);
@@ -462,8 +462,8 @@ function HomeInner() {
         setFilterOptions(data);
         if (filterSize && !data.sizes.includes(filterSize)) setFilterSize("");
         if (filterColor && !data.colors.some((c: { name: string }) => c.name === filterColor)) setFilterColor("");
-        if (filterMaterial && !data.materials.includes(filterMaterial)) setFilterMaterial("");
-        if (filterSeason && !data.seasons.includes(filterSeason)) setFilterSeason("");
+        if (filterMaterial && !data.materials.some((m: { ru: string }) => m.ru === filterMaterial)) setFilterMaterial("");
+        if (filterSeason && !data.seasons.some((s: { ru: string }) => s.ru === filterSeason)) setFilterSeason("");
       })
       .catch(() => setFilterOptions({ sizes: [], colors: [], materials: [], seasons: [] }));
   }, [selectedCategoryId]);
@@ -785,7 +785,7 @@ function HomeInner() {
             >
               <option value="">{lang === "ru" ? "Материал" : "Матоъ"}</option>
               {filterOptions.materials.map((m) => (
-                <option key={m} value={m}>{m}</option>
+                <option key={m.ru} value={m.ru}>{lang === "ru" ? m.ru : m.tj}</option>
               ))}
             </select>
             <select
@@ -801,7 +801,7 @@ function HomeInner() {
             >
               <option value="">{lang === "ru" ? "Сезон" : "Мавсим"}</option>
               {filterOptions.seasons.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s.ru} value={s.ru}>{lang === "ru" ? s.ru : s.tj}</option>
               ))}
             </select>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
