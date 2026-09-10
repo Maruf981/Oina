@@ -116,12 +116,12 @@ def get_filter_options(db: Session, category_id: int | None = None) -> dict:
                 colors_seen[normalized] = color
 
     materials_query = (
-        db.query(Product.material_ru)
+        db.query(Product.material_ru, Product.material_tj)
         .filter(Product.is_active == True, Product.is_archived == False, Product.material_ru.isnot(None), Product.material_ru != "")
         .distinct()
     )
     seasons_query = (
-        db.query(Product.season_ru)
+        db.query(Product.season_ru, Product.season_tj)
         .filter(Product.is_active == True, Product.is_archived == False, Product.season_ru.isnot(None), Product.season_ru != "")
         .distinct()
     )
@@ -129,8 +129,12 @@ def get_filter_options(db: Session, category_id: int | None = None) -> dict:
         materials_query = materials_query.filter(Product.category_id == category_id)
         seasons_query = seasons_query.filter(Product.category_id == category_id)
 
-    materials = sorted({row[0] for row in materials_query.all()})
-    seasons = sorted({row[0] for row in seasons_query.all()})
+    materials_seen = {}
+    for ru, tj in materials_query.all():
+        materials_seen[ru] = tj or ru
+    seasons_seen = {}
+    for ru, tj in seasons_query.all():
+        seasons_seen[ru] = tj or ru
 
     return {
         "sizes": sorted(sizes),
@@ -138,8 +142,14 @@ def get_filter_options(db: Session, category_id: int | None = None) -> dict:
             {"name": name, "hex": get_color_hex(name)}
             for name in sorted(colors_seen.values())
         ],
-        "materials": materials,
-        "seasons": seasons,
+        "materials": [
+            {"ru": ru, "tj": materials_seen[ru]}
+            for ru in sorted(materials_seen.keys())
+        ],
+        "seasons": [
+            {"ru": ru, "tj": seasons_seen[ru]}
+            for ru in sorted(seasons_seen.keys())
+        ],
     }
 
 
