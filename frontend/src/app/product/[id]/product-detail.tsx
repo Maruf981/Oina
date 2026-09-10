@@ -151,6 +151,7 @@ export default function ProductDetailClient() {
   const [activeImage, setActiveImage] = useState(0);
   const [mainVideoMuted, setMainVideoMuted] = useState(true);
   const [related, setRelated] = useState<ProductBrief[]>([]);
+  const [recentlyViewed, setRecentlyViewed] = useState<ProductBrief[]>([]);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const { theme } = useTheme();
   const { lang } = useLang();
@@ -211,6 +212,23 @@ export default function ProductDetailClient() {
         fetch(`${API_URL}/products/?category_id=${data.category_id}`)
             .then((res) => res.json())
             .then((all: ProductBrief[]) => setRelated(all.filter((p) => p.id !== data.id).slice(0, 4)));
+        }
+
+        try {
+          const raw = localStorage.getItem("recently_viewed");
+          const stored: number[] = raw ? JSON.parse(raw) : [];
+          const withoutCurrent = stored.filter((id) => id !== data.id);
+          const updated = [data.id, ...withoutCurrent].slice(0, 20);
+          localStorage.setItem("recently_viewed", JSON.stringify(updated));
+
+          const others = withoutCurrent.slice(0, 8);
+          if (others.length > 0) {
+            fetch(`${API_URL}/products/?ids=${others.join(",")}`)
+              .then((res) => res.json())
+              .then((list: ProductBrief[]) => setRecentlyViewed(list));
+          }
+        } catch {
+          // localStorage недоступен (приватный режим и т.п.) — просто пропускаем
         }
       });
   }, [params.id]);
@@ -825,6 +843,41 @@ export default function ProductDetailClient() {
             </h2>
             <div className="related-products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 20 }}>
               {related.map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => router.push(`/product/${p.id}`)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <div
+                    style={{
+                      aspectRatio: "3/4",
+                      background: "var(--surface)",
+                      border: "1px solid var(--line)",
+                      marginBottom: 10,
+                      backgroundImage: p.images[0] ? `url(${p.images[0].url})` : "none",
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  />
+                  <div className="product-title" style={{ fontSize: 14, marginBottom: 4 }}>
+                    {localized(p.title_ru, p.title_tj)}
+                  </div>
+                  <div className="price" style={{ fontSize: 13 }}>
+                    {p.price} смн
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {recentlyViewed.length > 0 && (
+          <div style={{ marginTop: 60, borderTop: "1px solid var(--line)", paddingTop: 40 }}>
+            <h2 className="product-title" style={{ fontSize: 22, marginBottom: 24 }}>
+              {lang === "ru" ? "Вы недавно смотрели" : "Шумо ба наздикӣ дидед"}
+            </h2>
+            <div className="related-products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 20 }}>
+              {recentlyViewed.map((p) => (
                 <div
                   key={p.id}
                   onClick={() => router.push(`/product/${p.id}`)}
