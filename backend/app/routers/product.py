@@ -9,6 +9,12 @@ from app.schemas.product import ProductCreate, ProductOut
 router = APIRouter(prefix="/products", tags=["products"])
 
 
+@router.get("/filter-options")
+def filter_options(category_id: int | None = None, db: Session = Depends(get_db)):
+    """Реальные размеры и цвета из каталога (опц. в пределах категории) — для UI фильтров."""
+    return product_repo.get_filter_options(db, category_id=category_id)
+
+
 @router.get("/admin/all", response_model=list[ProductOut])
 def list_all_products_admin(db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     from app.models.product import Product

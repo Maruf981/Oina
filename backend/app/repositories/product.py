@@ -81,6 +81,40 @@ def get_by_id(db: Session, product_id: int) -> Product | None:
     return db.query(Product).filter(Product.id == product_id).first()
 
 
+def get_filter_options(db: Session, category_id: int | None = None) -> dict:
+    """Реальные размеры и цвета, встречающиеся в каталоге (опционально в пределах
+    одной категории) — используется для построения фильтров вместо жёстко
+    заданного списка S/M/L/XL."""
+    from app.services.color_map import get_color_hex
+
+    query = (
+        db.query(ProductVariant.size, ProductVariant.color)
+        .join(Product, Product.id == ProductVariant.product_id)
+        .filter(Product.is_active == True, Product.is_archived == False)
+        .distinct()
+    )
+    if category_id is not None:
+        query = query.filter(Product.category_id == category_id)
+
+    sizes = set()
+    colors_seen = {}
+    for size, color in query.all():
+        if size:
+            sizes.add(size)
+        if color:
+            normalized = color.strip().lower().replace("ё", "е")
+            if normalized not in colors_seen:
+                colors_seen[normalized] = color
+
+    return {
+        "sizes": sorted(sizes),
+        "colors": [
+            {"name": name, "hex": get_color_hex(name)}
+            for name in sorted(colors_seen.values())
+        ],
+    }
+
+
 def update(db: Session, product: Product, data: ProductCreate) -> Product:
     product_data = data.model_dump(exclude={"variants", "catalog_number"})
     if not product_data.get("title_tj"):
