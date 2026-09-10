@@ -60,17 +60,22 @@ def get_all(
         query = query.filter(Product.price >= min_price)
     if max_price is not None:
         query = query.filter(Product.price <= max_price)
-    if size or color:
-        query = query.join(ProductVariant)
-        if size:
-            query = query.filter(ProductVariant.size == size)
-        if color:
-            from sqlalchemy import func
-            normalized = color.strip().lower().replace("ё", "е")
-            query = query.filter(
-                func.lower(func.replace(ProductVariant.color, "ё", "е")) == normalized
+    if size:
+        query = query.filter(
+            Product.id.in_(
+                db.query(ProductVariant.product_id).filter(ProductVariant.size == size)
             )
-        query = query.distinct()
+        )
+    if color:
+        from sqlalchemy import func
+        normalized = color.strip().lower().replace("ё", "е")
+        query = query.filter(
+            Product.id.in_(
+                db.query(ProductVariant.product_id).filter(
+                    func.lower(func.replace(ProductVariant.color, "ё", "е")) == normalized
+                )
+            )
+        )
     if sort == "price_asc":
         query = query.order_by(Product.price.asc())
     elif sort == "price_desc":
