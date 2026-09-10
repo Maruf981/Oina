@@ -170,6 +170,8 @@ function HomeInner() {
   const [filterMaterial, setFilterMaterial] = useState("");
   const [filterSeason, setFilterSeason] = useState("");
   const [filterBrandOnly, setFilterBrandOnly] = useState(false);
+  const [filterInStock, setFilterInStock] = useState(false);
+  const [filterOnSale, setFilterOnSale] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<"cart" | "form" | "payment" | "done">("cart");
   const [customerName, setCustomerName] = useState("");
@@ -432,6 +434,8 @@ function HomeInner() {
       if (filterMaterial) params.set("material", filterMaterial);
       if (filterSeason) params.set("season", filterSeason);
       if (filterBrandOnly) params.set("brand_only", "true");
+      if (filterInStock) params.set("in_stock_only", "true");
+      if (filterOnSale) params.set("on_sale_only", "true");
       fetch(`${API_URL}/products/?${params.toString()}`, { signal: controller.signal })
         .then((res) => res.json())
         .then((data) => {
@@ -446,7 +450,7 @@ function HomeInner() {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams, sortOption, filterMaterial, filterSeason, filterBrandOnly]);
+  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams, sortOption, filterMaterial, filterSeason, filterBrandOnly, filterInStock, filterOnSale]);
   useEffect(() => {
     fetch(`${API_URL}/products/?recommended_only=true`)
       .then((res) => res.json())
@@ -812,6 +816,22 @@ function HomeInner() {
               />
               {lang === "ru" ? "Только бренды" : "Танҳо брендҳо"}
             </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={filterInStock}
+                onChange={(e) => setFilterInStock(e.target.checked)}
+              />
+              {lang === "ru" ? "Только в наличии" : "Танҳо мавҷуд"}
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={filterOnSale}
+                onChange={(e) => setFilterOnSale(e.target.checked)}
+              />
+              {lang === "ru" ? "Только со скидкой" : "Танҳо бо тахфиф"}
+            </label>
             <span
               onClick={() => {
                 setMinPrice("");
@@ -821,6 +841,8 @@ function HomeInner() {
                 setFilterMaterial("");
                 setFilterSeason("");
                 setFilterBrandOnly(false);
+                setFilterInStock(false);
+                setFilterOnSale(false);
               }}
               style={{
                 cursor: "pointer",
@@ -1128,7 +1150,12 @@ function HomeInner() {
       )}
 
       <div style={{ padding: "8px 40px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <h2 className="product-title" style={{ fontSize: 22 }}>{t.allCategories}</h2>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+          <h2 className="product-title" style={{ fontSize: 22 }}>{t.allCategories}</h2>
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+            {lang === "ru" ? "Показано" : "Нишон дода шуд"} {Math.min(visibleCount, products.length)} {lang === "ru" ? "из" : "аз"} {products.length}
+          </span>
+        </div>
         <select
           value={sortOption}
           onChange={(e) => setSortOption(e.target.value)}
