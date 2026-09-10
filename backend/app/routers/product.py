@@ -49,8 +49,15 @@ def list_products(
     brand_only: bool = False,
     in_stock_only: bool = False,
     on_sale_only: bool = False,
+    ids: str | None = None,
     db: Session = Depends(get_db),
 ):
+    parsed_ids = None
+    if ids:
+        try:
+            parsed_ids = [int(x) for x in ids.split(",") if x.strip()]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="ids must be a comma-separated list of integers")
     return product_repo.get_all(
         db,
         category_id=category_id,
@@ -66,6 +73,7 @@ def list_products(
         brand_only=brand_only,
         in_stock_only=in_stock_only,
         on_sale_only=on_sale_only,
+        ids=parsed_ids,
     )
 
 

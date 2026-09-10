@@ -21,8 +21,11 @@ def get_all(
     brand_only: bool = False,
     in_stock_only: bool = False,
     on_sale_only: bool = False,
+    ids: list[int] | None = None,
 ) -> list[Product]:
     query = db.query(Product).filter(Product.is_active == True, Product.is_archived == False)
+    if ids is not None:
+        query = query.filter(Product.id.in_(ids))
     if recommended_only:
         query = query.filter(Product.is_recommended == True)
     if brand_only:
@@ -104,7 +107,11 @@ def get_all(
         query = query.outerjoin(sold_subq, sold_subq.c.pid == Product.id)
         query = query.order_by(func.coalesce(sold_subq.c.sold, 0).desc())
 
-    return query.all()
+    results = query.all()
+    if ids is not None and sort is None:
+        order = {pid: i for i, pid in enumerate(ids)}
+        results.sort(key=lambda p: order.get(p.id, len(ids)))
+    return results
 
 
 def get_by_id(db: Session, product_id: int) -> Product | None:
