@@ -58,7 +58,7 @@ export function SiteHeader() {
           margin: "0 auto",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           padding: "24px 20px",
           gap: 10,
           position: "relative",
