@@ -15,6 +15,7 @@ def get_all(
     size: str | None = None,
     color: str | None = None,
     recommended_only: bool = False,
+    sort: str | None = None,
 ) -> list[Product]:
     query = db.query(Product).filter(Product.is_active == True, Product.is_archived == False)
     if recommended_only:
@@ -45,6 +46,34 @@ def get_all(
                 func.lower(func.replace(ProductVariant.color, "ё", "е")) == normalized
             )
         query = query.distinct()
+    if sort == "price_asc":
+        query = query.order_by(Product.price.asc())
+    elif sort == "price_desc":
+        query = query.order_by(Product.price.desc())
+    elif sort == "newest":
+        query = query.order_by(Product.created_at.desc())
+    elif sort == "rating":
+        query = query.order_by(Product.avg_rating.desc().nullslast())
+    elif sort == "discount":
+        query = query.order_by(Product.discount_percent.desc().nullslast())
+    elif sort == "popularity":
+        from sqlalchemy import func
+        from app.models.order import Order, OrderItem, OrderStatus
+
+        sold_subq = (
+            db.query(
+                ProductVariant.product_id.label("pid"),
+                func.coalesce(func.sum(OrderItem.quantity - OrderItem.returned_quantity), 0).label("sold"),
+            )
+            .join(OrderItem, OrderItem.product_variant_id == ProductVariant.id)
+            .join(Order, Order.id == OrderItem.order_id)
+            .filter(Order.status.notin_([OrderStatus.CANCELLED, OrderStatus.RETURNED]))
+            .group_by(ProductVariant.product_id)
+            .subquery()
+        )
+        query = query.outerjoin(sold_subq, sold_subq.c.pid == Product.id)
+        query = query.order_by(func.coalesce(sold_subq.c.sold, 0).desc())
+
     return query.all()
 
 

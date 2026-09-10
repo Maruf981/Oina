@@ -37,6 +37,7 @@ def list_products(
     size: str | None = None,
     color: str | None = None,
     recommended_only: bool = False,
+    sort: str | None = None,
     db: Session = Depends(get_db),
 ):
     return product_repo.get_all(
@@ -48,6 +49,7 @@ def list_products(
         size=size,
         color=color,
         recommended_only=recommended_only,
+        sort=sort,
     )
 
 
