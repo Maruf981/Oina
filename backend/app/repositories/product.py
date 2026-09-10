@@ -16,10 +16,19 @@ def get_all(
     color: str | None = None,
     recommended_only: bool = False,
     sort: str | None = None,
+    material: str | None = None,
+    season: str | None = None,
+    brand_only: bool = False,
 ) -> list[Product]:
     query = db.query(Product).filter(Product.is_active == True, Product.is_archived == False)
     if recommended_only:
         query = query.filter(Product.is_recommended == True)
+    if brand_only:
+        query = query.filter(Product.is_brand == True)
+    if material:
+        query = query.filter(Product.material_ru == material)
+    if season:
+        query = query.filter(Product.season_ru == season)
     if category_id is not None:
         query = query.filter(Product.category_id == category_id)
     if search:
@@ -106,12 +115,31 @@ def get_filter_options(db: Session, category_id: int | None = None) -> dict:
             if normalized not in colors_seen:
                 colors_seen[normalized] = color
 
+    materials_query = (
+        db.query(Product.material_ru)
+        .filter(Product.is_active == True, Product.is_archived == False, Product.material_ru.isnot(None), Product.material_ru != "")
+        .distinct()
+    )
+    seasons_query = (
+        db.query(Product.season_ru)
+        .filter(Product.is_active == True, Product.is_archived == False, Product.season_ru.isnot(None), Product.season_ru != "")
+        .distinct()
+    )
+    if category_id is not None:
+        materials_query = materials_query.filter(Product.category_id == category_id)
+        seasons_query = seasons_query.filter(Product.category_id == category_id)
+
+    materials = sorted({row[0] for row in materials_query.all()})
+    seasons = sorted({row[0] for row in seasons_query.all()})
+
     return {
         "sizes": sorted(sizes),
         "colors": [
             {"name": name, "hex": get_color_hex(name)}
             for name in sorted(colors_seen.values())
         ],
+        "materials": materials,
+        "seasons": seasons,
     }
 
 
