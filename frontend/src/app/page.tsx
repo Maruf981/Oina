@@ -6,6 +6,7 @@ import { useCart } from "./cart-context";
 import { useAuth } from "./auth-context";
 import { useTheme } from "./theme-context";
 import { useLang } from "./lang-context";
+import { useCity } from "./city-context";
 import { Footer } from "./footer";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -163,6 +164,7 @@ function HomeInner() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
   const { lang, toggleLang } = useLang();
+  const { city, toggleCity } = useCity();
   const [cartOpen, setCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("search") || "");
   const [minPrice, setMinPrice] = useState(() => searchParams.get("min_price") || "");
@@ -539,6 +541,29 @@ function HomeInner() {
           <span style={{ height: 2, background: "var(--text)" }} />
           <span style={{ height: 2, background: "var(--text)" }} />
         </div>
+
+        <span
+          onClick={toggleCity}
+          style={{
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontFamily: "var(--font-label)",
+            fontSize: 12,
+            letterSpacing: "0.04em",
+            color: "var(--text-muted)",
+            flexShrink: 0,
+            zIndex: 1,
+          }}
+          title={lang === "ru" ? "Сменить город" : "Шаҳрро иваз кунед"}
+        >
+          <span>📍</span>
+          <span className="city-selector-label">
+            {city === "dushanbe" ? (lang === "ru" ? "Душанбе" : "Душанбе") : (lang === "ru" ? "Другой город" : "Шаҳри дигар")}
+          </span>
+          <span style={{ fontSize: 9 }}>▾</span>
+        </span>
         <img
           src={theme === "dark" ? "/logo.png" : "/logo-light.png"}
           alt="Oina.tj"
