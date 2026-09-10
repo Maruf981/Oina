@@ -19,6 +19,8 @@ def get_all(
     material: str | None = None,
     season: str | None = None,
     brand_only: bool = False,
+    in_stock_only: bool = False,
+    on_sale_only: bool = False,
 ) -> list[Product]:
     query = db.query(Product).filter(Product.is_active == True, Product.is_archived == False)
     if recommended_only:
@@ -29,6 +31,20 @@ def get_all(
         query = query.filter(Product.material_ru == material)
     if season:
         query = query.filter(Product.season_ru == season)
+    if in_stock_only:
+        query = query.filter(
+            Product.id.in_(
+                db.query(ProductVariant.product_id).filter(ProductVariant.stock > 0).distinct()
+            )
+        )
+    if on_sale_only:
+        from datetime import date
+        today = date.today()
+        query = query.filter(
+            Product.discount_percent.isnot(None),
+            (Product.discount_from.is_(None)) | (Product.discount_from <= today),
+            (Product.discount_to.is_(None)) | (Product.discount_to >= today),
+        )
     if category_id is not None:
         query = query.filter(Product.category_id == category_id)
     if search:
