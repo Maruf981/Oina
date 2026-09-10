@@ -140,7 +140,7 @@ export default function FavoritesPage() {
   return (
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <SiteHeader />
-      <div className="favorites-container" style={{ maxWidth: 900, margin: "0 auto", padding: 40, paddingTop: 106 }}>
+      <div className="favorites-container" style={{ maxWidth: 900, margin: "0 auto", padding: 40, paddingTop: 140 }}>
         <span
           onClick={() => router.push("/")}
           style={{ cursor: "pointer", fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)" }}

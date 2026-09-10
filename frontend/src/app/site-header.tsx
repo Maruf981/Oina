@@ -236,6 +236,30 @@ export function SiteHeader() {
           </span>
         </div>
       </div>
+
+      <div
+        style={{
+          borderTop: "1px solid var(--line)",
+          display: "flex",
+          justifyContent: "center",
+          gap: 20,
+          padding: "8px 12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+          <span>🚚</span>{lang === "ru" ? "Доставка за 1 день" : "Дар 1 рӯз"}
+        </span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+          <span>🔄</span>{lang === "ru" ? "Обмен 24ч" : "Иваз 24 соат"}
+        </span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+          <span>↩️</span>{lang === "ru" ? "Бесплатный возврат" : "Баргардонии ройгон"}
+        </span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+          <span>💳</span>{lang === "ru" ? "Оплата картой/QR" : "Пардохт бо корт/QR"}
+        </span>
+      </div>
     </nav>
   );
 }

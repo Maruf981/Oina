@@ -81,7 +81,7 @@ export default function OrdersPage() {
   return (
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <SiteHeader />
-      <div style={{ maxWidth: 700, margin: "0 auto", padding: 40, paddingTop: 106 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto", padding: 40, paddingTop: 140 }}>
         <span
           onClick={() => router.push("/")}
           style={{ cursor: "pointer", fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)" }}

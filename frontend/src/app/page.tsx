@@ -501,7 +501,7 @@ function HomeInner() {
   }, [products]);
 
   return (
-    <div data-theme={theme} style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh", paddingTop: 90 }}>
+    <div data-theme={theme} style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh", paddingTop: 124 }}>
       <nav
         style={{
           position: "fixed",
@@ -711,7 +711,31 @@ function HomeInner() {
           </span>
         </div>
         </div>
-      </nav>
+      
+      <div
+        style={{
+          borderTop: "1px solid var(--line)",
+          display: "flex",
+          justifyContent: "center",
+          gap: 20,
+          padding: "8px 12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+          <span>🚚</span>{lang === "ru" ? "Доставка за 1 день" : "Дар 1 рӯз"}
+        </span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+          <span>🔄</span>{lang === "ru" ? "Обмен 24ч" : "Иваз 24 соат"}
+        </span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+          <span>↩️</span>{lang === "ru" ? "Бесплатный возврат" : "Баргардонии ройгон"}
+        </span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+          <span>💳</span>{lang === "ru" ? "Оплата картой/QR" : "Пардохт бо корт/QR"}
+        </span>
+      </div>
+    </nav>
 
       <div style={{ padding: "16px 40px", borderBottom: "1px solid var(--line)" }}>
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
