@@ -28,6 +28,10 @@ html, body {
 }
 
 @media (max-width: 640px) {
+  .city-selector-label {
+    display: none;
+  }
+
   .products-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }

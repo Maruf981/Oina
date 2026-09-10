@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTheme } from "./theme-context";
 import { useLang } from "./lang-context";
+import { useCity } from "./city-context";
 import { useAuth } from "./auth-context";
 import { useCart } from "./cart-context";
 
@@ -13,6 +14,7 @@ export function SiteHeader() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { lang, toggleLang } = useLang();
+  const { city, toggleCity } = useCity();
   const auth = useAuth();
   const cart = useCart();
   const [favoritesCount, setFavoritesCount] = useState(0);
@@ -56,12 +58,35 @@ export function SiteHeader() {
           margin: "0 auto",
           display: "flex",
           alignItems: "center",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
           padding: "24px 20px",
           gap: 10,
           position: "relative",
         }}
       >
+
+        <span
+          onClick={toggleCity}
+          style={{
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontFamily: "var(--font-label)",
+            fontSize: 12,
+            letterSpacing: "0.04em",
+            color: "var(--text-muted)",
+            flexShrink: 0,
+            zIndex: 1,
+          }}
+          title={lang === "ru" ? "Сменить город" : "Шаҳрро иваз кунед"}
+        >
+          <span>📍</span>
+          <span className="city-selector-label">
+            {city === "dushanbe" ? (lang === "ru" ? "Душанбе" : "Душанбе") : (lang === "ru" ? "Другой город" : "Шаҳри дигар")}
+          </span>
+          <span style={{ fontSize: 9 }}>▾</span>
+        </span>
 
         <img
           src={theme === "dark" ? "/logo.png" : "/logo-light.png"}
