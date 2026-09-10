@@ -166,6 +166,7 @@ function HomeInner() {
   const [filterSize, setFilterSize] = useState("");
   const [filterColor, setFilterColor] = useState("");
   const [sortOption, setSortOption] = useState("");
+  const [filterOptions, setFilterOptions] = useState<{ sizes: string[]; colors: { name: string; hex: string }[] }>({ sizes: [], colors: [] });
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<"cart" | "form" | "payment" | "done">("cart");
   const [customerName, setCustomerName] = useState("");
@@ -446,6 +447,18 @@ function HomeInner() {
       .then((data) => setRecommendedProducts(data))
       .catch(() => setRecommendedProducts([]));
   }, []);
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (selectedCategoryId) params.set("category_id", String(selectedCategoryId));
+    fetch(`${API_URL}/products/filter-options?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setFilterOptions(data);
+        if (filterSize && !data.sizes.includes(filterSize)) setFilterSize("");
+        if (filterColor && !data.colors.some((c: { name: string }) => c.name === filterColor)) setFilterColor("");
+      })
+      .catch(() => setFilterOptions({ sizes: [], colors: [] }));
+  }, [selectedCategoryId]);
   useEffect(() => {
     const el = loadMoreRef.current;
     if (!el) return;
@@ -729,25 +742,28 @@ function HomeInner() {
               }}
             >
               <option value="">{lang === "ru" ? "Все размеры" : "Ҳама андозаҳо"}</option>
-              <option value="S">S</option>
-              <option value="M">M</option>
-              <option value="L">L</option>
-              <option value="XL">XL</option>
+              {filterOptions.sizes.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </select>
-            <input
-              type="text"
-              placeholder={lang === "ru" ? "Цвет" : "Ранг"}
-              value={filterColor}
-              onChange={(e) => setFilterColor(e.target.value)}
-              style={{
-                width: 140,
-                padding: "8px",
-                background: "var(--surface)",
-                border: "1px solid var(--line)",
-                color: "var(--text)",
-                fontSize: 13,
-              }}
-            />
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {filterOptions.colors.map((c) => (
+                <span
+                  key={c.name}
+                  onClick={() => setFilterColor(filterColor === c.name ? "" : c.name)}
+                  title={c.name}
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    background: c.hex,
+                    cursor: "pointer",
+                    display: "inline-block",
+                    boxShadow: filterColor === c.name ? "0 0 0 2px var(--accent)" : "0 0 0 1px var(--line)",
+                  }}
+                />
+              ))}
+            </div>
             <span
               onClick={() => {
                 setMinPrice("");
