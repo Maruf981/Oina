@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60 * 24
+    CUSTOMER_JWT_EXPIRE_MINUTES: int = 60 * 24 * 30
 
     TELEGRAM_BOT_TOKEN_CLIENT: str = ""
     TELEGRAM_BOT_TOKEN_ADMIN: str = ""
