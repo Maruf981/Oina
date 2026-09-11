@@ -163,6 +163,9 @@ function HomeInner() {
       .catch(() => setBanners([]));
   }, []);
   const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState(false);
+  const [retryTrigger, setRetryTrigger] = useState(0);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [homepageReviews, setHomepageReviews] = useState<HomepageReview[]>([]);
   const [recommendedCollapsed, setRecommendedCollapsed] = useState(false);
@@ -407,21 +410,28 @@ function HomeInner() {
       if (newQuery !== searchParams.toString()) {
         router.replace(newQuery ? `/?${newQuery}` : "/", { scroll: false });
       }
+      setProductsLoading(true);
+      setProductsError(false);
       fetch(`${API_URL}/products/?${params.toString()}`, { signal: controller.signal })
         .then((res) => res.json())
         .then((data) => {
           setProducts(data);
           setVisibleCount(20);
+          setProductsLoading(false);
         })
         .catch((err) => {
-          if (err.name !== "AbortError") setProducts([]);
+          if (err.name !== "AbortError") {
+            setProducts([]);
+            setProductsError(true);
+            setProductsLoading(false);
+          }
         });
     }, 350);
     return () => {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams, sortOption, filterMaterial, filterSeason, filterBrandOnly, filterInStock, filterOnSale, filterRecommendedOnly]);
+  }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams, sortOption, filterMaterial, filterSeason, filterBrandOnly, filterInStock, filterOnSale, filterRecommendedOnly, retryTrigger]);
 
   useEffect(() => {
     try {
@@ -1349,12 +1359,26 @@ function HomeInner() {
             border: "1px solid var(--line)",
           }}
         >
-          {products.length === 0 && (
+          {productsLoading && (
+            Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+          )}
+          {!productsLoading && productsError && (
+            <div style={{ padding: 40, background: "var(--bg)", color: "var(--text-muted)", textAlign: "center" }}>
+              <p style={{ marginBottom: 14 }}>{lang === "ru" ? "Не удалось загрузить товары. Проверьте соединение." : "Боргирии молҳо муяссар нашуд. Пайвастшавиро тафтиш кунед."}</p>
+              <button
+                onClick={() => setRetryTrigger((v) => v + 1)}
+                style={{ padding: "10px 20px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+              >
+                {lang === "ru" ? "Повторить" : "Такрор кардан"}
+              </button>
+            </div>
+          )}
+          {!productsLoading && !productsError && products.length === 0 && (
             <div style={{ padding: 40, background: "var(--bg)", color: "var(--text-muted)" }}>
               {t.noProducts}
             </div>
           )}
-          {products.slice(0, visibleCount).map((p) => (
+          {!productsLoading && !productsError && products.slice(0, visibleCount).map((p) => (
             <div key={p.id} style={{ background: "var(--bg)", padding: 20 }}>
               <div
                 style={{
@@ -1858,6 +1882,16 @@ function HomeInner() {
         </div>
       )}
       <Footer lang={lang} />
+    </div>
+  );
+}
+function SkeletonCard() {
+  return (
+    <div style={{ background: "var(--bg)", padding: 20 }}>
+      <div style={{ position: "relative", aspectRatio: "3/4", background: "var(--surface)", border: "1px solid var(--line)", marginBottom: 14 }} />
+      <div style={{ height: 17, width: "80%", background: "var(--surface)", marginBottom: 8 }} />
+      <div style={{ height: 9, width: "40%", background: "var(--surface)", marginBottom: 8 }} />
+      <div style={{ height: 12, width: "60%", background: "var(--surface)" }} />
     </div>
   );
 }
