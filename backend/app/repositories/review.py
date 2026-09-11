@@ -54,3 +54,31 @@ def get_my_review(db: Session, product_id: int, customer_id: int) -> ProductRevi
         .filter(ProductReview.product_id == product_id, ProductReview.customer_id == customer_id)
         .first()
     )
+
+
+def get_homepage_reviews(db: Session, limit: int = 8) -> list[dict]:
+    """Недавние отзывы С ТЕКСТОМ комментария — для витрины на главной странице."""
+    reviews = (
+        db.query(ProductReview)
+        .filter(ProductReview.comment.isnot(None), ProductReview.comment != "")
+        .order_by(ProductReview.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    result = []
+    for r in reviews:
+        product = r.product
+        customer = r.customer
+        image_url = product.images[0].url if product.images else None
+        result.append({
+            "id": r.id,
+            "rating": r.rating,
+            "comment": r.comment,
+            "created_at": r.created_at,
+            "product_id": product.id,
+            "product_title_ru": product.title_ru,
+            "product_title_tj": product.title_tj,
+            "product_image": image_url,
+            "customer_name": customer.name,
+        })
+    return result

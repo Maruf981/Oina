@@ -8,6 +8,14 @@ from app.schemas.review import ReviewCreate, ReviewOut
 
 router = APIRouter(prefix="/products", tags=["reviews"])
 
+homepage_router = APIRouter(prefix="/reviews", tags=["reviews"])
+
+
+@homepage_router.get("/homepage")
+def homepage_reviews(limit: int = 8, db: Session = Depends(get_db)):
+    """Недавние отзывы С ТЕКСТОМ (для витрины на главной странице)."""
+    return review_repo.get_homepage_reviews(db, limit=limit)
+
 
 @router.post("/{product_id}/reviews", response_model=ReviewOut)
 def submit_review(
