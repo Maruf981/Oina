@@ -24,6 +24,7 @@ export const metadata: Metadata = {
     locale: "ru_RU",
     siteName: "Oina.tj",
   },
+  manifest: "/manifest.json",
   twitter: {
     card: "summary_large_image",
     title: "Oina.tj — Интернет-магазин одежды в Таджикистане",
@@ -37,6 +38,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  themeColor: "#0e0e10",
 };
 
 export default function RootLayout({
