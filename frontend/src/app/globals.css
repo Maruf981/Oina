@@ -109,13 +109,13 @@ html, body {
   }
   .favorites-container {
     padding: 20px 16px !important;
-    padding-top: 100px !important;
+    padding-top: 140px !important;
   }
 }
 @media (max-width: 640px) {
   .product-detail-container {
     padding: 12px !important;
-    padding-top: 100px !important;
+    padding-top: 140px !important;
   }
   .product-detail-grid {
     grid-template-columns: 1fr !important;
