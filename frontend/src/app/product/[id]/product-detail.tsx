@@ -561,13 +561,16 @@ export default function ProductDetailClient() {
                 fontFamily: "var(--font-label)",
                 letterSpacing: "0.04em",
                 textTransform: "uppercase",
-                color: product.variants.some((v) => v.stock > 0) ? "#4CAF50" : "#E24B4A",
+                color: product.variants.reduce((sum, v) => sum + v.stock, 0) === 0 ? "#E24B4A" : product.variants.reduce((sum, v) => sum + v.stock, 0) <= 5 ? "#E8A33D" : "#4CAF50",
                 marginBottom: 12,
               }}
             >
-              {product.variants.some((v) => v.stock > 0)
-                ? (lang === "ru" ? "Есть в наличии" : "Мавчуд ҳаст")
-                : (lang === "ru" ? "Нет в наличии" : "Мавчуд нест")}
+              {(() => {
+                const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+                if (totalStock === 0) return lang === "ru" ? "Нет в наличии" : "Мавчуд нест";
+                if (totalStock <= 5) return lang === "ru" ? `Осталось ${totalStock} шт` : `${totalStock} дона монд`;
+                return lang === "ru" ? "Есть в наличии" : "Мавчуд ҳаст";
+              })()}
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>

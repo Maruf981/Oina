@@ -1484,13 +1484,16 @@ function HomeInner() {
                   fontFamily: "var(--font-label)",
                   letterSpacing: "0.04em",
                   textTransform: "uppercase",
-                  color: p.variants.some((v) => v.stock > 0) ? "#4CAF50" : "#E24B4A",
+                  color: p.variants.reduce((sum, v) => sum + v.stock, 0) === 0 ? "#E24B4A" : p.variants.reduce((sum, v) => sum + v.stock, 0) <= 5 ? "#E8A33D" : "#4CAF50",
                   marginBottom: 8,
                 }}
               >
-                {p.variants.some((v) => v.stock > 0)
-                  ? (lang === "ru" ? "Есть в наличии" : "Мавҷуд ҳаст")
-                  : (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")}
+                {(() => {
+                  const totalStock = p.variants.reduce((sum, v) => sum + v.stock, 0);
+                  if (totalStock === 0) return lang === "ru" ? "Нет в наличии" : "Мавҷуд нест";
+                  if (totalStock <= 5) return lang === "ru" ? `Осталось ${totalStock} шт` : `${totalStock} дона монд`;
+                  return lang === "ru" ? "Есть в наличии" : "Мавҷуд ҳаст";
+                })()}
               </div>
               <div className="catalog-label" style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
                 <span>{t.catalogNumber} {p.catalog_number}</span>
