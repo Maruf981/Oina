@@ -63,6 +63,7 @@ type Product = {
   images: ProductImage[];
   avg_rating: number | null;
   review_count: number;
+  sold_count: number;
   size_guide: {
     size: string;
     chest: string | null;
@@ -611,6 +612,11 @@ export default function ProductDetailClient() {
               {!auth.token && (
                 <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
                   {lang === "ru" ? "— войдите, чтобы оценить" : "— барои баҳодиҳӣ ворид шавед"}
+                </span>
+              )}
+              {product.sold_count > 0 && (
+                <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                  {lang === "ru" ? `Куплено ${product.sold_count} раз` : `${product.sold_count} бор харида шуд`}
                 </span>
               )}
             </div>
