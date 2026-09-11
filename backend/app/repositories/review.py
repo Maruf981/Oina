@@ -22,7 +22,7 @@ def has_delivered_purchase(db: Session, customer_id: int, product_id: int) -> bo
     )
 
 
-def upsert_review(db: Session, product_id: int, customer_id: int, rating: int) -> ProductReview:
+def upsert_review(db: Session, product_id: int, customer_id: int, rating: int, comment: str | None = None) -> ProductReview:
     if not has_delivered_purchase(db, customer_id, product_id):
         raise HTTPException(
             status_code=403,
@@ -36,11 +36,12 @@ def upsert_review(db: Session, product_id: int, customer_id: int, rating: int) -
     )
     if existing:
         existing.rating = rating
+        existing.comment = comment
         db.commit()
         db.refresh(existing)
         return existing
 
-    review = ProductReview(product_id=product_id, customer_id=customer_id, rating=rating)
+    review = ProductReview(product_id=product_id, customer_id=customer_id, rating=rating, comment=comment)
     db.add(review)
     db.commit()
     db.refresh(review)

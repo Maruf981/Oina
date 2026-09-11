@@ -16,7 +16,7 @@ def submit_review(
     db: Session = Depends(get_db),
     current: Customer = Depends(get_current_customer),
 ):
-    return review_repo.upsert_review(db, product_id, current.id, data.rating)
+    return review_repo.upsert_review(db, product_id, current.id, data.rating, data.comment)
 
 
 @router.get("/{product_id}/reviews/me", response_model=ReviewOut | None)

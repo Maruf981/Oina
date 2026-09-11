@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 class ReviewCreate(BaseModel):
     rating: int = Field(ge=1, le=5)
+    comment: str | None = Field(default=None, max_length=1000)
 
 
 class ReviewOut(BaseModel):
@@ -11,6 +12,7 @@ class ReviewOut(BaseModel):
     product_id: int
     customer_id: int
     rating: int
+    comment: str | None
     created_at: datetime
 
     class Config:
