@@ -38,6 +38,13 @@ export default function CartPage() {
   const [productImages, setProductImages] = useState<Record<number, string>>({});
 
   useEffect(() => {
+    if (!auth.customer) return;
+    if (!customerName && auth.customer.name) setCustomerName(auth.customer.name);
+    if (!customerPhone && auth.customer.phone) setCustomerPhone(auth.customer.phone);
+    if (!deliveryAddress && auth.customer.address) setDeliveryAddress(auth.customer.address);
+  }, [auth.customer]);
+
+  useEffect(() => {
     const ids = Array.from(new Set(cart.items.map((i) => i.productId)));
     if (ids.length === 0) {
       setProductImages({});
@@ -113,6 +120,13 @@ export default function CartPage() {
     <>
       <SiteHeader />
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 40, paddingTop: 140 }}>
+        <div
+          onClick={() => router.push("/")}
+          style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}
+        >
+          <span>←</span>
+          <span>{lang === "ru" ? "Назад в каталог" : "Бозгашт ба каталог"}</span>
+        </div>
         <div className="product-title" style={{ fontSize: 24, marginBottom: 24 }}>{t.cart}</div>
 
         {checkoutStep === "cart" && (
