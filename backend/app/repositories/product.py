@@ -22,6 +22,7 @@ def get_all(
     in_stock_only: bool = False,
     on_sale_only: bool = False,
     ids: list[int] | None = None,
+    limit: int | None = None,
 ) -> list[Product]:
     query = db.query(Product).filter(Product.is_active == True, Product.is_archived == False)
     if ids is not None:
@@ -107,6 +108,8 @@ def get_all(
         query = query.outerjoin(sold_subq, sold_subq.c.pid == Product.id)
         query = query.order_by(func.coalesce(sold_subq.c.sold, 0).desc())
 
+    if limit is not None and ids is None:
+        query = query.limit(limit)
     results = query.all()
     if ids is not None and sort is None:
         order = {pid: i for i, pid in enumerate(ids)}

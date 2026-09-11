@@ -50,6 +50,7 @@ def list_products(
     in_stock_only: bool = False,
     on_sale_only: bool = False,
     ids: str | None = None,
+    limit: int | None = None,
     db: Session = Depends(get_db),
 ):
     parsed_ids = None
@@ -74,6 +75,7 @@ def list_products(
         in_stock_only=in_stock_only,
         on_sale_only=on_sale_only,
         ids=parsed_ids,
+        limit=limit,
     )
 
 
