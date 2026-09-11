@@ -95,3 +95,16 @@ Product.review_count = column_property(
     .correlate_except(ProductReview)
     .scalar_subquery()
 )
+
+from app.models.order import Order, OrderItem, OrderStatus  # noqa: E402
+
+Product.sold_count = column_property(
+    select(func.coalesce(func.sum(OrderItem.quantity - OrderItem.returned_quantity), 0))
+    .select_from(OrderItem)
+    .join(Order, Order.id == OrderItem.order_id)
+    .join(ProductVariant, ProductVariant.id == OrderItem.product_variant_id)
+    .where(ProductVariant.product_id == Product.id)
+    .where(Order.status.notin_([OrderStatus.CANCELLED, OrderStatus.RETURNED]))
+    .correlate_except(OrderItem, Order, ProductVariant)
+    .scalar_subquery()
+)
