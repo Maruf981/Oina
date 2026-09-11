@@ -7,6 +7,7 @@ import { LangProvider } from "./lang-context";
 import { CityProvider } from "./city-context";
 import { ThemeSync } from "./theme-sync";
 import { BottomNav } from "./bottom-nav";
+import { SupportWidget } from "./support-widget";
 import Script from "next/script";
 
 export const metadata: Metadata = {
@@ -57,6 +58,7 @@ export default function RootLayout({
               <CartProvider>
                 {children}
                 <BottomNav />
+                <SupportWidget />
               </CartProvider>
             </AuthProvider>
             </CityProvider>

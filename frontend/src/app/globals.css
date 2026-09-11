@@ -96,6 +96,9 @@ html, body {
   body {
     padding-bottom: 58px;
   }
+  .support-widget-button {
+    bottom: 76px !important;
+  }
   .header-profile-icon {
     display: none !important;
   }
