@@ -173,7 +173,14 @@ function HomeInner() {
   const [isDraggingRecommended, setIsDraggingRecommended] = useState(false);
   const dragStartXRef = useRef(0);
   const dragStartScrollRef = useRef(0);
-  const [visibleCount, setVisibleCount] = useState(20);
+  const [visibleCount, setVisibleCount] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("oina_catalog_visible_count");
+      return saved ? parseInt(saved, 10) : 20;
+    } catch {
+      return 20;
+    }
+  });
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
   const { lang, toggleLang } = useLang();
@@ -522,6 +529,34 @@ function HomeInner() {
     observer.observe(el);
     return () => observer.disconnect();
   }, [products]);
+
+  const visibleCountRef = useRef(visibleCount);
+  useEffect(() => {
+    visibleCountRef.current = visibleCount;
+  }, [visibleCount]);
+  useEffect(() => {
+    const handleScroll = () => {
+      try {
+        sessionStorage.setItem("oina_catalog_scroll_y", String(window.scrollY));
+        sessionStorage.setItem("oina_catalog_visible_count", String(visibleCountRef.current));
+      } catch {}
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+  const scrollRestoredRef = useRef(false);
+  useEffect(() => {
+    if (scrollRestoredRef.current) return;
+    if (productsLoading) return;
+    if (products.length === 0) return;
+    try {
+      const savedY = sessionStorage.getItem("oina_catalog_scroll_y");
+      if (savedY) {
+        window.scrollTo({ top: parseInt(savedY, 10), behavior: "auto" });
+      }
+    } catch {}
+    scrollRestoredRef.current = true;
+  }, [productsLoading, products]);
 
   return (
     <div data-theme={theme} style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh", paddingTop: 124 }}>
