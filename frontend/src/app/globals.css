@@ -45,7 +45,7 @@ html, body {
   }
 
   .trust-bar-secondary {
-    display: none;
+    display: none !important;
   }
 
   .products-grid {
