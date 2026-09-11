@@ -44,6 +44,10 @@ html, body {
     display: none;
   }
 
+  .trust-bar-secondary {
+    display: none;
+  }
+
   .products-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
