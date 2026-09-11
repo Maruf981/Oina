@@ -141,6 +141,8 @@ export default function ProductDetailClient() {
   const auth = useAuth();
   const [myRating, setMyRating] = useState<number | null>(null);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [reviewComment, setReviewComment] = useState("");
+  const [commentSaved, setCommentSaved] = useState(false);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<"success" | "error">("success");
@@ -205,7 +207,10 @@ export default function ProductDetailClient() {
           })
             .then((res) => (res.ok ? res.json() : null))
             .then((review) => {
-              if (review) setMyRating(review.rating);
+              if (review) {
+                setMyRating(review.rating);
+                setReviewComment(review.comment || "");
+              }
             })
             .catch(() => {});
         }
@@ -287,10 +292,12 @@ export default function ProductDetailClient() {
       const res = await fetch(`${API_URL}/products/${product.id}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth.token}` },
-        body: JSON.stringify({ rating }),
+        body: JSON.stringify({ rating, comment: reviewComment || null }),
       });
       if (res.ok) {
         setMyRating(rating);
+        setCommentSaved(true);
+        setTimeout(() => setCommentSaved(false), 2500);
         fetch(`${API_URL}/products/${product.id}`)
           .then((r) => r.json())
           .then((data) => setProduct(data));
@@ -620,6 +627,33 @@ export default function ProductDetailClient() {
                 </span>
               )}
             </div>
+
+            {auth.token && myRating !== null && (
+              <div style={{ marginBottom: 20 }}>
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder={lang === "ru" ? "Напишите отзыв о товаре (необязательно)" : "Дар бораи мол назар нависед (ихтиёрӣ)"}
+                  maxLength={1000}
+                  rows={3}
+                  style={{ width: "100%", padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13, resize: "none", boxSizing: "border-box", marginBottom: 8 }}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <button
+                    onClick={() => handleSubmitRating(myRating)}
+                    disabled={submittingRating}
+                    style={{ padding: "8px 16px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", opacity: submittingRating ? 0.6 : 1 }}
+                  >
+                    {lang === "ru" ? "Сохранить отзыв" : "Назарро нигоҳ доред"}
+                  </button>
+                  {commentSaved && (
+                    <span style={{ fontSize: 12, color: "#4CAF50" }}>
+                      {lang === "ru" ? "Сохранено" : "Нигоҳ дошта шуд"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="price" style={{ fontSize: 22, marginBottom: 8, color: "#4CAF50" }}>
               {product.price} смн
