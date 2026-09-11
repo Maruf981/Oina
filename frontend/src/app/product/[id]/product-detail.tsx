@@ -917,7 +917,7 @@ export default function ProductDetailClient() {
         {recentlyViewed.length > 0 && (
           <div style={{ marginTop: 60, borderTop: "1px solid var(--line)", paddingTop: 40 }}>
             <h2 className="product-title" style={{ fontSize: 22, marginBottom: 24 }}>
-              {lang === "ru" ? "Вы недавно смотрели" : "Шумо ба наздикӣ дидед"}
+              {lang === "ru" ? "Вы недавно смотрели" : "Ба наздикӣ дидед"}
             </h2>
             <div className="related-products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 20 }}>
               {recentlyViewed.map((p) => (
