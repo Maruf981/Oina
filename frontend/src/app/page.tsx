@@ -894,13 +894,16 @@ function HomeInner() {
                     borderBottom: "1px solid var(--line)",
                   }}
                 >
-                  {p.images && p.images[0] && (
-                    <img
-                      src={p.images[0].url}
-                      alt={p.title_ru}
-                      style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
-                    />
-                  )}
+                  {(() => {
+                    const thumb = p.images?.find((img) => img.media_type !== "video");
+                    return thumb ? (
+                      <img
+                        src={thumb.url}
+                        alt={p.title_ru}
+                        style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
+                      />
+                    ) : null;
+                  })()}
                   <span style={{ flex: 1, fontSize: 13, color: "var(--text)" }}>
                     {lang === "ru" ? p.title_ru : p.title_tj || p.title_ru}
                   </span>
