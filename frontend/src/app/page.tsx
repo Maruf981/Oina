@@ -446,7 +446,15 @@ function HomeInner() {
       if (filterBrandOnly) params.set("brand_only", "true");
       if (filterInStock) params.set("in_stock_only", "true");
       if (filterOnSale) params.set("on_sale_only", "true");
-      const newQuery = params.toString();
+      const managedKeys = [
+        "search", "min_price", "max_price", "size", "color", "category_id",
+        "recommended_only", "sort", "material", "season", "brand_only",
+        "in_stock_only", "on_sale_only",
+      ];
+      const urlParams = new URLSearchParams(searchParams.toString());
+      managedKeys.forEach((key) => urlParams.delete(key));
+      params.forEach((value, key) => urlParams.set(key, value));
+      const newQuery = urlParams.toString();
       if (newQuery !== searchParams.toString()) {
         router.replace(newQuery ? `/?${newQuery}` : "/", { scroll: false });
       }
