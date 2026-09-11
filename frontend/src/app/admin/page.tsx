@@ -807,6 +807,16 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
   const [dragOverImageIndex, setDragOverImageIndex] = useState<number | null>(null);
 
   const updateField = (key: string, value: any) => setForm({ ...form, [key]: value });
+  const updateDiscountField = (key: string, value: string) => {
+    const next: any = { ...form, [key]: value };
+    const orig = key === "original_price" ? value : form.original_price;
+    const pct = key === "discount_percent" ? value : form.discount_percent;
+    if (orig !== "" && pct !== "") {
+      const computed = Math.round(Number(orig) * (1 - Number(pct) / 100));
+      if (!isNaN(computed)) next.price = String(computed);
+    }
+    setForm(next);
+  };
 
   const [activeColors, setActiveColors] = useState<string[]>(
     Array.from(new Set((product?.variants ?? []).map((v: any) => v.color)))
@@ -1118,14 +1128,14 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
               type="number"
               placeholder="Цена до скидки"
               value={form.original_price}
-              onChange={(e) => updateField("original_price", e.target.value)}
+              onChange={(e) => updateDiscountField("original_price", e.target.value)}
               style={inputStyle}
             />
             <input
               type="number"
               placeholder="Скидка, %"
               value={form.discount_percent}
-              onChange={(e) => updateField("discount_percent", e.target.value)}
+              onChange={(e) => updateDiscountField("discount_percent", e.target.value)}
               style={inputStyle}
             />
             <div>
