@@ -157,6 +157,7 @@ type Product = {
   is_new: boolean;
   is_brand: boolean;
   discount_percent: number | null;
+  original_price: number | null;
   cost_price: number | null;
   supplier_id: number | null;
 };
@@ -759,6 +760,7 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
     discount_percent: product?.discount_percent ?? "",
     discount_from: product?.discount_from ?? "",
     discount_to: product?.discount_to ?? "",
+    original_price: product?.original_price ?? "",
   });
   const [variants, setVariants] = useState<{ size: string; color: string; stock: number }[]>(
     product?.variants ?? []
@@ -866,6 +868,7 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
         discount_percent: badgeType === "discount" && form.discount_percent !== "" ? Number(form.discount_percent) : null,
         discount_from: badgeType === "discount" && form.discount_from !== "" ? form.discount_from : null,
         discount_to: badgeType === "discount" && form.discount_to !== "" ? form.discount_to : null,
+        original_price: badgeType === "discount" && form.original_price !== "" ? Number(form.original_price) : null,
         is_active: product ? product.is_active : false,
         variants,
         size_guide:
@@ -1110,7 +1113,14 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
         </label>
 
         {form.badgeType === "discount" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14 }}>
+            <input
+              type="number"
+              placeholder="Цена до скидки"
+              value={form.original_price}
+              onChange={(e) => updateField("original_price", e.target.value)}
+              style={inputStyle}
+            />
             <input
               type="number"
               placeholder="Скидка, %"

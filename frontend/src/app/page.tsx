@@ -71,6 +71,7 @@ type Product = {
   avg_rating: number | null;
   review_count: number;
   discount_percent: number | null;
+  original_price: number | null;
   discount_from: string | null;
   discount_to: string | null;
   variants: Variant[];
@@ -1657,7 +1658,7 @@ function HomeInner() {
                 <span style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                   {isDiscountActive(p) && (
                     <span style={{ textDecoration: "line-through", color: "var(--text-muted)", fontSize: 12 }}>
-                      {Math.round(p.price / (1 - (p.discount_percent as number) / 100))} смн
+                      {Math.round(p.original_price ?? (p.price / (1 - (p.discount_percent as number) / 100)))} смн
                     </span>
                   )}
                   <span className="price" style={{ color: "#4CAF50" }}>{p.price} смн</span>
