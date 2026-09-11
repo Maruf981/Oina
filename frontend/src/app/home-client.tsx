@@ -217,8 +217,13 @@ function HomeInner() {
     }
   };
   useEffect(() => {
-    setAuthOpen(searchParams.get("login") === "1");
-  }, [searchParams]);
+    setAuthOpen(searchParams.get("login") === "1" && !auth.customer);
+  }, [searchParams, auth.customer]);
+  useEffect(() => {
+    if (auth.customer && searchParams.get("login") === "1") {
+      router.replace("/");
+    }
+  }, [auth.customer, searchParams]);
   useEffect(() => {
     const catParam = searchParams.get("category");
     if (catParam) {
