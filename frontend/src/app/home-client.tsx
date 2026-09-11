@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
+import Image from "next/image";
 import { translations, Lang } from "./translations";
 import { useCart } from "./cart-context";
 import { useAuth } from "./auth-context";
@@ -1281,7 +1282,7 @@ function HomeInner() {
                       style={{ cursor: "pointer", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", background: "var(--bg)" }}
                     >
                       <div style={{ position: "relative", aspectRatio: "3/4", background: "var(--surface)", marginBottom: 8 }}>
-                        <AutoSlideImage images={p.images} onClick={() => { if (!isDraggingRecommended) router.push(`/product/${p.id}`); }} />
+                        <AutoSlideImage images={p.images} alt={localized(p.title_ru, p.title_tj)} onClick={() => { if (!isDraggingRecommended) router.push(`/product/${p.id}`); }} />
                         {badge && (
                           <span style={{ position: "absolute", top: 8, left: 8, fontSize: 10, fontWeight: 500, background: badge.color, color: "#fff", padding: "3px 8px", borderRadius: 4 }}>
                             {badge.text}
@@ -1364,7 +1365,7 @@ function HomeInner() {
                   marginBottom: 14,
                 }}
               >
-                <AutoSlideImage images={p.images} onClick={() => router.push(`/product/${p.id}`)} />
+                <AutoSlideImage images={p.images} alt={localized(p.title_ru, p.title_tj)} onClick={() => router.push(`/product/${p.id}`)} />
                 {isDiscountActive(p) && getDiscountBadgeSrc(p.discount_percent) ? (
                   <img
                     src={getDiscountBadgeSrc(p.discount_percent)!}
@@ -1860,7 +1861,7 @@ function HomeInner() {
     </div>
   );
 }
-function AutoSlideImage({ images, onClick }: { images: { url: string; media_type?: string }[]; onClick: () => void }) {
+function AutoSlideImage({ images, onClick, alt }: { images: { url: string; media_type?: string }[]; onClick: () => void; alt: string }) {
   const [index, setIndex] = useState(0);
   const [muted, setMuted] = useState(true);
 
@@ -1888,21 +1889,17 @@ function AutoSlideImage({ images, onClick }: { images: { url: string; media_type
           onClick={onClick}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", cursor: "pointer" }}
         />
-      ) : (
-        <div
+      ) : current ? (
+        <Image
+          key={current.url}
+          src={current.url}
+          alt={alt}
+          fill
+          sizes="(max-width: 640px) 50vw, 300px"
+          style={{ objectFit: "contain", cursor: "pointer" }}
           onClick={onClick}
-          style={{
-            position: "absolute",
-            inset: 0,
-            cursor: "pointer",
-            backgroundImage: current ? `url(${current.url})` : "none",
-            backgroundSize: "contain",
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "center",
-            transition: "background-image 0.3s ease",
-          }}
         />
-      )}
+      ) : null}
       {isVideo && (
         <span
           onClick={(e) => {
