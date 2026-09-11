@@ -178,6 +178,10 @@ function HomeInner() {
   const { city, toggleCity } = useCity();
   const [cartOpen, setCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("search") || "");
+  const [searchSuggestions, setSearchSuggestions] = useState<Product[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
   const [minPrice, setMinPrice] = useState(() => searchParams.get("min_price") || "");
   const [maxPrice, setMaxPrice] = useState(() => searchParams.get("max_price") || "");
   const [filterSize, setFilterSize] = useState(() => searchParams.get("size") || "");
@@ -484,6 +488,56 @@ function HomeInner() {
       controller.abort();
     };
   }, [searchQuery, minPrice, maxPrice, filterSize, filterColor, selectedCategoryId, searchParams, sortOption, filterMaterial, filterSeason, filterBrandOnly, filterInStock, filterOnSale, filterRecommendedOnly]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("oina_search_history");
+      if (raw) setSearchHistory(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setSearchSuggestions([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      fetch(`${API_URL}/products/?search=${encodeURIComponent(q)}&limit=5`, { signal: controller.signal })
+        .then((res) => res.json())
+        .then((data) => setSearchSuggestions(data))
+        .catch((err) => {
+          if (err.name !== "AbortError") setSearchSuggestions([]);
+        });
+    }, 250);
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  function saveSearchToHistory(q: string) {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    setSearchHistory((prev) => {
+      const next = [trimmed, ...prev.filter((h) => h !== trimmed)].slice(0, 8);
+      try {
+        localStorage.setItem("oina_search_history", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
   useEffect(() => {
     fetch(`${API_URL}/products/?recommended_only=true`)
       .then((res) => res.json())
@@ -762,27 +816,37 @@ function HomeInner() {
       </div>
     </nav>
 
-      <div style={{ padding: "16px 40px", borderBottom: "1px solid var(--line)" }}>
+      <div style={{ padding: "16px 40px", borderBottom: "1px solid var(--line)", position: "relative" }} ref={searchContainerRef}>
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <input
-            type="text"
-            autoComplete="off"
-            name="oina-site-search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={lang === "ru" ? "Поиск товаров..." : "Ҷустуҷӯи молҳо..."}
-            style={{
-              flex: 1,
-              padding: "10px 0",
-              background: "transparent",
-              border: "none",
-              borderBottom: "1px solid var(--line)",
-              color: "var(--text)",
-              fontFamily: "var(--font-body)",
-              fontSize: 14,
-              outline: "none",
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveSearchToHistory(searchQuery);
+              setShowSuggestions(false);
             }}
-          />
+            style={{ flex: 1 }}
+          >
+            <input
+              type="text"
+              autoComplete="off"
+              name="oina-site-search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setShowSuggestions(true)}
+              placeholder={lang === "ru" ? "Поиск товаров..." : "Ҷустуҷӯи молҳо..."}
+              style={{
+                width: "100%",
+                padding: "10px 0",
+                background: "transparent",
+                border: "none",
+                borderBottom: "1px solid var(--line)",
+                color: "var(--text)",
+                fontFamily: "var(--font-body)",
+                fontSize: 14,
+                outline: "none",
+              }}
+            />
+          </form>
           <svg
             onClick={() => setFiltersOpen(!filtersOpen)}
             width="20"
@@ -796,6 +860,79 @@ function HomeInner() {
             <circle cx="8" cy="14" r="2" fill="var(--bg)" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
           </svg>
         </div>
+
+        {showSuggestions && (searchQuery.trim() ? searchSuggestions.length > 0 : searchHistory.length > 0) && (
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 40,
+              right: 40,
+              background: "var(--bg)",
+              border: "1px solid var(--line)",
+              borderTop: "none",
+              zIndex: 20,
+              maxHeight: 360,
+              overflowY: "auto",
+            }}
+          >
+            {searchQuery.trim() ? (
+              searchSuggestions.map((p) => (
+                <div
+                  key={p.id}
+                  onMouseDown={() => {
+                    saveSearchToHistory(searchQuery);
+                    setShowSuggestions(false);
+                    router.push(`/product/${p.id}`);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "10px 16px",
+                    cursor: "pointer",
+                    borderBottom: "1px solid var(--line)",
+                  }}
+                >
+                  {p.images && p.images[0] && (
+                    <img
+                      src={p.images[0].url}
+                      alt={p.title_ru}
+                      style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
+                    />
+                  )}
+                  <span style={{ flex: 1, fontSize: 13, color: "var(--text)" }}>
+                    {lang === "ru" ? p.title_ru : p.title_tj || p.title_ru}
+                  </span>
+                  <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{p.price} с.</span>
+                </div>
+              ))
+            ) : (
+              searchHistory.map((h) => (
+                <div
+                  key={h}
+                  onMouseDown={() => {
+                    setSearchQuery(h);
+                    setShowSuggestions(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 16px",
+                    cursor: "pointer",
+                    borderBottom: "1px solid var(--line)",
+                    fontSize: 13,
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  <span>🕓</span>
+                  <span>{h}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
 
         {filtersOpen && (
           <div style={{ display: "flex", gap: 16, marginTop: 16, flexWrap: "wrap" }}>
