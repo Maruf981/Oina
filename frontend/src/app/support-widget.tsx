@@ -3,7 +3,7 @@
 export function SupportWidget() {
   return (
     <a
-      href="tg://resolve?domain=Oina_Assistant_bot"
+      href="tg://resolve?domain=Oina_help_bot"
       target="_blank"
       rel="noopener noreferrer"
       className="support-widget-button"
