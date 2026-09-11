@@ -74,6 +74,7 @@ class ProductBase(BaseModel):
     discount_percent: int | None = None
     discount_from: date | None = None
     discount_to: date | None = None
+    original_price: float | None = None
 
 
 class ProductCreate(ProductBase):
