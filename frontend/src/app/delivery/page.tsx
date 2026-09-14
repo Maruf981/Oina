@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BackButton } from "../back-button";
 import { useRouter } from "next/navigation";
 import { translations, Lang } from "../translations";
 import { Footer } from "../footer";
@@ -21,12 +22,9 @@ export default function DeliveryPage() {
   return (
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px" }}>
-        <span
-          onClick={() => router.push("/")}
-          style={{ cursor: "pointer", fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)", display: "block", marginBottom: 30 }}
-        >
-          ← {lang === "ru" ? "Главная" : "Асосӣ"}
-        </span>
+        <div style={{ marginBottom: 30 }}>
+          <BackButton href="/" />
+        </div>
 
         <h1 className="product-title" style={{ fontSize: 32, marginBottom: 40 }}>
           {t.footerDelivery}

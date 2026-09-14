@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BackButton } from "../back-button";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../auth-context";
 import { useCart } from "../cart-context";
@@ -121,12 +122,8 @@ export default function CartPage() {
     <>
       <SiteHeader />
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 40, paddingTop: 140 }}>
-        <div
-          onClick={() => router.push("/")}
-          style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}
-        >
-          <span>←</span>
-          <span>{lang === "ru" ? "Назад в каталог" : "Бозгашт ба каталог"}</span>
+        <div style={{ marginBottom: 16 }}>
+          <BackButton href="/" />
         </div>
         <div className="product-title" style={{ fontSize: 24, marginBottom: 24 }}>{t.cart}</div>
 

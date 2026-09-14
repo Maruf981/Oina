@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BackButton } from "../back-button";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../auth-context";
 import { SiteHeader } from "../site-header";
@@ -142,12 +143,7 @@ export default function FavoritesPage() {
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <SiteHeader />
       <div className="favorites-container" style={{ maxWidth: 900, margin: "0 auto", padding: 40, paddingTop: 140 }}>
-        <span
-          onClick={() => router.push("/")}
-          style={{ cursor: "pointer", fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)" }}
-        >
-          {lang === "ru" ? "← Назад в каталог" : "← Ба қафо"}
-        </span>
+        <BackButton href="/" />
 
         <h1 className="product-title" style={{ fontSize: 28, margin: "24px 0 30px" }}>
           {lang === "ru" ? "Избранное" : "Интихобҳо"}
