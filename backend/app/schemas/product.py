@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field
 class SizeGuideRow(BaseModel):
     size: str
     chest: str | None = None
@@ -35,22 +35,12 @@ class ProductVariantOut(ProductVariantBase):
         from_attributes = True
 
 
-CARD_TRANSFORM = "c_fill,ar_3:4,g_center,q_auto,f_auto"
-
-
 class ProductImageOut(BaseModel):
     id: int
     url: str
     color: str | None = None
     sort_order: int
     media_type: str = "image"
-
-    @model_validator(mode="after")
-    def apply_card_transform(self):
-        if self.media_type == "image" and "/upload/" in self.url:
-            if "/upload/c_" not in self.url and "/upload/ar_" not in self.url:
-                self.url = self.url.replace("/upload/", f"/upload/{CARD_TRANSFORM}/", 1)
-        return self
 
     class Config:
         from_attributes = True

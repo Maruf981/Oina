@@ -249,7 +249,7 @@ html, body {
 
 @media (min-width: 768px) {
   :root {
-    --card-aspect: 4 / 4.2;
+    --card-aspect: 3 / 4;
   }
 }
 
