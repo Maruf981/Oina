@@ -37,14 +37,11 @@ function isDiscountActive(p: Product) {
   return true;
 }
 
-const DISCOUNT_BADGE_STEPS = [5, 10, 15, 20, 25, 30];
-function getDiscountBadgeSrc(percent: number | null): string | null {
-  if (!percent) return null;
-  let closest = DISCOUNT_BADGE_STEPS[0];
-  for (const step of DISCOUNT_BADGE_STEPS) {
-    if (step <= percent) closest = step;
-  }
-  return `/badge-discount-${closest}.png`;
+function getRecommendedBadge(p: Product): { text: string; color: string } | null {
+  if (isDiscountActive(p) && p.discount_percent) return { text: `-${p.discount_percent}%`, color: "#D64545" };
+  if (p.is_new) return { text: "Новинка", color: "#3E8E5A" };
+  if (p.is_featured) return { text: "Хорошая цена", color: "#3B6EA8" };
+  return null;
 }
 
 export default function FavoritesPage() {
@@ -186,25 +183,27 @@ export default function FavoritesPage() {
                     backgroundPosition: "center",
                   }}
                 />
-                {isDiscountActive(p) && getDiscountBadgeSrc(p.discount_percent) ? (
-                  <img
-                    src={getDiscountBadgeSrc(p.discount_percent)!}
-                    alt="Скидка"
-                    style={{ position: "absolute", top: -9, left: -9, width: 54, height: 54, objectFit: "contain", pointerEvents: "none" }}
-                  />
-                ) : p.is_new ? (
-                  <img
-                    src="/badge-new.png"
-                    alt="Новинка"
-                    style={{ position: "absolute", top: -9, left: -9, width: 54, height: 54, objectFit: "contain", pointerEvents: "none" }}
-                  />
-                ) : p.is_featured ? (
-                  <img
-                    src="/badge-featured.png"
-                    alt="Хорошая цена"
-                    style={{ position: "absolute", top: -9, left: -9, width: 54, height: 54, objectFit: "contain", pointerEvents: "none" }}
-                  />
-                ) : null}
+                {getRecommendedBadge(p) && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 8,
+                      left: 8,
+                      background: getRecommendedBadge(p)!.color,
+                      color: "#fff",
+                      fontFamily: "var(--font-label)",
+                      fontSize: 11,
+                      fontWeight: 500,
+                      letterSpacing: "0.02em",
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                      pointerEvents: "none",
+                      zIndex: 2,
+                    }}
+                  >
+                    {getRecommendedBadge(p)!.text}
+                  </div>
+                )}
 
                 <div
                   onClick={() => removeFavorite(p.id)}

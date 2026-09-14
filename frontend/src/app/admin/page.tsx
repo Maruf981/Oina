@@ -453,17 +453,10 @@ export default function AdminPage() {
   );
 }
 
-function getAdminBadgeSrc(p: Product): string | null {
-  if (p.discount_percent) {
-    const steps = [5, 10, 15, 20, 25, 30, 40, 50];
-    let closest = steps[0];
-    for (const step of steps) {
-      if (step <= p.discount_percent) closest = step;
-    }
-    return `/badge-discount-${closest}.png`;
-  }
-  if (p.is_new) return "/badge-new.png";
-  if (p.is_featured) return "/badge-featured.png";
+function getAdminBadge(p: Product): { text: string; color: string } | null {
+  if (p.discount_percent) return { text: `-${p.discount_percent}%`, color: "#D64545" };
+  if (p.is_new) return { text: "Новинка", color: "#3E8E5A" };
+  if (p.is_featured) return { text: "Хорошая цена", color: "#3B6EA8" };
   return null;
 }
 
@@ -596,12 +589,12 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
           backgroundPosition: "center",
         }}
       >
-        {getAdminBadgeSrc(p) && (
-          <img
-            src={getAdminBadgeSrc(p)!}
-            alt="Бейдж"
-            style={{ position: "absolute", top: -9, left: -9, width: 56, height: 56, objectFit: "contain", pointerEvents: "none" }}
-          />
+        {getAdminBadge(p) && (
+          <div
+            style={{ position: "absolute", top: 6, left: 6, background: getAdminBadge(p)!.color, color: "#fff", fontFamily: "var(--font-label)", fontSize: 10, fontWeight: 500, padding: "3px 7px", borderRadius: 5, pointerEvents: "none", zIndex: 2 }}
+          >
+            {getAdminBadge(p)!.text}
+          </div>
         )}
         {p.is_brand && (
           <img
