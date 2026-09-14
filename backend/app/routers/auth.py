@@ -11,9 +11,19 @@ from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, Custo
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def find_customer_by_phone(db: Session, phone: str) -> Customer | None:
+    """Ищет клиента по номеру в любом из форматов: +992XXXXXXXXX или XXXXXXXXX."""
+    variants = [phone]
+    if phone.startswith("+992"):
+        variants.append(phone[4:])
+    else:
+        variants.append(f"+992{phone}")
+    return db.query(Customer).filter(Customer.phone.in_(variants)).first()
+
+
 @router.post("/register", response_model=TokenResponse)
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
-    existing = db.query(Customer).filter(Customer.phone == data.phone).first()
+    existing = find_customer_by_phone(db, data.phone)
 
     if existing and existing.password_hash:
         raise HTTPException(status_code=400, detail="Phone already registered")
@@ -39,7 +49,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 def login(data: LoginRequest, db: Session = Depends(get_db)):
-    customer = db.query(Customer).filter(Customer.phone == data.phone).first()
+    customer = find_customer_by_phone(db, data.phone)
     if not customer or not customer.password_hash:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not verify_password(data.password, customer.password_hash):

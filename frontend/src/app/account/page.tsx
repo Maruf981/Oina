@@ -364,7 +364,7 @@ export default function AccountPage() {
         </div>
 
         {tab === "profile" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: "var(--panel-radius)", boxShadow: "var(--panel-shadow)", padding: 20 }}>
             <input placeholder="Имя" value={name} onChange={(e) => setName(e.target.value)} disabled={!editingProfile} style={{ ...inputStyle, opacity: editingProfile ? 1 : 0.6, cursor: editingProfile ? "text" : "default" }} />
             <input placeholder="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!editingProfile} style={{ ...inputStyle, opacity: editingProfile ? 1 : 0.6, cursor: editingProfile ? "text" : "default" }} />
             <input placeholder={lang === "ru" ? "Адрес доставки" : "Суроғаи расонидани мол"} value={address} onChange={(e) => setAddress(e.target.value)} disabled={!editingProfile} style={{ ...inputStyle, opacity: editingProfile ? 1 : 0.6, cursor: editingProfile ? "text" : "default" }} />
@@ -373,13 +373,16 @@ export default function AccountPage() {
                 onClick={handleSaveProfile}
                 disabled={savingProfile}
                 style={{
-                  padding: "12px",
-                  background: "var(--text)",
-                  color: "var(--bg)",
+                  height: 48,
+                  padding: "0 16px",
+                  background: "var(--accent-btn-bg)",
+                  color: "var(--accent-btn-text)",
                   border: "none",
+                  borderRadius: 8,
                   fontFamily: "var(--font-label)",
+                  fontWeight: 700,
                   fontSize: 13,
-                  letterSpacing: "0.04em",
+                  letterSpacing: "0.06em",
                   textTransform: "uppercase",
                   cursor: "pointer",
                   opacity: savingProfile ? 0.6 : 1,
@@ -391,18 +394,21 @@ export default function AccountPage() {
               <button
                 onClick={() => { setEditingProfile(true); setProfileMsg(""); }}
                 style={{
-                  padding: "12px",
-                  background: "transparent",
-                  color: "var(--text)",
-                  border: "1px solid var(--line)",
+                  height: 48,
+                  padding: "0 16px",
+                  background: "var(--accent-btn-bg)",
+                  color: "var(--accent-btn-text)",
+                  border: "none",
+                  borderRadius: 8,
                   fontFamily: "var(--font-label)",
+                  fontWeight: 700,
                   fontSize: 13,
-                  letterSpacing: "0.04em",
+                  letterSpacing: "0.06em",
                   textTransform: "uppercase",
                   cursor: "pointer",
                 }}
               >
-                {lang === "ru" ? "Изменить" : "Тағйир додан"}
+                {lang === "ru" ? "Изменить" : "Таъғир додан"}
               </button>
             )}
             {profileMsg && <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{profileMsg}</span>}
@@ -417,7 +423,7 @@ export default function AccountPage() {
               </p>
             )}
             {orders.map((order) => (
-              <div key={order.id} style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 16 }}>
+              <div key={order.id} style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: "var(--panel-radius)", boxShadow: "var(--panel-shadow)", padding: 20, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
                   <span className="product-title" style={{ fontSize: 16 }}>{lang === "ru" ? "Заказ №" : "Фармоиш №"}{order.id}</span>
                   <span className="price">{order.total} смн</span>
@@ -447,7 +453,7 @@ export default function AccountPage() {
         )}
 
         {tab === "password" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: "var(--panel-radius)", boxShadow: "var(--panel-shadow)", padding: 20 }}>
             <input
               type="password"
               placeholder={lang === "ru" ? "Текущий пароль" : "Пароли ҳозира"}
@@ -466,13 +472,16 @@ export default function AccountPage() {
               onClick={handleChangePassword}
               disabled={savingPassword || !oldPassword || !newPassword}
               style={{
-                padding: "12px",
-                background: "transparent",
-                color: "var(--text)",
-                border: "1px solid var(--line)",
+                height: 48,
+                padding: "0 16px",
+                background: "var(--accent-btn-bg)",
+                color: "var(--accent-btn-text)",
+                border: "none",
+                borderRadius: 8,
                 fontFamily: "var(--font-label)",
+                fontWeight: 700,
                 fontSize: 13,
-                letterSpacing: "0.04em",
+                letterSpacing: "0.06em",
                 textTransform: "uppercase",
                 cursor: "pointer",
                 opacity: savingPassword ? 0.6 : 1,

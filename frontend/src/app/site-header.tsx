@@ -88,7 +88,7 @@ export function SiteHeader() {
         </span>
 
         <img
-          src={theme === "dark" ? "/logo.png" : "/logo-light.png"}
+          src="/logo.png"
           alt="Oina.tj"
           onClick={() => router.push("/")}
           style={{ height: "clamp(28px, 8vw, 48px)", position: "absolute", left: "50%", transform: "translateX(-50%)", cursor: "pointer" }}

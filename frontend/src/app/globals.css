@@ -93,8 +93,8 @@ html, body {
   .bottom-nav-mobile {
     display: block !important;
   }
-  body {
-    padding-bottom: 58px;
+  footer {
+    padding-bottom: calc(74px + max(22px, env(safe-area-inset-bottom)));
   }
   .support-widget-button {
     bottom: 76px !important;
@@ -249,5 +249,51 @@ html, body {
 @media (min-width: 768px) {
   :root {
     --card-aspect: 4 / 4.2;
+  }
+}
+
+/* --- Корзина: карточки и акценты --- */
+:root, [data-theme="light"], .light {
+  --panel-bg: #ffffff;
+  --panel-border: rgba(10, 34, 40, 0.09);
+  --panel-shadow: 0 4px 20px rgba(10, 34, 40, 0.05);
+  --panel-radius: 16px;
+  --accent-gold: #b38b59;
+  --accent-btn-bg: #0a2228;
+  --accent-btn-text: #ffffff;
+}
+
+[data-theme="dark"], .dark {
+  --panel-bg: #0e2b33;
+  --panel-border: rgba(197, 168, 128, 0.18);
+  --panel-shadow: 0 0 24px rgba(197, 168, 128, 0.07);
+  --panel-radius: 16px;
+  --accent-gold: #c5a880;
+  --accent-btn-bg: #c5a880;
+  --accent-btn-text: #0a2228;
+}
+
+/* Автозаполнение Chrome: убираем голубой фон в полях */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  caret-color: var(--text);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Кнопки покупки в столбик на мобильном */
+@media (max-width: 640px) {
+  .pdp-cta-row {
+    flex-direction: column;
+  }
+  .pdp-cta-row button {
+    flex: 0 0 auto !important;
+    height: 50px !important;
+    min-height: 50px;
+    width: 100%;
   }
 }

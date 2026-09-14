@@ -11,6 +11,7 @@ class Category(Base):
     name: Mapped[str] = mapped_column(String(100))
     name_tj: Mapped[str | None] = mapped_column(String(100), nullable=True)
     slug: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    icon: Mapped[str | None] = mapped_column(String(40), nullable=True)
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"), nullable=True)
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 

@@ -1,4 +1,14 @@
-from pydantic import BaseModel
+import re
+
+from pydantic import BaseModel, field_validator
+
+
+def extract_digits(phone: str) -> str:
+    """Оставляет только 9 значащих цифр номера, отбрасывая код страны."""
+    digits = re.sub(r"\D", "", phone or "")
+    if len(digits) == 12 and digits.startswith("992"):
+        digits = digits[3:]
+    return digits
 
 
 class RegisterRequest(BaseModel):
@@ -6,10 +16,24 @@ class RegisterRequest(BaseModel):
     phone: str
     password: str
 
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone(cls, v: str) -> str:
+        digits = extract_digits(v)
+        if len(digits) != 9:
+            raise ValueError("Номер должен содержать 9 цифр, например 900796328")
+        return f"+992{digits}"
+
 
 class LoginRequest(BaseModel):
     phone: str
     password: str
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone(cls, v: str) -> str:
+        digits = extract_digits(v)
+        return f"+992{digits}" if len(digits) == 9 else (v or "").strip()
 
 
 class TokenResponse(BaseModel):

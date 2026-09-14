@@ -61,7 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone, password }),
     });
-    if (!res.ok) throw new Error("Login failed");
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(typeof err?.detail === "string" ? err.detail : "Login failed");
+    }
     const data = await res.json();
     localStorage.setItem("auth_token", data.access_token);
     setToken(data.access_token);
@@ -74,7 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, phone, password }),
     });
-    if (!res.ok) throw new Error("Register failed");
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(typeof err?.detail === "string" ? err.detail : "Register failed");
+    }
     const data = await res.json();
     localStorage.setItem("auth_token", data.access_token);
     setToken(data.access_token);

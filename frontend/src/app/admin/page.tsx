@@ -127,7 +127,7 @@ const labels = {
   },
 };
 
-type Category = { id: number; name: string; slug: string; parent_id: number | null; is_archived?: boolean };
+type Category = { id: number; name: string; slug: string; icon?: string | null; parent_id: number | null; is_archived?: boolean };
 type Supplier = { id: number; name: string; phone: string | null };
 
 type Variant = { id: number; size: string; color: string; stock: number; sku: string };
@@ -1574,6 +1574,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
   const [name, setName] = useState("");
   const [nameTj, setNameTj] = useState("");
   const [parentId, setParentId] = useState("");
+  const [icon, setIcon] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const topLevel = categories.filter((c: Category) => !c.parent_id);
 
@@ -1593,6 +1594,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
     setName(c.name);
     setNameTj((c as any).name_tj || "");
     setParentId(c.parent_id ? String(c.parent_id) : "");
+    setIcon((c as any).icon || "");
     setCreatingCategory(true);
     setCategoryError("");
   };
@@ -1602,6 +1604,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
     setName("");
     setNameTj("");
     setParentId("");
+    setIcon("");
     setCreatingCategory(false);
     setCategoryError("");
   };
@@ -1621,6 +1624,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
           name,
           name_tj: nameTj || null,
           slug: categories.find((c: Category) => c.id === editingId)?.slug,
+          icon: icon || null,
           parent_id: parentId ? Number(parentId) : null,
         }),
       });
@@ -1633,6 +1637,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
       setName("");
       setNameTj("");
       setParentId("");
+    setIcon("");
       refreshCategories();
       return;
     }
@@ -1642,7 +1647,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
     const res = await authFetch(`${API}/categories/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, name_tj: nameTj || null, slug: finalSlug, parent_id: parentId ? Number(parentId) : null }),
+      body: JSON.stringify({ name, name_tj: nameTj || null, slug: finalSlug, icon: icon || null, parent_id: parentId ? Number(parentId) : null }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => null);
@@ -1650,7 +1655,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
         const retryRes = await authFetch(`${API}/categories/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, name_tj: nameTj || null, slug: `${finalSlug}-${Date.now()}`, parent_id: parentId ? Number(parentId) : null }),
+          body: JSON.stringify({ name, name_tj: nameTj || null, slug: `${finalSlug}-${Date.now()}`, icon: icon || null, parent_id: parentId ? Number(parentId) : null }),
         });
         if (!retryRes.ok) {
           setCategoryError("Не удалось сохранить категорию");
@@ -1665,6 +1670,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
     setName("");
     setNameTj("");
     setParentId("");
+    setIcon("");
     refreshCategories();
   };
 
@@ -1686,6 +1692,14 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
             {topLevel.filter((c: Category) => !c.is_archived && c.id !== editingId).map((c: Category) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
+          </select>
+          <select value={icon} onChange={(e) => setIcon(e.target.value)} style={{ flex: 1, padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)" }}>
+            <option value="">Без иконки</option>
+            <option value="dress">👗 Женское (платье)</option>
+            <option value="suit">🧥 Мужское (пиджак)</option>
+            <option value="stroller">🍼 Детское (коляска)</option>
+            <option value="shoe">👞 Обувь</option>
+            <option value="bag">👜 Аксессуары (сумка)</option>
           </select>
           <button onClick={handleSave} style={{ padding: "10px 16px", background: "var(--text)", color: "var(--bg)", border: "none", cursor: "pointer" }}>{t.save}</button>
           {editingId && (

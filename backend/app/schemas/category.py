@@ -5,6 +5,7 @@ class CategoryBase(BaseModel):
     name: str
     name_tj: str | None = None
     slug: str
+    icon: str | None = None
     parent_id: int | None = None
 
 

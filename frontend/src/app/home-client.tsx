@@ -30,8 +30,191 @@ type Category = {
   name: string;
   name_tj?: string | null;
   slug: string;
+  icon?: string | null;
   parent_id: number | null;
 };
+
+function SortDropdown({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const current = options.find((o) => o.value === value) ?? options[0];
+
+  return (
+    <div ref={ref} style={{ position: "relative", minWidth: 190 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          height: 40,
+          padding: "0 12px",
+          background: "var(--surface)",
+          color: "var(--text)",
+          border: "1px solid var(--line)",
+          borderRadius: 8,
+          fontFamily: "var(--font-body)",
+          fontSize: 13,
+          cursor: "pointer",
+          textAlign: "left",
+        }}
+      >
+        <span>{current?.label}</span>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          style={{ flexShrink: 0, opacity: 0.7, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.18s ease" }}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            right: 0,
+            minWidth: "100%",
+            background: "var(--surface)",
+            border: "1px solid var(--line)",
+            borderRadius: 8,
+            boxShadow: "0 8px 28px rgba(0,0,0,0.28)",
+            padding: 4,
+            zIndex: 200,
+            overflow: "hidden",
+          }}
+        >
+          {options.map((o) => {
+            const active = o.value === value;
+            return (
+              <div
+                key={o.value || "default"}
+                role="option"
+                aria-selected={active}
+                onClick={() => {
+                  onChange(o.value);
+                  setOpen(false);
+                }}
+                style={{
+                  padding: "9px 12px",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  color: active ? "var(--accent)" : "var(--text)",
+                  background: active ? "var(--bg)" : "transparent",
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) (e.currentTarget as HTMLDivElement).style.background = "var(--bg)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                }}
+              >
+                {o.label}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function isValidPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length === 9 || (digits.length === 12 && digits.startsWith("992"));
+}
+
+const ICON_SVG_PROPS = {
+  width: 18,
+  height: 18,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.5,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  style: { flexShrink: 0, opacity: 0.85 },
+};
+
+const CATEGORY_ICONS: Record<string, React.ReactElement> = {
+  dress: (
+    <svg {...ICON_SVG_PROPS}>
+      <path d="M10 2a2 2 0 0 0 4 0" />
+      <path d="M10 2 6 7l3 1.5-2 11.5h10l-2-11.5 3-1.5-4-5" />
+      <path d="M7 8.5c3 1.2 7 1.2 10 0" />
+    </svg>
+  ),
+  suit: (
+    <svg {...ICON_SVG_PROPS}>
+      <path d="M4 4l5-1 3 4 3-4 5 1v17H4V4z" />
+      <path d="M9 3l3 8 3-8" />
+      <path d="M12 11v10" />
+      <path d="M7 16h3" />
+      <path d="M14 16h3" />
+    </svg>
+  ),
+  stroller: (
+    <svg {...ICON_SVG_PROPS}>
+      <circle cx="8" cy="20" r="2" />
+      <circle cx="17" cy="20" r="2" />
+      <path d="M18 16H6a2 2 0 0 1-2-2V9a5 5 0 0 1 5-5h1a5 5 0 0 1 5 5v3" />
+      <path d="M15 11l4-7h2" />
+    </svg>
+  ),
+  shoe: (
+    <svg {...ICON_SVG_PROPS}>
+      <path d="M2 17h20v-2.5a2 2 0 0 0-1-1.73l-6.5-3.77H11L7 13H3a1 1 0 0 0-1 1v3z" />
+      <path d="M2 17v2a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-2" />
+      <path d="M18 17v2a1 1 0 0 0 1 1h3v-3" />
+    </svg>
+  ),
+  bag: (
+    <svg {...ICON_SVG_PROPS}>
+      <rect x="4" y="8" width="16" height="13" rx="2.5" />
+      <path d="M8.5 8V5.5a3.5 3.5 0 0 1 7 0V8" />
+      <circle cx="12" cy="12.5" r="0.75" fill="currentColor" />
+    </svg>
+  ),
+};
+
 type HomepageReview = {
   id: number;
   rating: number;
@@ -210,6 +393,7 @@ function HomeInner() {
   const auth = useAuth();
   const router = useRouter();
   const [authOpen, setAuthOpen] = useState(false);
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
   const handleCloseAuth = () => {
     setAuthOpen(false);
     if (searchParams.get("login") === "1") {
@@ -356,6 +540,10 @@ function HomeInner() {
 
     const handleAuthSubmit = async () => {
     setAuthError("");
+    if (authMode === "register" && !isValidPhone(authPhone)) {
+      setAuthError(lang === "ru" ? "Номер должен содержать 9 цифр" : "Рақам бояд 9 рақам дошта бошад");
+      return;
+    }
     try {
       if (authMode === "login") {
         await auth.login(authPhone, authPassword);
@@ -366,8 +554,13 @@ function HomeInner() {
       setAuthName("");
       setAuthPhone("");
       setAuthPassword("");
-    } catch {
-      setAuthError(lang === "ru" ? "Неверный телефон или пароль" : "Телефон ё парол нодуруст");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      if (msg.includes("already registered")) {
+        setAuthError(lang === "ru" ? "Этот номер уже зарегистрирован — войдите" : "Ин рақам аллакай бақайд гирифта шудааст — ворид шавед");
+      } else {
+        setAuthError(lang === "ru" ? "Неверный телефон или пароль" : "Телефон ё парол нодуруст");
+      }
     }
   };
 
@@ -627,7 +820,7 @@ function HomeInner() {
           <span style={{ fontSize: 9 }}>▾</span>
         </span>
         <img
-          src={theme === "dark" ? "/logo.png" : "/logo-light.png"}
+          src="/logo.png"
           alt="Oina.tj"
           style={{ height: "clamp(28px, 8vw, 48px)", position: "absolute", left: "50%", transform: "translateX(-50%)" }}
         />
@@ -767,8 +960,8 @@ function HomeInner() {
               />
             ) : (
               <svg width="21" height="21" viewBox="0 0 20 20">
-                <circle cx="10" cy="7" r="3.2" fill="none" stroke="var(--icon-cyan, #00a8b5)" strokeWidth="1" />
-                <path d="M4 17 C4 13 6.5 11 10 11 C13.5 11 16 13 16 17" fill="none" stroke="var(--icon-cyan, #00a8b5)" strokeWidth="1" />
+                <circle cx="10" cy="7" r="3.2" fill="none" stroke="var(--header-text)" strokeWidth="1" />
+                <path d="M4 17 C4 13 6.5 11 10 11 C13.5 11 16 13 16 17" fill="none" stroke="var(--header-text)" strokeWidth="1" />
               </svg>
             )}
           </span>
@@ -1145,7 +1338,10 @@ function HomeInner() {
                         borderBottom: "1px solid var(--line)",
                       }}
                     >
-                      {lang === "tj" && parent.name_tj ? parent.name_tj : parent.name}
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
+                        {parent.icon && CATEGORY_ICONS[parent.icon]}
+                        <span>{lang === "tj" && parent.name_tj ? parent.name_tj : parent.name}</span>
+                      </span>
                       {children.length > 0 && (
                         <span style={{ fontSize: 14, color: "var(--text-muted)" }}>{isExpanded ? "\u2212" : "+"}</span>
                       )}
@@ -1220,7 +1416,9 @@ function HomeInner() {
               <span
                 onClick={() => setSelectedCategoryId(parent.id)}
                 style={{
-                  display: "block",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 7,
                   padding: "16px 0",
                   fontFamily: "var(--font-label)",
                   fontSize: 13,
@@ -1231,7 +1429,8 @@ function HomeInner() {
                   borderBottom: selectedCategoryId === parent.id ? "2px solid var(--accent)" : "2px solid transparent",
                 }}
               >
-                {lang === "tj" && parent.name_tj ? parent.name_tj : parent.name}
+                {parent.icon && CATEGORY_ICONS[parent.icon]}
+                <span>{lang === "tj" && parent.name_tj ? parent.name_tj : parent.name}</span>
               </span>
               {openMegaMenu === parent.id && children.length > 0 && (
                 <div
@@ -1396,27 +1595,19 @@ function HomeInner() {
             {lang === "ru" ? "Показано" : "Нишон дода шуд"} {Math.min(visibleCount, products.length)} {lang === "ru" ? "из" : "аз"} {products.length}
           </span>
         </div>
-        <select
+        <SortDropdown
           value={sortOption}
-          onChange={(e) => setSortOption(e.target.value)}
-          style={{
-            padding: "8px 12px",
-            background: "var(--surface)",
-            border: "none",
-            color: "var(--text)",
-            fontFamily: "var(--font-body)",
-            fontSize: 13,
-            cursor: "pointer",
-          }}
-        >
-          <option value="">{t.sortDefault}</option>
-          <option value="popularity">{t.sortPopularity}</option>
-          <option value="price_asc">{t.sortPriceAsc}</option>
-          <option value="price_desc">{t.sortPriceDesc}</option>
-          <option value="newest">{t.sortNewest}</option>
-          <option value="rating">{t.sortRating}</option>
-          <option value="discount">{t.sortDiscount}</option>
-        </select>
+          onChange={setSortOption}
+          options={[
+            { value: "", label: t.sortDefault },
+            { value: "popularity", label: t.sortPopularity },
+            { value: "price_asc", label: t.sortPriceAsc },
+            { value: "price_desc", label: t.sortPriceDesc },
+            { value: "newest", label: t.sortNewest },
+            { value: "rating", label: t.sortRating },
+            { value: "discount", label: t.sortDiscount },
+          ]}
+        />
       </div>
 
 
@@ -1693,6 +1884,10 @@ function HomeInner() {
                   {localized(p.title_ru, p.title_tj)}
                 </div>
 
+                <div style={{ fontSize: 13, color: "var(--text-muted)", letterSpacing: "0.04em", marginTop: -2, marginBottom: 6 }}>
+                  Арт. {p.catalog_number}
+                </div>
+
                 <div style={{ marginTop: 2, marginBottom: 8, display: "flex", alignItems: "center" }}>
                   {(() => {
                     const totalStock = p.variants ? p.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0;
@@ -1809,7 +2004,7 @@ function HomeInner() {
                       autoComplete="off"
                       placeholder={lang === "ru" ? "Телефон" : "Телефон"}
                       value={authPhone}
-                      onChange={(e) => setAuthPhone(e.target.value)}
+                      onChange={(e) => { setAuthPhone(e.target.value); setAuthError(""); }}
                       style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
                     />
                     <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
@@ -1849,7 +2044,7 @@ function HomeInner() {
                       onKeyDown={(e) => e.key === "Enter" && handleResetVerify()}
                       style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
                     />
-                    {authError && <span style={{ color: "#c0504d", fontSize: 13 }}>{authError}</span>}
+                    {authError && <span style={{ color: "#E24B4A", fontSize: 13, lineHeight: 1.4, whiteSpace: "normal", wordBreak: "break-word" }}>{authError}</span>}
                     {resetSuccess && <span style={{ color: "#4CAF50", fontSize: 13 }}>{resetSuccess}</span>}
                     <button
                       onClick={handleResetVerify}
@@ -1876,35 +2071,70 @@ function HomeInner() {
                     style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
                   />
                 )}
-                <input
-                  placeholder={lang === "ru" ? "Телефон" : "Телефон"}
-                  value={authPhone}
-                  onChange={(e) => setAuthPhone(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
-                  style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
-                />
-                <input
-                  type="password"
-                  autoComplete={authMode === "login" ? "current-password" : "new-password"}
-                  placeholder={lang === "ru" ? "Пароль" : "Парол"}
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
-                  style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
-                />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                    {lang === "ru" ? "Номер телефона" : "Раќами телефон"}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "stretch", background: "var(--surface)", borderRadius: 8, overflow: "hidden" }}>
+                    <span style={{ display: "flex", alignItems: "center", padding: "0 12px", fontSize: 14, color: "var(--text-muted)", borderRight: "1px solid var(--line)" }}>
+                      +992
+                    </span>
+                    <input
+                      placeholder="900796328"
+                      value={authPhone}
+                      onChange={(e) => setAuthPhone(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
+                      style={{ flex: 1, padding: 12, background: "transparent", border: "none", color: "var(--text)", fontSize: 14, outline: "none" }}
+                    />
+                  </div>
+                  {authPhone && !isValidPhone(authPhone) && (
+                    <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 5 }}>
+                      {lang === "ru" ? "Нужно 9 цифр, например 900796328" : "9 рақам лозим аст, мисол 900796328"}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                    {lang === "ru" ? "Пароль" : "Парол"}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", background: "var(--surface)", borderRadius: 8 }}>
+                    <input
+                      type={showAuthPassword ? "text" : "password"}
+                      autoComplete={authMode === "login" ? "current-password" : "new-password"}
+                      placeholder={lang === "ru" ? "Введите пароль" : "Паролро ворид кунед"}
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
+                      style={{ flex: 1, padding: 12, background: "transparent", border: "none", color: "var(--text)", fontSize: 14, outline: "none" }}
+                    />
+                    <span
+                      onClick={() => setShowAuthPassword((v) => !v)}
+                      style={{ cursor: "pointer", padding: "0 12px", display: "flex", alignItems: "center" }}
+                      title={showAuthPassword ? "Скрыть" : "Показать"}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5">
+                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
+                        <circle cx="12" cy="12" r="2.6" />
+                        {showAuthPassword && <line x1="4" y1="20" x2="20" y2="4" />}
+                      </svg>
+                    </span>
+                  </div>
+                </div>
 
-                {authError && <span style={{ color: "#c0504d", fontSize: 13 }}>{authError}</span>}
+                {authError && <span style={{ color: "#E24B4A", fontSize: 13, lineHeight: 1.4, whiteSpace: "normal", wordBreak: "break-word" }}>{authError}</span>}
 
                 <button
                   onClick={handleAuthSubmit}
                   style={{
-                    padding: "14px",
-                    background: "var(--text)",
-                    color: "var(--bg)",
+                    height: 50,
+                    background: "var(--accent-btn-bg)",
+                    color: "var(--accent-btn-text)",
                     border: "none",
+                    borderRadius: 8,
                     fontFamily: "var(--font-label)",
+                    fontWeight: 700,
                     fontSize: 13,
-                    letterSpacing: "0.04em",
+                    letterSpacing: "0.06em",
                     textTransform: "uppercase",
                     cursor: "pointer",
                   }}

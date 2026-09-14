@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useCart } from "../../cart-context";
 import { useAuth } from "../../auth-context";
+import { useFavorites } from "../../../lib/favorites";
 import { SiteHeader } from "../../site-header";
 import { useTheme } from "../../theme-context";
 import { useLang } from "../../lang-context";
@@ -151,6 +152,7 @@ export default function ProductDetailClient() {
   const router = useRouter();
   const cart = useCart();
   const auth = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [myRating, setMyRating] = useState<number | null>(null);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [reviewComment, setReviewComment] = useState("");
@@ -499,6 +501,21 @@ export default function ProductDetailClient() {
               <div className="catalog-label" style={{ border: "none", padding: 0 }}>
                 Арт. {product.catalog_number}
               </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <span
+                onClick={() => product && toggleFavorite(product.id)}
+                style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+                title={lang === "ru" ? "В избранное" : "Ба дилхоҳ"}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                  <path
+                    d="M12 21 C12 21 3 14.5 3 8.6 C3 5.5 5.4 3.3 8.2 3.3 C10 3.3 11.3 4.2 12 5.4 C12.7 4.2 14 3.3 15.8 3.3 C18.6 3.3 21 5.5 21 8.6 C21 14.5 12 21 12 21 Z"
+                    fill={product && isFavorite(product.id) ? "var(--heart-active-color)" : "none"}
+                    stroke={product && isFavorite(product.id) ? "var(--heart-active-color)" : "var(--card-action-stroke)"}
+                    strokeWidth="1.5"
+                  />
+                </svg>
+              </span>
               <span
                 onClick={() => setShareMenuOpen(!shareMenuOpen)}
                 style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6, position: "relative" }}
@@ -571,6 +588,7 @@ export default function ProductDetailClient() {
                   </div>
                 )}
               </span>
+              </div>
             </div>
             <h1 className="product-title" style={{ fontSize: 32, marginBottom: 8 }}>
               {localized(product.title_ru, product.title_tj)}
@@ -671,7 +689,7 @@ export default function ProductDetailClient() {
                   <button
                     onClick={() => handleSubmitRating(myRating)}
                     disabled={submittingRating}
-                    style={{ padding: "8px 16px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", opacity: submittingRating ? 0.6 : 1 }}
+                    style={{ padding: "8px 16px", background: "var(--header-bg)", color: "var(--header-text)", border: "none", borderRadius: 8, fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", opacity: submittingRating ? 0.6 : 1 }}
                   >
                     {lang === "ru" ? "Сохранить отзыв" : "Назарро нигоҳ доред"}
                   </button>
@@ -729,7 +747,7 @@ export default function ProductDetailClient() {
                             style={{
                               minWidth: 26,
                               height: 28,
-                              padding: "0 8px",
+                              padding: "0 16px",
                               background: active ? "var(--accent)" : "var(--surface)",
                               color: active ? "var(--bg)" : available ? "var(--text)" : "var(--text-muted)",
                               border: active ? "1px solid var(--accent)" : "1px solid var(--line)",
@@ -804,35 +822,39 @@ export default function ProductDetailClient() {
               <span style={{ fontFamily: "var(--font-label)", fontSize: 12, color: "var(--text-muted)" }}>
                 {lang === "ru" ? "Количество" : "Миқдор"}
               </span>
-              <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--line)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  style={{ width: 36, height: 36, background: "var(--surface)", color: "var(--text)", border: "none", fontSize: 16, cursor: "pointer" }}
+                  style={{ width: 36, height: 36, background: "transparent", color: "var(--text)", border: "none", fontSize: 18, cursor: "pointer" }}
                 >
                   −
                 </button>
-                <span style={{ width: 40, textAlign: "center", fontSize: 14 }}>{quantity}</span>
+                <span style={{ minWidth: 44, height: 36, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "var(--accent-btn-bg)", color: "var(--accent-btn-text)", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600 }}>{quantity}</span>
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.min(currentVariant?.stock ?? 99, q + 1))}
-                  style={{ width: 36, height: 36, background: "var(--surface)", color: "var(--text)", border: "none", fontSize: 16, cursor: "pointer" }}
+                  style={{ width: 36, height: 36, background: "transparent", color: "var(--text)", border: "none", fontSize: 18, cursor: "pointer" }}
                 >
                   +
                 </button>
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10, marginBottom: 32 }}>
+            <div className="pdp-cta-row" style={{ display: "flex", gap: 10, marginBottom: 32 }}>
               <button
                 onClick={handleAddToCart}
                 style={{
-                  flex: "0 0 55%",
-                  padding: "16px",
-                  background: "var(--text)",
-                  color: "var(--bg)",
+                  flex: 1,
+                  minWidth: 0,
+                  height: 50,
+                  padding: "0 8px",
+                  borderRadius: 8,
+                  background: "var(--header-bg)",
+                  color: "var(--header-text)",
                   border: "none",
                   fontFamily: "var(--font-label)",
+                  fontWeight: 600,
                   fontSize: lang === "ru" ? 13 : 12,
                   letterSpacing: "0.05em",
                   textTransform: "uppercase",
@@ -846,9 +868,12 @@ export default function ProductDetailClient() {
                 disabled
                 style={{
                   flex: 1,
-                  padding: "16px",
+                  minWidth: 0,
+                  height: 50,
+                  padding: "0 16px",
+                  borderRadius: 8,
                   background: "transparent",
-                  color: "var(--text-muted)",
+                  color: "var(--accent-btn-bg)",
                   border: "1px solid var(--line)",
                   fontFamily: "var(--font-label)",
                   fontSize: lang === "ru" ? 13 : 11,
@@ -856,7 +881,8 @@ export default function ProductDetailClient() {
                   textTransform: "uppercase",
                   cursor: "not-allowed",
                   opacity: 0.5,
-                  whiteSpace: "nowrap",
+                  whiteSpace: "normal",
+                  lineHeight: 1.2,
                 }}
               >
                 {lang === "ru" ? "Оформить заказ" : "Пардохти фармоиш"}
