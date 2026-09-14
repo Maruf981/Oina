@@ -22,7 +22,7 @@ const tabsByLang = {
 };
 
 function Icon({ name, active }: { name: string; active: boolean }) {
-  const color = active ? "var(--accent)" : "var(--text-muted)";
+  const color = active ? "#ffffff" : "rgba(255, 255, 255, 0.7)";
   if (name === "home") {
     return (
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.4">
@@ -71,7 +71,7 @@ function Badge({ count }: { count: number }) {
         width: 15,
         height: 15,
         borderRadius: "50%",
-        background: "var(--bg)",
+        background: "var(--header-bg)",
         border: "1px solid var(--accent)",
         color: "var(--accent)",
         fontSize: 9,
@@ -137,10 +137,10 @@ export function BottomNav() {
           left: 0,
           right: 0,
           zIndex: 120,
-          background: "var(--bg)",
-          borderTop: "1px solid var(--line)",
+          background: "var(--header-bg)",
+          borderTop: "1px solid var(--header-border)",
           display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
+          gridTemplateColumns: "repeat(4, 1fr)", paddingBottom: "max(22px, env(safe-area-inset-bottom))",
         }}
       >
         {tabs.map((tab) => {
@@ -189,7 +189,7 @@ export function BottomNav() {
                   fontFamily: "var(--font-label)",
                   fontSize: 10,
                   letterSpacing: "0.02em",
-                  color: active ? "var(--accent)" : "var(--text-muted)",
+                  color: active ? "#ffffff" : "rgba(255, 255, 255, 0.7)",
                 }}
               >
                 {tab.label}

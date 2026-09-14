@@ -1294,22 +1294,7 @@ function HomeInner() {
       {recommendedProducts.length > 0 && (
         <div className="recommended-wrapper" style={{ padding: "24px 40px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <h2 className="product-title"
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 500,
-                    lineHeight: "17px",
-                    height: 34,
-                    color: "var(--text)",
-                    marginTop: 4,
-                    marginBottom: 6,
-                    cursor: "pointer",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}>{t.recommended}</h2>
+            <h2 className="product-title" style={{ fontSize: 22 }}>{t.recommended}</h2>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <span
                 onClick={() => router.push("/?recommended=1")}
@@ -1452,7 +1437,7 @@ function HomeInner() {
               <div
                 style={{
                   position: "relative",
-                  aspectRatio: "var(--card-aspect)",
+                  aspectRatio: "3/4",
                   background: "var(--surface)",
                   border: "none",
                   margin: "-12px -12px 12px -12px",
@@ -1661,104 +1646,77 @@ function HomeInner() {
                 )}
               </div>
               <div
-                  onClick={() => router.push(`/product/${p.id}`)}
-                  style={{ display: "flex", alignItems: "baseline", gap: 8, cursor: "pointer", marginTop: 4 }}
-                >
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "#16a34a", letterSpacing: "-0.02em" }}>
-                    {p.price} смн
-                  </span>
+                onClick={() => router.push(`/product/${p.id}`)}
+                className="product-title"
+                style={{ fontSize: 17, marginBottom: 4, cursor: "pointer" }}
+              >
+                {localized(p.title_ru, p.title_tj)}
+              </div>
+              <div style={{ marginTop: 4, marginBottom: 8, display: "flex", alignItems: "center" }}>
+                {(() => {
+                  const totalStock = p.variants ? p.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0;
+                  const isOut = totalStock === 0;
+                  const isLow = !isOut && totalStock <= 5;
+
+                  const badgeStyle = isOut
+                    ? {
+                        color: "#dc2626",
+                        background: "rgba(220, 38, 38, 0.08)",
+                        border: "1px solid rgba(220, 38, 38, 0.25)",
+                      }
+                    : isLow
+                    ? {
+                        color: "#d97706",
+                        background: "rgba(217, 119, 6, 0.08)",
+                        border: "1px solid rgba(217, 119, 6, 0.25)",
+                      }
+                    : {
+                        color: "#16a34a",
+                        background: "rgba(22, 163, 74, 0.08)",
+                        border: "1px solid rgba(22, 163, 74, 0.25)",
+                      };
+
+                  const label = isOut
+                    ? (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")
+                    : isLow
+                    ? (lang === "ru" ? `Осталось ${totalStock} шт` : `${totalStock} дона монд`)
+                    : (lang === "ru" ? "В наличии" : "Мавҷуд ҳаст");
+
+                  return (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "2px 7px",
+                        borderRadius: 4,
+                        fontSize: 10,
+                        fontWeight: 600,
+                        lineHeight: "14px",
+                        letterSpacing: "0.02em",
+                        ...badgeStyle,
+                      }}
+                    >
+                      {label}
+                    </span>
+                  );
+                })()}
+              </div>
+              <div className="catalog-label" style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                <span>{t.catalogNumber} {p.catalog_number}</span>
+                <span style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                   {isDiscountActive(p) && (
                     <span style={{ textDecoration: "line-through", color: "var(--text-muted)", fontSize: 12 }}>
                       {Math.round(p.original_price ?? (p.price / (1 - (p.discount_percent as number) / 100)))} смн
                     </span>
                   )}
-                </div>
-
-                <div
-                  onClick={() => router.push(`/product/${p.id}`)}
-                  className="product-title"
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "var(--text)",
-                    marginTop: 3,
-                    marginBottom: 6,
-                    cursor: "pointer",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  title={localized(p.title_ru, p.title_tj)}
-                >
-                  {localized(p.title_ru, p.title_tj)}
-                </div>
-
-                <div style={{ marginTop: 2, marginBottom: 8, display: "flex", alignItems: "center" }}>
-                  {(() => {
-                    const totalStock = p.variants ? p.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0;
-                    const isOut = totalStock === 0;
-                    const isLow = !isOut && totalStock <= 5;
-
-                    const badgeStyle = isOut
-                      ? {
-                          color: "#dc2626",
-                          background: "rgba(220, 38, 38, 0.08)",
-                          border: "1px solid rgba(220, 38, 38, 0.25)",
-                        }
-                      : isLow
-                      ? {
-                          color: "#d97706",
-                          background: "rgba(217, 119, 6, 0.08)",
-                          border: "1px solid rgba(217, 119, 6, 0.25)",
-                        }
-                      : {
-                          color: "#16a34a",
-                          background: "rgba(22, 163, 74, 0.08)",
-                          border: "1px solid rgba(22, 163, 74, 0.25)",
-                        };
-
-                    const label = isOut
-                      ? (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")
-                      : isLow
-                      ? (lang === "ru" ? `Осталось ${totalStock} шт` : `${totalStock} дона монд`)
-                      : (lang === "ru" ? "В наличии" : "Мавҷуд ҳаст");
-
-                    return (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          padding: "2px 7px",
-                          borderRadius: 4,
-                          fontSize: 10,
-                          fontWeight: 600,
-                          lineHeight: "14px",
-                          letterSpacing: "0.02em",
-                          ...badgeStyle,
-                        }}
-                      >
-                        {label}
-                      </span>
-                    );
-                  })()}
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    paddingTop: 8,
-                    borderTop: "1px solid var(--line)",
-                    minHeight: 26,
-                  }}
-                >
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-                    <span>🚚</span>
-                    <span>{city === "dushanbe" ? (lang === "ru" ? "Завтра" : "Пагоҳ") : (lang === "ru" ? "В регион" : "Ба минтақа")}</span>
-                  </div>
-                  <StarRating avgRating={p.avg_rating} reviewCount={p.review_count} />
-                </div>
+                  <span className="price" style={{ color: "#4CAF50" }}>{p.price} смн</span>
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                <span>🚚</span>
+                <span>{city === "dushanbe" ? (lang === "ru" ? "Завтра" : "Пагоҳ") : (lang === "ru" ? "В регион" : "Ба минтақа")}</span>
+              </div>
+              <StarRating avgRating={p.avg_rating} reviewCount={p.review_count} />
             </div>
           ))}
         </div>

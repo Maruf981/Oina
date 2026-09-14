@@ -47,8 +47,8 @@ export function SiteHeader() {
         top: 0,
         left: 0,
         right: 0,
-        borderBottom: "1px solid var(--line)",
-        background: "var(--bg)",
+        borderBottom: "1px solid var(--header-border)",
+        background: "var(--header-bg)", color: "var(--header-text)",
         zIndex: 100,
       }}
     >
@@ -102,7 +102,7 @@ export function SiteHeader() {
               fontFamily: "var(--font-label)",
               fontSize: 12,
               letterSpacing: "0.05em",
-              color: "var(--text-muted)",
+              color: "var(--header-text)",
             }}
           >
             {lang === "ru" ? "RU" : "TJ"}
@@ -115,7 +115,7 @@ export function SiteHeader() {
               width: 18,
               height: 18,
               borderRadius: "50%",
-              border: "1px solid var(--text-muted)",
+              border: "1px solid var(--header-text)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -136,7 +136,7 @@ export function SiteHeader() {
               <path
                 d="M12 21 C12 21 3 14.5 3 8.6 C3 5.5 5.4 3.3 8.2 3.3 C10 3.3 11.3 4.2 12 5.4 C12.7 4.2 14 3.3 15.8 3.3 C18.6 3.3 21 5.5 21 8.6 C21 14.5 12 21 12 21 Z"
                 fill="none"
-                stroke="var(--text)"
+                stroke="var(--header-text)"
                 strokeWidth="1"
               />
             </svg>
@@ -172,18 +172,18 @@ export function SiteHeader() {
               <path
                 d="M8 13 C8 13 8 11 10 11 L20 11 C22 11 22 13 22 13 L21 25 C21 25.5 20.5 26 20 26 L10 26 C9.5 26 9 25.5 9 25 Z"
                 fill="none"
-                stroke="var(--text)"
+                stroke="var(--header-text)"
                 strokeWidth="1"
               />
               <path
                 d="M10 11 C10 8 12.2 6 15 6 C17.8 6 20 8 20 11"
                 fill="none"
-                stroke="var(--text)"
+                stroke="var(--header-text)"
                 strokeWidth="1"
               />
-              <line x1="12" y1="16" x2="12" y2="21" stroke="var(--text)" strokeWidth="0.6" />
-              <line x1="15" y1="16" x2="15" y2="21" stroke="var(--text)" strokeWidth="0.6" />
-              <line x1="18" y1="16" x2="18" y2="21" stroke="var(--text)" strokeWidth="0.6" />
+              <line x1="12" y1="16" x2="12" y2="21" stroke="var(--header-text)" strokeWidth="0.6" />
+              <line x1="15" y1="16" x2="15" y2="21" stroke="var(--header-text)" strokeWidth="0.6" />
+              <line x1="18" y1="16" x2="18" y2="21" stroke="var(--header-text)" strokeWidth="0.6" />
             </svg>
             {cart.totalCount > 0 && (
               <div
@@ -229,8 +229,8 @@ export function SiteHeader() {
               />
             ) : (
               <svg width="21" height="21" viewBox="0 0 20 20">
-                <circle cx="10" cy="7" r="3.2" fill="none" stroke="var(--text-muted)" strokeWidth="1" />
-                <path d="M4 17 C4 13 6.5 11 10 11 C13.5 11 16 13 16 17" fill="none" stroke="var(--text-muted)" strokeWidth="1" />
+                <circle cx="10" cy="7" r="3.2" fill="none" stroke="var(--header-text)" strokeWidth="1" />
+                <path d="M4 17 C4 13 6.5 11 10 11 C13.5 11 16 13 16 17" fill="none" stroke="var(--header-text)" strokeWidth="1" />
               </svg>
             )}
           </span>
@@ -239,7 +239,7 @@ export function SiteHeader() {
 
       <div
         style={{
-          borderTop: "1px solid var(--line)",
+          borderTop: "1px solid var(--header-border)",
           display: "flex",
           justifyContent: "center",
           gap: 20,
@@ -247,16 +247,16 @@ export function SiteHeader() {
           flexWrap: "wrap",
         }}
       >
-        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ fontSize: 11, color: "var(--header-text)", display: "flex", alignItems: "center", gap: 4 }}>
           <span>🚚</span>{lang === "ru" ? "Доставка за 1 день" : "Дар 1 рӯз"}
         </span>
-        <span className="trust-bar-secondary" style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+        <span className="trust-bar-secondary" style={{ fontSize: 11, color: "var(--header-text)", display: "flex", alignItems: "center", gap: 4 }}>
           <span>🔄</span>{lang === "ru" ? "Обмен 24ч" : "Иваз 24 соат"}
         </span>
-        <span className="trust-bar-secondary" style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+        <span className="trust-bar-secondary" style={{ fontSize: 11, color: "var(--header-text)", display: "flex", alignItems: "center", gap: 4 }}>
           <span>↩️</span>{lang === "ru" ? "Бесплатный возврат" : "Баргардонии ройгон"}
         </span>
-        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ fontSize: 11, color: "var(--header-text)", display: "flex", alignItems: "center", gap: 4 }}>
           <span>💳</span>{lang === "ru" ? "Оплата картой/QR" : "Пардохт бо корт/QR"}
         </span>
       </div>

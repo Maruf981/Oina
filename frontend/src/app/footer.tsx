@@ -8,7 +8,7 @@ export function Footer({ lang }: { lang: Lang }) {
   const router = useRouter();
 
   return (
-    <footer style={{ borderTop: "1px solid var(--line)", marginTop: 60 }}>
+    <footer style={{ background: "var(--header-bg)", color: "var(--header-text)", borderTop: "1px solid var(--header-border)", marginTop: 60, width: "100vw", position: "relative", left: "50%", transform: "translateX(-50%)" }}>
       <div
         className="footer-grid"
         style={{
@@ -24,7 +24,7 @@ export function Footer({ lang }: { lang: Lang }) {
           <div style={{ fontFamily: "var(--font-display)", fontSize: 18, marginBottom: 12 }}>
             Oina.tj
           </div>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.6, maxWidth: 280 }}>
+          <p style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: 13, lineHeight: 1.6, maxWidth: 280 }}>
             {t.footerAbout}
           </p>
         </div>
@@ -37,16 +37,16 @@ export function Footer({ lang }: { lang: Lang }) {
             {t.footerLinks}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <span onClick={() => router.push("/faq")} style={{ cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}>
+            <span onClick={() => router.push("/faq")} style={{ cursor: "pointer", fontSize: 13, color: "rgba(255, 255, 255, 0.85)" }}>
               {t.footerFaq}
             </span>
-            <span onClick={() => router.push("/delivery")} style={{ cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}>
+            <span onClick={() => router.push("/delivery")} style={{ cursor: "pointer", fontSize: 13, color: "rgba(255, 255, 255, 0.85)" }}>
               {t.footerDelivery}
             </span>
-            <span onClick={() => router.push("/terms")} style={{ cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}>
+            <span onClick={() => router.push("/terms")} style={{ cursor: "pointer", fontSize: 13, color: "rgba(255, 255, 255, 0.85)" }}>
               {t.footerTerms}
             </span>
-            <span onClick={() => router.push("/privacy")} style={{ cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}>
+            <span onClick={() => router.push("/privacy")} style={{ cursor: "pointer", fontSize: 13, color: "rgba(255, 255, 255, 0.85)" }}>
               {t.footerPrivacy}
             </span>
           </div>
@@ -109,11 +109,11 @@ export function Footer({ lang }: { lang: Lang }) {
 
       <div
         style={{
-          borderTop: "1px solid var(--line)",
+          borderTop: "1px solid var(--header-border)",
           padding: "16px 20px",
           textAlign: "center",
           fontSize: 12,
-          color: "var(--text-muted)",
+          color: "rgba(255, 255, 255, 0.85)",
         }}
       >
         © {new Date().getFullYear()} Oina.tj — {t.footerRights}

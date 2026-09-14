@@ -47,10 +47,6 @@ type Product = {
   catalog_number: string;
   category: Category | null;
   price: number;
-  discount_percent: number | null;
-  discount_from: string | null;
-  discount_to: string | null;
-  original_price: number | null;
   material_ru: string | null;
   material_tj: string | null;
   season_ru: string | null;
@@ -123,14 +119,6 @@ const COLOR_MAP: Record<string, string> = {
   "молочный": "#F2ECD9",
   "кремовый": "#EFE3C8",
 };
-
-function isDiscountActive(p: Product): boolean {
-  if (!p.discount_percent) return false;
-  const now = new Date();
-  if (p.discount_from && new Date(p.discount_from) > now) return false;
-  if (p.discount_to && new Date(p.discount_to) < now) return false;
-  return true;
-}
 
 const getColorHex = (name: string): string => {
   const key = name.trim().toLowerCase();
@@ -575,40 +563,23 @@ export default function ProductDetailClient() {
             <h1 className="product-title" style={{ fontSize: 32, marginBottom: 8 }}>
               {localized(product.title_ru, product.title_tj)}
             </h1>
-            {(() => {
-              const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
-              const out = totalStock === 0;
-              const low = totalStock > 0 && totalStock <= 5;
-              const label = out
-                ? (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")
-                : low
-                ? (lang === "ru" ? `Осталось ${totalStock} шт` : `${totalStock} дона монд`)
-                : (lang === "ru" ? "В наличии" : "Мавҷуд ҳаст");
-              const c = out
-                ? { text: "#E24B4A", bg: "rgba(226,75,74,0.10)", border: "rgba(226,75,74,0.35)" }
-                : low
-                ? { text: "#E8A33D", bg: "rgba(232,163,61,0.12)", border: "rgba(232,163,61,0.40)" }
-                : { text: "#4CAF50", bg: "rgba(76,175,80,0.12)", border: "rgba(76,175,80,0.35)" };
-              return (
-                <div style={{ marginBottom: 12 }}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      padding: "4px 10px",
-                      borderRadius: 6,
-                      fontFamily: "var(--font-label)",
-                      fontSize: 13,
-                      lineHeight: 1.2,
-                      color: c.text,
-                      background: c.bg,
-                      border: `1px solid ${c.border}`,
-                    }}
-                  >
-                    {label}
-                  </span>
-                </div>
-              );
-            })()}
+            <div
+              style={{
+                fontSize: 13,
+                fontFamily: "var(--font-label)",
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                color: product.variants.reduce((sum, v) => sum + v.stock, 0) === 0 ? "#E24B4A" : product.variants.reduce((sum, v) => sum + v.stock, 0) <= 5 ? "#E8A33D" : "#4CAF50",
+                marginBottom: 12,
+              }}
+            >
+              {(() => {
+                const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+                if (totalStock === 0) return lang === "ru" ? "Нет в наличии" : "Мавчуд нест";
+                if (totalStock <= 5) return lang === "ru" ? `Осталось ${totalStock} шт` : `${totalStock} дона монд`;
+                return lang === "ru" ? "В наличии" : "Мавчуд ҳаст";
+              })()}
+            </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
               <div style={{ display: "flex", gap: 2 }}>
@@ -684,20 +655,8 @@ export default function ProductDetailClient() {
               </div>
             )}
 
-            <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
-              <span className="price" style={{ fontSize: 26, fontWeight: 700, color: "#16a34a", letterSpacing: "-0.02em" }}>
-                {product.price} смн
-              </span>
-              {isDiscountActive(product) && (
-                <>
-                  <span style={{ fontSize: 14, color: "var(--text-muted)", textDecoration: "line-through" }}>
-                    {Math.round(product.original_price ?? (product.price / (1 - (product.discount_percent as number) / 100)))} смн
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "#D64545", padding: "3px 7px", borderRadius: 4 }}>
-                    -{product.discount_percent}%
-                  </span>
-                </>
-              )}
+            <div className="price" style={{ fontSize: 22, marginBottom: 8, color: "#4CAF50" }}>
+              {product.price} смн
             </div>
 
             <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 24, display: "flex", alignItems: "center", gap: 6 }}>
@@ -767,7 +726,7 @@ export default function ProductDetailClient() {
                               height: 28,
                               borderRadius: "50%",
                               background: getColorHex(color),
-                              border: "1px solid var(--line)",
+                              border: active ? "2px solid var(--text)" : "1px solid var(--line)",
                               outline: active ? "2px solid var(--text)" : "none",
                               outlineOffset: "2px",
                               transform: active ? "scale(1.15)" : "scale(1)",

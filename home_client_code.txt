@@ -124,7 +124,7 @@ function StarRating({ avgRating, reviewCount }: { avgRating: number | null; revi
               <path
                 d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7-5.4-4.7 7.1-.6z"
                 fill={`url(#star-fill-${n}-${avgRating})`}
-                stroke="#fff"
+                stroke="var(--accent)"
                 strokeWidth="1"
               />
             </svg>
@@ -571,8 +571,8 @@ function HomeInner() {
           top: 0,
           left: 0,
           right: 0,
-          borderBottom: "1px solid var(--header-border)",
-          background: "var(--header-bg)", color: "var(--header-text)",
+          borderBottom: "1px solid var(--line)",
+          background: "var(--bg)",
           zIndex: 100,
         }}
       >
@@ -600,9 +600,9 @@ function HomeInner() {
             flexShrink: 0,
           }}
         >
-          <span style={{ height: 2, background: "var(--header-text)" }} />
-          <span style={{ height: 2, background: "var(--header-text)" }} />
-          <span style={{ height: 2, background: "var(--header-text)" }} />
+          <span style={{ height: 2, background: "var(--text)" }} />
+          <span style={{ height: 2, background: "var(--text)" }} />
+          <span style={{ height: 2, background: "var(--text)" }} />
         </div>
 
         <span
@@ -616,7 +616,7 @@ function HomeInner() {
             fontFamily: "var(--font-label)",
             fontSize: 12,
             letterSpacing: "0.04em",
-            color: "var(--header-text)",
+            color: "var(--text-muted)",
           }}
           title={lang === "ru" ? "Сменить город" : "Шаҳрро иваз кунед"}
         >
@@ -640,7 +640,7 @@ function HomeInner() {
               fontFamily: "var(--font-label)",
               fontSize: 12,
               letterSpacing: "0.05em",
-              color: "var(--header-text)",
+              color: "var(--text-muted)",
             }}
           >
             {lang === "ru" ? "RU" : "TJ"}
@@ -653,7 +653,7 @@ function HomeInner() {
               width: 18,
               height: 18,
               borderRadius: "50%",
-              border: "1px solid var(--header-text)",
+              border: "1px solid var(--text-muted)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -674,7 +674,7 @@ function HomeInner() {
               <path
                 d="M12 21 C12 21 3 14.5 3 8.6 C3 5.5 5.4 3.3 8.2 3.3 C10 3.3 11.3 4.2 12 5.4 C12.7 4.2 14 3.3 15.8 3.3 C18.6 3.3 21 5.5 21 8.6 C21 14.5 12 21 12 21 Z"
                 fill="none"
-                stroke="#fff"
+                stroke="var(--text)"
                 strokeWidth="1"
               />
             </svg>
@@ -710,18 +710,18 @@ function HomeInner() {
               <path
                 d="M8 13 C8 13 8 11 10 11 L20 11 C22 11 22 13 22 13 L21 25 C21 25.5 20.5 26 20 26 L10 26 C9.5 26 9 25.5 9 25 Z"
                 fill="none"
-                stroke="#fff"
+                stroke="var(--text)"
                 strokeWidth="1"
               />
               <path
                 d="M10 11 C10 8 12.2 6 15 6 C17.8 6 20 8 20 11"
                 fill="none"
-                stroke="#fff"
+                stroke="var(--text)"
                 strokeWidth="1"
               />
-              <line x1="12" y1="16" x2="12" y2="21" stroke="#fff" strokeWidth="0.6" />
-              <line x1="15" y1="16" x2="15" y2="21" stroke="#fff" strokeWidth="0.6" />
-              <line x1="18" y1="16" x2="18" y2="21" stroke="#fff" strokeWidth="0.6" />
+              <line x1="12" y1="16" x2="12" y2="21" stroke="var(--text)" strokeWidth="0.6" />
+              <line x1="15" y1="16" x2="15" y2="21" stroke="var(--text)" strokeWidth="0.6" />
+              <line x1="18" y1="16" x2="18" y2="21" stroke="var(--text)" strokeWidth="0.6" />
             </svg>
             {cart.totalCount > 0 && (
               <div
@@ -762,13 +762,13 @@ function HomeInner() {
                   backgroundImage: `url(${auth.customer.avatar_url})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
-                  border: "none",
+                  border: "1px solid var(--line)",
                 }}
               />
             ) : (
               <svg width="21" height="21" viewBox="0 0 20 20">
-                <circle cx="10" cy="7" r="3.2" fill="none" stroke="var(--icon-cyan, #00a8b5)" strokeWidth="1" />
-                <path d="M4 17 C4 13 6.5 11 10 11 C13.5 11 16 13 16 17" fill="none" stroke="var(--icon-cyan, #00a8b5)" strokeWidth="1" />
+                <circle cx="10" cy="7" r="3.2" fill="none" stroke="var(--text-muted)" strokeWidth="1" />
+                <path d="M4 17 C4 13 6.5 11 10 11 C13.5 11 16 13 16 17" fill="none" stroke="var(--text-muted)" strokeWidth="1" />
               </svg>
             )}
           </span>
@@ -777,7 +777,7 @@ function HomeInner() {
       
       <div
         style={{
-          borderTop: "1px solid var(--header-border)",
+          borderTop: "1px solid var(--line)",
           display: "flex",
           justifyContent: "center",
           gap: 20,
@@ -785,16 +785,16 @@ function HomeInner() {
           flexWrap: "wrap",
         }}
       >
-        <span style={{ fontSize: 11, color: "var(--header-text)", display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
           <span>🚚</span>{lang === "ru" ? "Доставка за 1 день" : "Дар 1 рӯз"}
         </span>
-        <span className="trust-bar-secondary" style={{ fontSize: 11, color: "var(--header-text)", display: "flex", alignItems: "center", gap: 4 }}>
+        <span className="trust-bar-secondary" style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
           <span>🔄</span>{lang === "ru" ? "Обмен 24ч" : "Иваз 24 соат"}
         </span>
-        <span className="trust-bar-secondary" style={{ fontSize: 11, color: "var(--header-text)", display: "flex", alignItems: "center", gap: 4 }}>
+        <span className="trust-bar-secondary" style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
           <span>↩️</span>{lang === "ru" ? "Бесплатный возврат" : "Баргардонии ройгон"}
         </span>
-        <span style={{ fontSize: 11, color: "var(--header-text)", display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
           <span>💳</span>{lang === "ru" ? "Оплата картой/QR" : "Пардохт бо корт/QR"}
         </span>
       </div>
@@ -853,7 +853,7 @@ function HomeInner() {
               left: 40,
               right: 40,
               background: "var(--bg)",
-              border: "none",
+              border: "1px solid var(--line)",
               borderTop: "none",
               zIndex: 20,
               maxHeight: 360,
@@ -932,7 +932,7 @@ function HomeInner() {
                 width: 120,
                 padding: "8px",
                 background: "var(--surface)",
-                border: "none",
+                border: "1px solid var(--line)",
                 color: "var(--text)",
                 fontSize: 13,
               }}
@@ -946,7 +946,7 @@ function HomeInner() {
                 width: 120,
                 padding: "8px",
                 background: "var(--surface)",
-                border: "none",
+                border: "1px solid var(--line)",
                 color: "var(--text)",
                 fontSize: 13,
               }}
@@ -957,7 +957,7 @@ function HomeInner() {
               style={{
                 padding: "8px",
                 background: "var(--surface)",
-                border: "none",
+                border: "1px solid var(--line)",
                 color: "var(--text)",
                 fontSize: 13,
               }}
@@ -991,7 +991,7 @@ function HomeInner() {
               style={{
                 padding: "8px",
                 background: "var(--surface)",
-                border: "none",
+                border: "1px solid var(--line)",
                 color: "var(--text)",
                 fontSize: 13,
               }}
@@ -1007,7 +1007,7 @@ function HomeInner() {
               style={{
                 padding: "8px",
                 background: "var(--surface)",
-                border: "none",
+                border: "1px solid var(--line)",
                 color: "var(--text)",
                 fontSize: 13,
               }}
@@ -1087,7 +1087,7 @@ function HomeInner() {
               width: 280,
               maxWidth: "80vw",
               background: "var(--menu-panel-bg)",
-              padding: 0,
+              padding: "24px 0",
               display: "flex",
               flexDirection: "column",
               overflowY: "auto",
@@ -1095,27 +1095,12 @@ function HomeInner() {
               borderBottomRightRadius: 16,
             }}
           >
-            <div
-              style={{
-                background: "var(--header-bg)",
-                color: "var(--header-text)",
-                padding: "32px 20px", minHeight: 96,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                borderBottom: "1px solid var(--header-border)",
-                borderTopRightRadius: 16,
-                marginBottom: 8,
-              }}
-            >
-              <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "0.04em" }}>
-                {t.categories}
-              </span>
+            <div style={{ marginBottom: 20, padding: "0 24px" }}>
               <span
-                onClick={() => setMenuOpen(false)}
-                style={{ cursor: "pointer", fontSize: 20, lineHeight: 1, padding: "2px 6px" }}
+                className="catalog-label"
+                style={{ border: "none", padding: 0, fontSize: 18, color: "var(--text)" }}
               >
-                ✕
+                {t.categories}
               </span>
             </div>
             <div style={{ display: "flex", flexDirection: "column" }}>
@@ -1240,7 +1225,7 @@ function HomeInner() {
                     top: "100%",
                     left: 0,
                     background: "var(--bg)",
-                    border: "none",
+                    border: "1px solid var(--line)",
                     boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
                     padding: "16px 0",
                     minWidth: 220,
@@ -1294,22 +1279,7 @@ function HomeInner() {
       {recommendedProducts.length > 0 && (
         <div className="recommended-wrapper" style={{ padding: "24px 40px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <h2 className="product-title"
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 500,
-                    lineHeight: "17px",
-                    height: 34,
-                    color: "var(--text)",
-                    marginTop: 4,
-                    marginBottom: 6,
-                    cursor: "pointer",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}>{t.recommended}</h2>
+            <h2 className="product-title" style={{ fontSize: 22 }}>{t.recommended}</h2>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <span
                 onClick={() => router.push("/?recommended=1")}
@@ -1359,13 +1329,12 @@ function HomeInner() {
                       key={p.id}
                       onClick={() => { if (!isDraggingRecommended) router.push(`/product/${p.id}`); }}
                       className="recommended-card"
-                      style={{ cursor: "pointer", border: "none", borderRadius: 12, overflow: "hidden", background: "var(--bg)" }}
+                      style={{ cursor: "pointer", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", background: "var(--bg)" }}
                     >
                       <div style={{ position: "relative", aspectRatio: "3/4", background: "var(--surface)", marginBottom: 8 }}>
                         <AutoSlideImage images={p.images} alt={localized(p.title_ru, p.title_tj)} onClick={() => { if (!isDraggingRecommended) router.push(`/product/${p.id}`); }} />
                         {badge && (
-                          <span style={{ position: "absolute", top: 8,
-                      filter: "var(--card-action-shadow)", left: 8, fontSize: 10, fontWeight: 500, background: badge.color, color: "#fff", padding: "3px 8px", borderRadius: 4 }}>
+                          <span style={{ position: "absolute", top: 8, left: 8, fontSize: 10, fontWeight: 500, background: badge.color, color: "#fff", padding: "3px 8px", borderRadius: 4 }}>
                             {badge.text}
                           </span>
                         )}
@@ -1402,7 +1371,7 @@ function HomeInner() {
           style={{
             padding: "8px 12px",
             background: "var(--surface)",
-            border: "none",
+            border: "1px solid var(--line)",
             color: "var(--text)",
             fontFamily: "var(--font-body)",
             fontSize: 13,
@@ -1425,7 +1394,9 @@ function HomeInner() {
           className="products-grid"
           style={{
             display: "grid",
-            gap: 20,
+            gap: 1,
+            background: "var(--line)",
+            border: "1px solid var(--line)",
           }}
         >
           {productsLoading && (
@@ -1448,14 +1419,14 @@ function HomeInner() {
             </div>
           )}
           {!productsLoading && !productsError && products.slice(0, visibleCount).map((p) => (
-            <div key={p.id} style={{ background: "var(--bg)", padding: 12, borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden" }}>
+            <div key={p.id} style={{ background: "var(--bg)", padding: 20 }}>
               <div
                 style={{
                   position: "relative",
-                  aspectRatio: "var(--card-aspect)",
+                  aspectRatio: "3/4",
                   background: "var(--surface)",
-                  border: "none",
-                  margin: "-12px -12px 12px -12px",
+                  border: "1px solid var(--line)",
+                  marginBottom: 14,
                 }}
               >
                 <AutoSlideImage images={p.images} alt={localized(p.title_ru, p.title_tj)} onClick={() => router.push(`/product/${p.id}`)} />
@@ -1495,8 +1466,6 @@ function HomeInner() {
                     position: "absolute",
                     top: 8,
                     right: 4,
-                    
-                    
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
@@ -1514,8 +1483,8 @@ function HomeInner() {
                   >
                     <path
                       d="M12 21 C12 21 3 14.5 3 8.6 C3 5.5 5.4 3.3 8.2 3.3 C10 3.3 11.3 4.2 12 5.4 C12.7 4.2 14 3.3 15.8 3.3 C18.6 3.3 21 5.5 21 8.6 C21 14.5 12 21 12 21 Z"
-                      fill={favoriteIds.has(p.id) ? "var(--heart-active-color)" : "none"}
-                      stroke={favoriteIds.has(p.id) ? "var(--heart-active-color)" : "var(--card-action-stroke)"}
+                      fill={favoriteIds.has(p.id) ? "var(--accent)" : "none"}
+                      stroke="var(--accent)"
                       strokeWidth="1.5"
                     />
                   </svg>
@@ -1549,10 +1518,7 @@ function HomeInner() {
                   style={{
                     position: "absolute",
                     top: 32,
-                      filter: "var(--card-action-shadow)",
                     right: 4,
-                    
-                    
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
@@ -1572,18 +1538,18 @@ function HomeInner() {
                     <path
                       d="M8 13 C8 13 8 11 10 11 L20 11 C22 11 22 13 22 13 L21 25 C21 25.5 20.5 26 20 26 L10 26 C9.5 26 9 25.5 9 25 Z"
                       fill="none"
-                      stroke="var(--card-action-stroke)"
+                      stroke="var(--accent)"
                       strokeWidth="1.1"
                     />
                     <path
                       d="M10 11 C10 8 12.2 6 15 6 C17.8 6 20 8 20 11"
                       fill="none"
-                      stroke="var(--card-action-stroke)"
+                      stroke="var(--accent)"
                       strokeWidth="1.1"
                     />
-                    <line x1="12" y1="16" x2="12" y2="21" stroke="var(--card-action-stroke)" strokeWidth="0.7" />
-                    <line x1="15" y1="16" x2="15" y2="21" stroke="var(--card-action-stroke)" strokeWidth="0.7" />
-                    <line x1="18" y1="16" x2="18" y2="21" stroke="var(--card-action-stroke)" strokeWidth="0.7" />
+                    <line x1="12" y1="16" x2="12" y2="21" stroke="var(--accent)" strokeWidth="0.7" />
+                    <line x1="15" y1="16" x2="15" y2="21" stroke="var(--accent)" strokeWidth="0.7" />
+                    <line x1="18" y1="16" x2="18" y2="21" stroke="var(--accent)" strokeWidth="0.7" />
                   </svg>
                 </div>
                 {quickAddProductId === p.id && (
@@ -1595,7 +1561,7 @@ function HomeInner() {
                       left: 8,
                       right: 8,
                       background: "var(--bg)",
-                      border: "none",
+                      border: "1px solid var(--line)",
                       padding: 10,
                       zIndex: 5,
                     }}
@@ -1610,7 +1576,7 @@ function HomeInner() {
                             <span
                               key={s}
                               onClick={() => setQuickAddSize(s)}
-                              style={{ padding: "4px 8px", border: "none", cursor: "pointer", fontSize: 12, background: "var(--surface)" }}
+                              style={{ padding: "4px 8px", border: "1px solid var(--line)", cursor: "pointer", fontSize: 12, background: "var(--surface)" }}
                             >
                               {s}
                             </span>
@@ -1661,104 +1627,45 @@ function HomeInner() {
                 )}
               </div>
               <div
-                  onClick={() => router.push(`/product/${p.id}`)}
-                  style={{ display: "flex", alignItems: "baseline", gap: 8, cursor: "pointer", marginTop: 4 }}
-                >
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "#16a34a", letterSpacing: "-0.02em" }}>
-                    {p.price} смн
-                  </span>
+                onClick={() => router.push(`/product/${p.id}`)}
+                className="product-title"
+                style={{ fontSize: 17, marginBottom: 4, cursor: "pointer" }}
+              >
+                {localized(p.title_ru, p.title_tj)}
+              </div>
+              <div
+                style={{
+                  fontSize: 9,
+                  fontFamily: "var(--font-label)",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  color: p.variants.reduce((sum, v) => sum + v.stock, 0) === 0 ? "#E24B4A" : p.variants.reduce((sum, v) => sum + v.stock, 0) <= 5 ? "#E8A33D" : "#4CAF50",
+                  marginBottom: 8,
+                }}
+              >
+                {(() => {
+                  const totalStock = p.variants.reduce((sum, v) => sum + v.stock, 0);
+                  if (totalStock === 0) return lang === "ru" ? "Нет в наличии" : "Мавҷуд нест";
+                  if (totalStock <= 5) return lang === "ru" ? `Осталось ${totalStock} шт` : `${totalStock} дона монд`;
+                  return lang === "ru" ? "Есть в наличии" : "Мавҷуд ҳаст";
+                })()}
+              </div>
+              <div className="catalog-label" style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                <span>{t.catalogNumber} {p.catalog_number}</span>
+                <span style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                   {isDiscountActive(p) && (
                     <span style={{ textDecoration: "line-through", color: "var(--text-muted)", fontSize: 12 }}>
                       {Math.round(p.original_price ?? (p.price / (1 - (p.discount_percent as number) / 100)))} смн
                     </span>
                   )}
-                </div>
-
-                <div
-                  onClick={() => router.push(`/product/${p.id}`)}
-                  className="product-title"
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "var(--text)",
-                    marginTop: 3,
-                    marginBottom: 6,
-                    cursor: "pointer",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  title={localized(p.title_ru, p.title_tj)}
-                >
-                  {localized(p.title_ru, p.title_tj)}
-                </div>
-
-                <div style={{ marginTop: 2, marginBottom: 8, display: "flex", alignItems: "center" }}>
-                  {(() => {
-                    const totalStock = p.variants ? p.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0;
-                    const isOut = totalStock === 0;
-                    const isLow = !isOut && totalStock <= 5;
-
-                    const badgeStyle = isOut
-                      ? {
-                          color: "#dc2626",
-                          background: "rgba(220, 38, 38, 0.08)",
-                          border: "1px solid rgba(220, 38, 38, 0.25)",
-                        }
-                      : isLow
-                      ? {
-                          color: "#d97706",
-                          background: "rgba(217, 119, 6, 0.08)",
-                          border: "1px solid rgba(217, 119, 6, 0.25)",
-                        }
-                      : {
-                          color: "#16a34a",
-                          background: "rgba(22, 163, 74, 0.08)",
-                          border: "1px solid rgba(22, 163, 74, 0.25)",
-                        };
-
-                    const label = isOut
-                      ? (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")
-                      : isLow
-                      ? (lang === "ru" ? `Осталось ${totalStock} шт` : `${totalStock} дона монд`)
-                      : (lang === "ru" ? "В наличии" : "Мавҷуд ҳаст");
-
-                    return (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          padding: "2px 7px",
-                          borderRadius: 4,
-                          fontSize: 10,
-                          fontWeight: 600,
-                          lineHeight: "14px",
-                          letterSpacing: "0.02em",
-                          ...badgeStyle,
-                        }}
-                      >
-                        {label}
-                      </span>
-                    );
-                  })()}
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    paddingTop: 8,
-                    borderTop: "1px solid var(--line)",
-                    minHeight: 26,
-                  }}
-                >
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-                    <span>🚚</span>
-                    <span>{city === "dushanbe" ? (lang === "ru" ? "Завтра" : "Пагоҳ") : (lang === "ru" ? "В регион" : "Ба минтақа")}</span>
-                  </div>
-                  <StarRating avgRating={p.avg_rating} reviewCount={p.review_count} />
-                </div>
+                  <span className="price" style={{ color: "#4CAF50" }}>{p.price} смн</span>
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                <span>🚚</span>
+                <span>{city === "dushanbe" ? (lang === "ru" ? "Завтра" : "Пагоҳ") : (lang === "ru" ? "В регион" : "Ба минтақа")}</span>
+              </div>
+              <StarRating avgRating={p.avg_rating} reviewCount={p.review_count} />
             </div>
           ))}
         </div>
@@ -1782,7 +1689,7 @@ function HomeInner() {
             onClick={(e) => e.stopPropagation()}
             style={{
               background: "var(--bg)",
-              border: "none",
+              border: "1px solid var(--line)",
               padding: 32,
               width: 340,
               maxWidth: "90vw",
@@ -1810,7 +1717,7 @@ function HomeInner() {
                       placeholder={lang === "ru" ? "Телефон" : "Телефон"}
                       value={authPhone}
                       onChange={(e) => setAuthPhone(e.target.value)}
-                      style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
+                      style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
                     />
                     <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
                       {lang === "ru"
@@ -1838,7 +1745,7 @@ function HomeInner() {
                       value={resetCode}
                       onChange={(e) => setResetCode(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleResetVerify()}
-                      style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
+                      style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
                     />
                     <input
                       type="password"
@@ -1847,7 +1754,7 @@ function HomeInner() {
                       value={resetNewPassword}
                       onChange={(e) => setResetNewPassword(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleResetVerify()}
-                      style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
+                      style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
                     />
                     {authError && <span style={{ color: "#c0504d", fontSize: 13 }}>{authError}</span>}
                     {resetSuccess && <span style={{ color: "#4CAF50", fontSize: 13 }}>{resetSuccess}</span>}
@@ -1873,7 +1780,7 @@ function HomeInner() {
                     placeholder={lang === "ru" ? "Имя" : "Ном"}
                     value={authName}
                     onChange={(e) => setAuthName(e.target.value)}
-                    style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
+                    style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
                   />
                 )}
                 <input
@@ -1881,7 +1788,7 @@ function HomeInner() {
                   value={authPhone}
                   onChange={(e) => setAuthPhone(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
-                  style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
+                  style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
                 />
                 <input
                   type="password"
@@ -1890,7 +1797,7 @@ function HomeInner() {
                   value={authPassword}
                   onChange={(e) => setAuthPassword(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
-                  style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
+                  style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 14 }}
                 />
 
                 {authError && <span style={{ color: "#c0504d", fontSize: 13 }}>{authError}</span>}
@@ -1971,7 +1878,7 @@ function HomeInner() {
                   minWidth: 260,
                   maxWidth: 260,
                   flexShrink: 0,
-                  border: "none",
+                  border: "1px solid var(--line)",
                   borderRadius: 12,
                   padding: 14,
                   cursor: "pointer",
@@ -2021,7 +1928,7 @@ function HomeInner() {
 function SkeletonCard() {
   return (
     <div style={{ background: "var(--bg)", padding: 20 }}>
-      <div style={{ position: "relative", aspectRatio: "3/4", background: "var(--surface)", border: "none", marginBottom: 14 }} />
+      <div style={{ position: "relative", aspectRatio: "3/4", background: "var(--surface)", border: "1px solid var(--line)", marginBottom: 14 }} />
       <div style={{ height: 17, width: "80%", background: "var(--surface)", marginBottom: 8 }} />
       <div style={{ height: 9, width: "40%", background: "var(--surface)", marginBottom: 8 }} />
       <div style={{ height: 12, width: "60%", background: "var(--surface)" }} />

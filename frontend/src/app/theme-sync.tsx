@@ -6,7 +6,7 @@ export function ThemeSync() {
   useEffect(() => {
     const applyTheme = () => {
       const saved = localStorage.getItem("theme") as "dark" | "light" | null;
-      document.documentElement.setAttribute("data-theme", saved || "dark");
+      document.documentElement.setAttribute("data-theme", saved || "light");
     };
 
     applyTheme();
