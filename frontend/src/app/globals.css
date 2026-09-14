@@ -253,6 +253,14 @@ html, body {
   }
 }
 
+.carousel-progress-fill {
+  background: color-mix(in srgb, var(--header-bg) 72%, #ffffff);
+}
+[data-theme="dark"] .carousel-progress-fill,
+.dark .carousel-progress-fill {
+  background: var(--accent);
+}
+
 /* --- Корзина: карточки и акценты --- */
 :root, [data-theme="light"], .light {
   --panel-bg: #ffffff;

@@ -341,6 +341,7 @@ function HomeInner() {
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [homepageReviews, setHomepageReviews] = useState<HomepageReview[]>([]);
   const [recommendedCollapsed, setRecommendedCollapsed] = useState(false);
+  const [recommendedProgress, setRecommendedProgress] = useState(0);
   const recommendedScrollRef = useRef<HTMLDivElement>(null);
   const [isDraggingRecommended, setIsDraggingRecommended] = useState(false);
   const dragStartXRef = useRef(0);
@@ -1586,16 +1587,22 @@ function HomeInner() {
               }}
               onMouseUp={() => setIsDraggingRecommended(false)}
               onMouseLeave={() => setIsDraggingRecommended(false)}
-              style={{ background: "var(--surface)", borderRadius: 16, padding: "16px 12px", display: "flex", alignItems: "center", gap: 8 }}
+              style={{ background: "var(--surface)", borderRadius: 16, padding: "16px 12px", display: "flex", flexDirection: "column", gap: 12 }}
             >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span
                 onClick={() => recommendedScrollRef.current?.scrollBy({ left: -300, behavior: "smooth" })}
-                style={{ fontSize: 32, color: "#444441", cursor: "pointer", flexShrink: 0, userSelect: "none", lineHeight: 1 }}
+                style={{ fontSize: 64, color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, userSelect: "none", lineHeight: 1 }}
               >
                 ‹
               </span>
               <div
                 ref={recommendedScrollRef}
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  const max = el.scrollWidth - el.clientWidth;
+                  setRecommendedProgress(max > 0 ? el.scrollLeft / max : 0);
+                }}
                 className="recommended-scroll"
                 style={{ display: "flex", gap: 12, overflowX: "auto", scrollBehavior: isDraggingRecommended ? "auto" : "smooth", cursor: isDraggingRecommended ? "grabbing" : "grab", WebkitOverflowScrolling: "touch" }}
               >
@@ -1627,10 +1634,22 @@ function HomeInner() {
               </div>
               <span
                 onClick={() => recommendedScrollRef.current?.scrollBy({ left: 300, behavior: "smooth" })}
-                style={{ fontSize: 32, color: "#444441", cursor: "pointer", flexShrink: 0, userSelect: "none", lineHeight: 1 }}
+                style={{ fontSize: 64, color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, userSelect: "none", lineHeight: 1 }}
               >
                 ›
               </span>
+              </div>
+              <div style={{ height: 3, borderRadius: 2, background: "var(--line)", overflow: "hidden" }}>
+                <div
+                  className="carousel-progress-fill"
+                  style={{
+                    height: "100%",
+                    width: `${Math.max(8, Math.round(recommendedProgress * 100))}%`,
+                    borderRadius: 2,
+                    transition: "width 0.2s ease",
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -2442,7 +2461,7 @@ function BannerSlider({ banners, router }: { banners: Banner[]; router: any }) {
               e.stopPropagation();
               setIndex((i) => (i - 1 + active.length) % active.length);
             }}
-            style={{ position: "absolute", top: "50%", left: 16, transform: "translateY(-50%)", fontSize: 32, color: "#fff", cursor: "pointer", userSelect: "none", zIndex: 2, textShadow: "0 1px 4px rgba(0,0,0,0.5)", lineHeight: 1 }}
+            style={{ position: "absolute", top: "50%", left: 16, transform: "translateY(-50%)", fontSize: 64, color: "#fff", cursor: "pointer", userSelect: "none", zIndex: 2, textShadow: "0 1px 4px rgba(0,0,0,0.5)", lineHeight: 1 }}
           >
             ‹
           </span>
@@ -2451,7 +2470,7 @@ function BannerSlider({ banners, router }: { banners: Banner[]; router: any }) {
               e.stopPropagation();
               setIndex((i) => (i + 1) % active.length);
             }}
-            style={{ position: "absolute", top: "50%", right: 16, transform: "translateY(-50%)", fontSize: 32, color: "#fff", cursor: "pointer", userSelect: "none", zIndex: 2, textShadow: "0 1px 4px rgba(0,0,0,0.5)", lineHeight: 1 }}
+            style={{ position: "absolute", top: "50%", right: 16, transform: "translateY(-50%)", fontSize: 64, color: "#fff", cursor: "pointer", userSelect: "none", zIndex: 2, textShadow: "0 1px 4px rgba(0,0,0,0.5)", lineHeight: 1 }}
           >
             ›
           </span>
