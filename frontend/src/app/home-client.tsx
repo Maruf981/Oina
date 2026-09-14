@@ -1283,7 +1283,7 @@ function HomeInner() {
               padding: 0,
               display: "flex",
               flexDirection: "column",
-              overflowY: "auto",
+              overflow: "hidden",
               borderTopRightRadius: 16,
               borderBottomRightRadius: 16,
             }}
@@ -1311,7 +1311,7 @@ function HomeInner() {
                 ✕
               </span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
               {categories.filter((c) => !c.parent_id).map((parent) => {
                 const children = categories.filter((c) => c.parent_id === parent.id);
                 const isExpanded = openMegaMenu === parent.id;
@@ -1390,6 +1390,65 @@ function HomeInner() {
                   </div>
                 );
               })}
+            </div>
+            <div
+              style={{
+                flexShrink: 0,
+                borderTop: "1px solid var(--header-border)",
+                background: "var(--header-bg)",
+                color: "var(--header-text)",
+                padding: "12px 20px",
+                paddingBottom: "max(16px, env(safe-area-inset-bottom))",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              {!auth.customer ? (
+                <span
+                  onClick={() => { setMenuOpen(false); router.push("/?login=1"); }}
+                  style={{
+                    cursor: "pointer",
+                    textAlign: "center",
+                    fontFamily: "var(--font-label)",
+                    fontSize: 12,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "var(--accent)",
+                    border: "1px solid var(--accent)",
+                    borderRadius: 8,
+                    padding: "11px 0",
+                  }}
+                >
+                  {lang === "ru" ? "Авторизоваться" : "Даромадан"}
+                </span>
+              ) : (
+                <span
+                  onClick={() => { setMenuOpen(false); router.push("/account"); }}
+                  style={{
+                    cursor: "pointer",
+                    textAlign: "center",
+                    fontFamily: "var(--font-label)",
+                    fontSize: 12,
+                    letterSpacing: "0.04em",
+                    color: "var(--header-text)",
+                    border: "1px solid var(--header-border)",
+                    borderRadius: 8,
+                    padding: "11px 0",
+                  }}
+                >
+                  {auth.customer.name || (lang === "ru" ? "Профиль" : "Уток")}
+                </span>
+              )}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                <a href="https://t.me/oina_channel_tj" target="_blank" rel="noopener noreferrer" title="Telegram" style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "#26A5E4" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M22 4.01L2.3 11.5c-1.3.5-1.3 1.2-.24 1.53l4.98 1.55L18.2 7.05c.5-.32.96-.14.58.2l-8.5 7.67l-.32 4.9c.47 0 .68-.22.93-.47l2.24-2.15 4.66 3.42c.86.47 1.48.23 1.7-.8L22.9 5.4c.32-1.25-.47-1.82-1.13-1.4z"/></svg></a>
+                <a href="https://www.instagram.com/oina._tj" target="_blank" rel="noopener noreferrer" title="Instagram" style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "linear-gradient(45deg, #f09433, #dc2743, #bc1888)" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="#fff" stroke="none"/></svg></a>
+                <a href="https://www.tiktok.com/@oina.tj" target="_blank" rel="noopener noreferrer" title="TikTok" style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "#000", border: "1px solid var(--header-border)" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M16.6 5.82c-.86-.94-1.34-2.16-1.34-3.42h-3.06v13.9a3.1 3.1 0 01-3.1 3 3.1 3.1 0 01-3.1-3.1 3.1 3.1 0 013.1-3.1c.29 0 .57.04.84.11V9.98a6.2 6.2 0 00-.84-.06A6.17 6.17 0 003 16.1a6.17 6.17 0 006.1 6.17 6.17 6.17 0 006.1-6.17V9.68a8.36 8.36 0 004.8 1.53V8.15c-1.1 0-2.13-.35-2.98-.95a5.4 5.4 0 01-1.42-1.38z"/></svg></a>
+                <a href="mailto:oina.tj.official@gmail.com" title="Email" style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "var(--surface)", border: "1px solid var(--line)" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 6l10 7 10-7"/></svg></a>
+              </div>
+              <div style={{ textAlign: "center", fontSize: 10, letterSpacing: "0.04em", color: "var(--header-text)", opacity: 0.6 }}>
+                {"\u00A9"} {new Date().getFullYear()} Oina.tj {"\u2014"} Dushanbe
+              </div>
             </div>
           </div>
         </div>

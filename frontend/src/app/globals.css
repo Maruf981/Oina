@@ -119,6 +119,7 @@ html, body {
   .product-detail-container {
     padding: 12px !important;
     padding-top: 140px !important;
+    padding-bottom: calc(74px + max(22px, env(safe-area-inset-bottom))) !important;
   }
   .product-detail-grid {
     grid-template-columns: 1fr !important;
