@@ -24,7 +24,26 @@ html, body {
 }
 
 .products-grid {
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 1080px) {
+  .products-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .products-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .products-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .city-selector {
@@ -252,6 +271,35 @@ html, body {
 @media (min-width: 768px) {
   :root {
     --card-aspect: 3 / 4;
+  }
+}
+
+/* Компактные карточки на десктопе */
+:root {
+  --card-pad: 7px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --card-pad: 10px;
+  }
+}
+
+.products-grid > div {
+  padding: var(--card-pad) !important;
+}
+
+@media (min-width: 641px) {
+  .products-grid .product-card-title {
+    font-size: 12.5px !important;
+    margin-bottom: 3px !important;
+  }
+  .products-grid .product-price {
+    font-size: 14px !important;
+  }
+  .products-grid > div > div:not(:first-child) {
+    margin-top: 2px !important;
+    margin-bottom: 4px !important;
   }
 }
 

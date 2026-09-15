@@ -951,25 +951,26 @@ export default function ProductDetailClient() {
             <h2 className="product-title" style={{ fontSize: 22, marginBottom: 24 }}>
               {lang === "ru" ? "Похожие товары" : "Монанд ба ин"}
             </h2>
-            <div className="related-products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 20 }}>
+            <div className="related-products-grid products-grid" style={{ display: "grid", gap: 10 }}>
               {related.map((p) => (
                 <div
                   key={p.id}
                   onClick={() => router.push(`/product/${p.id}`)}
-                  style={{ cursor: "pointer" }}
+                  style={{ cursor: "pointer", background: "var(--bg)", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden", padding: "0 var(--card-pad) var(--card-pad)" }}
                 >
                   <div
                     style={{
                       aspectRatio: "3/4",
                       background: "var(--surface)",
-                      border: "1px solid var(--line)",
-                      marginBottom: 10,
+                      border: "none",
+                      borderRadius: "12px 12px 0 0",
+                      marginBottom: 8,
                       backgroundImage: p.images[0] ? `url(${p.images[0].url})` : "none",
                       backgroundSize: "cover",
                       backgroundPosition: "center",
                     }}
                   />
-                  <div className="product-title" style={{ fontSize: 14, marginBottom: 4 }}>
+                  <div className="product-title product-card-title" style={{ fontSize: 13, marginBottom: 3 }}>
                     {localized(p.title_ru, p.title_tj)}
                   </div>
                   <div className="price" style={{ fontSize: 13 }}>
@@ -986,25 +987,26 @@ export default function ProductDetailClient() {
             <h2 className="product-title" style={{ fontSize: 22, marginBottom: 24 }}>
               {lang === "ru" ? "Вы недавно смотрели" : "Ба наздикӣ дидед"}
             </h2>
-            <div className="related-products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 20 }}>
+            <div className="related-products-grid products-grid" style={{ display: "grid", gap: 10 }}>
               {recentlyViewed.map((p) => (
                 <div
                   key={p.id}
                   onClick={() => router.push(`/product/${p.id}`)}
-                  style={{ cursor: "pointer" }}
+                  style={{ cursor: "pointer", background: "var(--bg)", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden", padding: "0 var(--card-pad) var(--card-pad)" }}
                 >
                   <div
                     style={{
                       aspectRatio: "3/4",
                       background: "var(--surface)",
-                      border: "1px solid var(--line)",
-                      marginBottom: 10,
+                      border: "none",
+                      borderRadius: "12px 12px 0 0",
+                      marginBottom: 8,
                       backgroundImage: p.images[0] ? `url(${p.images[0].url})` : "none",
                       backgroundSize: "cover",
                       backgroundPosition: "center",
                     }}
                   />
-                  <div className="product-title" style={{ fontSize: 14, marginBottom: 4 }}>
+                  <div className="product-title product-card-title" style={{ fontSize: 13, marginBottom: 3 }}>
                     {localized(p.title_ru, p.title_tj)}
                   </div>
                   <div className="price" style={{ fontSize: 13 }}>

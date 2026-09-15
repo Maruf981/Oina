@@ -1693,7 +1693,6 @@ function HomeInner() {
           className="products-grid"
           style={{
             display: "grid",
-            gap: 20,
           }}
         >
           {productsLoading && (
@@ -1723,7 +1722,7 @@ function HomeInner() {
                   aspectRatio: "var(--card-aspect)",
                   background: "var(--surface)",
                   border: "none",
-                  margin: "-12px -12px 12px -12px",
+                  margin: "calc(var(--card-pad) * -1) calc(var(--card-pad) * -1) 8px",
                 }}
               >
                 <AutoSlideImage images={p.images} alt={localized(p.title_ru, p.title_tj)} onClick={() => router.push(`/product/${p.id}`)} />
@@ -1946,7 +1945,7 @@ function HomeInner() {
 
                 <div
                   onClick={() => router.push(`/product/${p.id}`)}
-                  className="product-title"
+                  className="product-title product-card-title"
                   style={{
                     fontSize: 14,
                     fontWeight: 500,
@@ -1961,10 +1960,6 @@ function HomeInner() {
                   title={localized(p.title_ru, p.title_tj)}
                 >
                   {localized(p.title_ru, p.title_tj)}
-                </div>
-
-                <div style={{ fontSize: 13, color: "var(--text-muted)", letterSpacing: "0.04em", marginTop: -2, marginBottom: 6 }}>
-                  Арт. {p.catalog_number}
                 </div>
 
                 <div style={{ marginTop: 2, marginBottom: 8, display: "flex", alignItems: "center" }}>
@@ -2021,18 +2016,11 @@ function HomeInner() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
-                    paddingTop: 8,
+                    paddingTop: 6,
                     borderTop: "1px solid var(--line)",
-                    minHeight: 26,
+                    minHeight: 22,
                   }}
                 >
-                  {!isMobile && (
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-                      <span>🚚</span>
-                      <span>{city === "dushanbe" ? (lang === "ru" ? "Завтра" : "Пагоҳ") : (lang === "ru" ? "В регион" : "Ба минтақа")}</span>
-                    </div>
-                  )}
                   <StarRating avgRating={p.avg_rating} reviewCount={p.review_count} />
                 </div>
             </div>
@@ -2373,7 +2361,7 @@ function AutoSlideImage({ images, onClick, alt }: { images: { url: string; media
           src={current.url}
           alt={alt}
           fill
-          sizes="(max-width: 640px) 50vw, 300px"
+          sizes="(max-width: 640px) 50vw, (max-width: 1080px) 20vw, 17vw"
           style={{ objectFit: "contain", cursor: "pointer" }}
           onClick={onClick}
         />

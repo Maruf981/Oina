@@ -8,6 +8,7 @@ import { CityProvider } from "./city-context";
 import { ThemeSync } from "./theme-sync";
 import { BottomNav } from "./bottom-nav";
 import { SupportWidget } from "./support-widget";
+import { SiteFooter } from "./site-footer";
 import Script from "next/script";
 
 export const metadata: Metadata = {
@@ -59,6 +60,7 @@ export default function RootLayout({
             <AuthProvider>
               <CartProvider>
                 {children}
+                <SiteFooter />
                 <BottomNav />
                 <SupportWidget />
               </CartProvider>
