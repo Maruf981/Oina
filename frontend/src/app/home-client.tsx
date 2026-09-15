@@ -869,7 +869,7 @@ function HomeInner() {
                   padding: "10px 0",
                   background: "transparent",
                   border: "none",
-                  borderBottom: "1px solid var(--line)",
+                  borderBottom: "1px solid var(--header-line)",
                   color: "var(--text)",
                   fontFamily: "var(--font-body)",
                   fontSize: 14,
@@ -884,10 +884,10 @@ function HomeInner() {
               viewBox="0 0 20 20"
               style={{ cursor: "pointer", flexShrink: 0 }}
             >
-              <line x1="3" y1="6" x2="17" y2="6" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
-              <circle cx="12" cy="6" r="2" fill="var(--bg)" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
-              <line x1="3" y1="14" x2="17" y2="14" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
-              <circle cx="8" cy="14" r="2" fill="var(--bg)" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
+              <line x1="3" y1="6" x2="17" y2="6" stroke={filtersOpen ? "var(--accent)" : "var(--header-line)"} strokeWidth="1" />
+              <circle cx="12" cy="6" r="2" fill="var(--bg)" stroke={filtersOpen ? "var(--accent)" : "var(--header-line)"} strokeWidth="1" />
+              <line x1="3" y1="14" x2="17" y2="14" stroke={filtersOpen ? "var(--accent)" : "var(--header-line)"} strokeWidth="1" />
+              <circle cx="8" cy="14" r="2" fill="var(--bg)" stroke={filtersOpen ? "var(--accent)" : "var(--header-line)"} strokeWidth="1" />
             </svg>
           </div>
 
@@ -967,150 +967,6 @@ function HomeInner() {
             </div>
           )}
 
-          {filtersOpen && (
-            <div style={{ display: "flex", gap: 16, marginTop: 16, flexWrap: "wrap" }}>
-              <input
-                type="number"
-                placeholder={lang === "ru" ? "Цена от" : "Нарх аз"}
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-                style={{
-                  width: 120,
-                  padding: "8px",
-                  background: "var(--surface)",
-                  border: "none",
-                  color: "var(--text)",
-                  fontSize: 13,
-                }}
-              />
-              <input
-                type="number"
-                placeholder={lang === "ru" ? "Цена до" : "Нарх то"}
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                style={{
-                  width: 120,
-                  padding: "8px",
-                  background: "var(--surface)",
-                  border: "none",
-                  color: "var(--text)",
-                  fontSize: 13,
-                }}
-              />
-              <select
-                value={filterSize}
-                onChange={(e) => setFilterSize(e.target.value)}
-                style={{
-                  padding: "8px",
-                  background: "var(--surface)",
-                  border: "none",
-                  color: "var(--text)",
-                  fontSize: 13,
-                }}
-              >
-                <option value="">{lang === "ru" ? "Все размеры" : "Ҳама андозаҳо"}</option>
-                {filterOptions.sizes.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                {filterOptions.colors.map((c) => (
-                  <span
-                    key={c.name}
-                    onClick={() => setFilterColor(filterColor === c.name ? "" : c.name)}
-                    title={c.name}
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: "50%",
-                      background: c.hex,
-                      cursor: "pointer",
-                      display: "inline-block",
-                      boxShadow: filterColor === c.name ? "0 0 0 2px var(--accent)" : "0 0 0 1px var(--line)",
-                    }}
-                  />
-                ))}
-              </div>
-              <select
-                value={filterMaterial}
-                onChange={(e) => setFilterMaterial(e.target.value)}
-                style={{
-                  padding: "8px",
-                  background: "var(--surface)",
-                  border: "none",
-                  color: "var(--text)",
-                  fontSize: 13,
-                }}
-              >
-                <option value="">{lang === "ru" ? "Материал" : "Матоъ"}</option>
-                {filterOptions.materials.map((m) => (
-                  <option key={m.ru} value={m.ru}>{lang === "ru" ? m.ru : m.tj}</option>
-                ))}
-              </select>
-              <select
-                value={filterSeason}
-                onChange={(e) => setFilterSeason(e.target.value)}
-                style={{
-                  padding: "8px",
-                  background: "var(--surface)",
-                  border: "none",
-                  color: "var(--text)",
-                  fontSize: 13,
-                }}
-              >
-                <option value="">{lang === "ru" ? "Сезон" : "Мавсим"}</option>
-                {filterOptions.seasons.map((s) => (
-                  <option key={s.ru} value={s.ru}>{lang === "ru" ? s.ru : s.tj}</option>
-                ))}
-              </select>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={filterBrandOnly}
-                  onChange={(e) => setFilterBrandOnly(e.target.checked)}
-                />
-                {lang === "ru" ? "Только бренды" : "Танҳо брендҳо"}
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={filterInStock}
-                  onChange={(e) => setFilterInStock(e.target.checked)}
-                />
-                {lang === "ru" ? "Только в наличии" : "Танҳо мавҷуд"}
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={filterOnSale}
-                  onChange={(e) => setFilterOnSale(e.target.checked)}
-                />
-                {lang === "ru" ? "Только со скидкой" : "Танҳо бо тахфиф"}
-              </label>
-              <span
-                onClick={() => {
-                  setMinPrice("");
-                  setMaxPrice("");
-                  setFilterSize("");
-                  setFilterColor("");
-                  setFilterMaterial("");
-                  setFilterSeason("");
-                  setFilterBrandOnly(false);
-                  setFilterInStock(false);
-                  setFilterOnSale(false);
-                }}
-                style={{
-                  cursor: "pointer",
-                  fontFamily: "var(--font-label)",
-                  fontSize: 12,
-                  color: "var(--text-muted)",
-                  alignSelf: "center",
-                }}
-              >
-                {lang === "ru" ? "Сбросить" : "Тоза кардан"}
-              </span>
-            </div>
-          )}
         </div>
         </div>
 
@@ -1282,6 +1138,192 @@ function HomeInner() {
       </div>
     </nav>
 
+
+      {filtersOpen && (
+        <div
+          onClick={() => setFiltersOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 160,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="filters-drawer"
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: "min(360px, 88vw)",
+              background: "var(--bg)",
+              borderLeft: "1px solid var(--line)",
+              padding: "20px",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontFamily: "var(--font-label)", fontSize: 14, letterSpacing: "0.04em", color: "var(--text)" }}>
+                {lang === "ru" ? "Фильтры" : "Филтрҳо"}
+              </span>
+              <span
+                onClick={() => setFiltersOpen(false)}
+                style={{ cursor: "pointer", fontSize: 22, lineHeight: 1, color: "var(--text-muted)" }}
+              >
+                ×
+              </span>
+            </div>
+
+                  <div style={{ display: "flex", gap: 16, marginTop: 16, flexWrap: "wrap" }}>
+                    <input
+                      type="number"
+                      placeholder={lang === "ru" ? "Цена от" : "Нарх аз"}
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      style={{
+                        width: 120,
+                        padding: "8px",
+                        background: "var(--surface)",
+                        border: "none",
+                        color: "var(--text)",
+                        fontSize: 13,
+                      }}
+                    />
+                    <input
+                      type="number"
+                      placeholder={lang === "ru" ? "Цена до" : "Нарх то"}
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      style={{
+                        width: 120,
+                        padding: "8px",
+                        background: "var(--surface)",
+                        border: "none",
+                        color: "var(--text)",
+                        fontSize: 13,
+                      }}
+                    />
+                    <select
+                      value={filterSize}
+                      onChange={(e) => setFilterSize(e.target.value)}
+                      style={{
+                        padding: "8px",
+                        background: "var(--surface)",
+                        border: "none",
+                        color: "var(--text)",
+                        fontSize: 13,
+                      }}
+                    >
+                      <option value="">{lang === "ru" ? "Все размеры" : "Ҳама андозаҳо"}</option>
+                      {filterOptions.sizes.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      {filterOptions.colors.map((c) => (
+                        <span
+                          key={c.name}
+                          onClick={() => setFilterColor(filterColor === c.name ? "" : c.name)}
+                          title={c.name}
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: "50%",
+                            background: c.hex,
+                            cursor: "pointer",
+                            display: "inline-block",
+                            boxShadow: filterColor === c.name ? "0 0 0 2px var(--accent)" : "0 0 0 1px var(--line)",
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <select
+                      value={filterMaterial}
+                      onChange={(e) => setFilterMaterial(e.target.value)}
+                      style={{
+                        padding: "8px",
+                        background: "var(--surface)",
+                        border: "none",
+                        color: "var(--text)",
+                        fontSize: 13,
+                      }}
+                    >
+                      <option value="">{lang === "ru" ? "Материал" : "Матоъ"}</option>
+                      {filterOptions.materials.map((m) => (
+                        <option key={m.ru} value={m.ru}>{lang === "ru" ? m.ru : m.tj}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={filterSeason}
+                      onChange={(e) => setFilterSeason(e.target.value)}
+                      style={{
+                        padding: "8px",
+                        background: "var(--surface)",
+                        border: "none",
+                        color: "var(--text)",
+                        fontSize: 13,
+                      }}
+                    >
+                      <option value="">{lang === "ru" ? "Сезон" : "Мавсим"}</option>
+                      {filterOptions.seasons.map((s) => (
+                        <option key={s.ru} value={s.ru}>{lang === "ru" ? s.ru : s.tj}</option>
+                      ))}
+                    </select>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={filterBrandOnly}
+                        onChange={(e) => setFilterBrandOnly(e.target.checked)}
+                      />
+                      {lang === "ru" ? "Только бренды" : "Танҳо брендҳо"}
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={filterInStock}
+                        onChange={(e) => setFilterInStock(e.target.checked)}
+                      />
+                      {lang === "ru" ? "Только в наличии" : "Танҳо мавҷуд"}
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={filterOnSale}
+                        onChange={(e) => setFilterOnSale(e.target.checked)}
+                      />
+                      {lang === "ru" ? "Только со скидкой" : "Танҳо бо тахфиф"}
+                    </label>
+                    <span
+                      onClick={() => {
+                        setMinPrice("");
+                        setMaxPrice("");
+                        setFilterSize("");
+                        setFilterColor("");
+                        setFilterMaterial("");
+                        setFilterSeason("");
+                        setFilterBrandOnly(false);
+                        setFilterInStock(false);
+                        setFilterOnSale(false);
+                      }}
+                      style={{
+                        cursor: "pointer",
+                        fontFamily: "var(--font-label)",
+                        fontSize: 12,
+                        color: "var(--text-muted)",
+                        alignSelf: "center",
+                      }}
+                    >
+                      {lang === "ru" ? "Сбросить" : "Тоза кардан"}
+                    </span>
+                  </div>
+          </div>
+        </div>
+      )}
 
       {isMobile && menuOpen && (
         <div
