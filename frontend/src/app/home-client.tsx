@@ -388,6 +388,22 @@ function HomeInner() {
     () => searchParams.get("recommended") === "1" || searchParams.get("recommended_only") === "true"
   );
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    const str = (key: string) => searchParams.get(key) || "";
+    const bool = (key: string) => searchParams.get(key) === "true";
+    setSearchQuery((prev) => (prev !== str("search") ? str("search") : prev));
+    setMinPrice((prev) => (prev !== str("min_price") ? str("min_price") : prev));
+    setMaxPrice((prev) => (prev !== str("max_price") ? str("max_price") : prev));
+    setFilterSize((prev) => (prev !== str("size") ? str("size") : prev));
+    setFilterColor((prev) => (prev !== str("color") ? str("color") : prev));
+    setFilterMaterial((prev) => (prev !== str("material") ? str("material") : prev));
+    setFilterSeason((prev) => (prev !== str("season") ? str("season") : prev));
+    setSortOption((prev) => (prev !== str("sort") ? str("sort") : prev));
+    setFilterBrandOnly((prev) => (prev !== bool("brand_only") ? bool("brand_only") : prev));
+    setFilterInStock((prev) => (prev !== bool("in_stock_only") ? bool("in_stock_only") : prev));
+    setFilterOnSale((prev) => (prev !== bool("on_sale_only") ? bool("on_sale_only") : prev));
+  }, [searchParams]);
   const t = translations[lang];
   const cart = useCart();
   const auth = useAuth();
