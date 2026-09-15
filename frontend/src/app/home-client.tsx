@@ -792,13 +792,14 @@ function HomeInner() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "24px 20px",
+            flexWrap: "wrap",
+            padding: "16px 20px",
             gap: 10,
             position: "relative",
           }}
         >
+        {isMobile && (
         <div
-          className="burger-icon-desktop-hide"
           onClick={() => setMenuOpen(!menuOpen)}
           style={{
             display: "flex",
@@ -813,9 +814,10 @@ function HomeInner() {
           <span style={{ height: 2, background: "var(--header-text)" }} />
           <span style={{ height: 2, background: "var(--header-text)" }} />
         </div>
+        )}
 
         <span
-          className="city-selector"
+          className="city-selector city-selector-hidden"
           onClick={toggleCity}
           style={{
             cursor: "pointer",
@@ -836,10 +838,14 @@ function HomeInner() {
           <span style={{ fontSize: 9 }}>▾</span>
         </span>
         <img
+          className="header-logo"
           src="/logo.png"
           alt="Oina.tj"
-          style={{ height: "clamp(28px, 8vw, 48px)", position: "absolute", left: "50%", transform: "translateX(-50%)" }}
+          onClick={() => router.push("/")}
+          style={{ height: "clamp(28px, 8vw, 48px)", cursor: "pointer", flexShrink: 0 }}
         />
+
+        <div className="header-search-slot" style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }} />
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
           <span
@@ -1276,7 +1282,7 @@ function HomeInner() {
         )}
       </div>
 
-      {menuOpen && (
+      {isMobile && menuOpen && (
         <div
           onClick={() => setMenuOpen(false)}
           style={{
