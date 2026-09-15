@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import Image from "next/image";
 import { translations, Lang } from "./translations";
 import { useCart } from "./cart-context";
+import { useCategories } from "./categories-context";
 import { useAuth } from "./auth-context";
 import { useTheme } from "./theme-context";
 import { useLang } from "./lang-context";
@@ -315,18 +316,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 function HomeInner() {
   const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { categories } = useCategories();
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(() => {
     const v = searchParams.get("category_id");
     return v ? Number(v) : null;
   });
   const [openMegaMenu, setOpenMegaMenu] = useState<number | null>(null);
-  useEffect(() => {
-    fetch(`${API_URL}/categories/`)
-      .then((r) => r.json())
-      .then(setCategories)
-      .catch(() => setCategories([]));
-  }, []);
   const [banners, setBanners] = useState<Banner[]>([]);
   useEffect(() => {
     fetch(`${API_URL}/banners/`)
