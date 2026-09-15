@@ -308,3 +308,9 @@ input:-webkit-autofill:active {
     width: 100%;
   }
 }
+
+@media (max-width: 640px) {
+  .header-cart-icon {
+    display: none !important;
+  }
+}

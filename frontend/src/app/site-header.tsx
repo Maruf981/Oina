@@ -165,6 +165,7 @@ export function SiteHeader() {
           </span>
 
           <div
+            className="header-cart-icon"
             onClick={() => router.push("/cart")}
             style={{ cursor: "pointer", position: "relative", width: 26, height: 26, flexShrink: 0 }}
           >

@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "./auth-context";
+import { useCart } from "./cart-context";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -10,13 +11,13 @@ const tabsByLang = {
   ru: [
     { key: "home", label: "Главная", path: "/", icon: "home" },
     { key: "favorites", label: "Избранное", path: "/favorites", icon: "heart" },
-    { key: "orders", label: "Заказы", path: "/orders", icon: "package" },
+    { key: "cart", label: "Корзина", path: "/cart", icon: "cart" },
     { key: "account", label: "Профиль", path: "/account", icon: "user" },
   ],
   tj: [
     { key: "home", label: "Асосӣ", path: "/", icon: "home" },
     { key: "favorites", label: "Интихобҳо", path: "/favorites", icon: "heart" },
-    { key: "orders", label: "Фармоишҳо", path: "/orders", icon: "package" },
+    { key: "cart", label: "Сабад", path: "/cart", icon: "cart" },
     { key: "account", label: "Уток", path: "/account", icon: "user" },
   ],
 };
@@ -40,6 +41,14 @@ function Icon({ name, active }: { name: string; active: boolean }) {
           stroke={color}
           strokeWidth="1.4"
         />
+      </svg>
+    );
+  }
+  if (name === "cart") {
+    return (
+      <svg width="21" height="21" viewBox="0 0 30 30" fill="none" stroke={color} strokeWidth="1.6">
+        <path d="M8 13 C8 13 8 11 10 11 L20 11 C22 11 22 13 22 13 L21 25 C21 25.5 20.5 26 20 26 L10 26 C9.5 26 9 25.5 9 25 Z" strokeLinejoin="round" />
+        <path d="M10 11 C10 8 12.2 6 15 6 C17.8 6 20 8 20 11" />
       </svg>
     );
   }
@@ -89,9 +98,9 @@ export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
+  const cart = useCart();
   const [lang, setLang] = useState<"ru" | "tj">("ru");
   const [favoritesCount, setFavoritesCount] = useState(0);
-  const [ordersCount, setOrdersCount] = useState(0);
   useEffect(() => {
     const saved = localStorage.getItem("lang") as "ru" | "tj" | null;
     if (saved) setLang(saved);
@@ -110,7 +119,6 @@ export function BottomNav() {
       } else {
         setFavoritesCount(0);
       }
-      setOrdersCount(0);
       return;
     }
     fetch(`${API_URL}/favorites/`, { headers: { Authorization: `Bearer ${auth.token}` } })
@@ -118,10 +126,6 @@ export function BottomNav() {
       .then((data) => setFavoritesCount(Array.isArray(data) ? data.length : 0))
       .catch(() => setFavoritesCount(0));
 
-    fetch(`${API_URL}/orders/my`, { headers: { Authorization: `Bearer ${auth.token}` } })
-      .then((res) => res.json())
-      .then((data) => setOrdersCount(Array.isArray(data) ? data.length : 0))
-      .catch(() => setOrdersCount(0));
   }, [auth.token, pathname]);
 
   if (pathname.startsWith("/admin")) return null;
@@ -145,7 +149,7 @@ export function BottomNav() {
       >
         {tabs.map((tab) => {
           const active = tab.path === "/" ? pathname === "/" : pathname.startsWith(tab.path);
-          const count = tab.key === "favorites" ? favoritesCount : tab.key === "orders" ? ordersCount : 0;
+          const count = tab.key === "favorites" ? favoritesCount : tab.key === "cart" ? cart.totalCount : 0;
           return (
             <div
               key={tab.key}
