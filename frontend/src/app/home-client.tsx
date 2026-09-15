@@ -773,7 +773,7 @@ function HomeInner() {
   }, [productsLoading, products]);
 
   return (
-    <div data-theme={theme} style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh", paddingTop: 124 }}>
+    <div data-theme={theme} className="home-root" style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <nav
         style={{
           position: "fixed",
@@ -793,7 +793,7 @@ function HomeInner() {
             alignItems: "center",
             justifyContent: "space-between",
             flexWrap: "wrap",
-            padding: "16px 20px",
+            padding: "16px 40px",
             gap: 10,
             position: "relative",
           }}

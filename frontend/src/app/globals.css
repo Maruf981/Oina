@@ -376,10 +376,42 @@ input:-webkit-autofill:active {
 @media (max-width: 640px) {
   .header-logo {
     position: absolute !important;
+    top: 16px !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
   }
   .header-search-slot {
-    display: none !important;
+    order: 10;
+    flex-basis: 100% !important;
+    margin-top: 6px;
+  }
+
+  .header-search-slot input {
+    font-size: 13px !important;
+    padding: 8px 0 !important;
+  }
+}
+
+.home-root {
+  padding-top: 124px;
+}
+
+@media (max-width: 640px) {
+  .home-root {
+    padding-top: 152px;
+  }
+}
+
+@media (min-width: 641px) {
+  .header-search-slot {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-root > nav > div:first-child {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
   }
 }
