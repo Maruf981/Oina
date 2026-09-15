@@ -392,7 +392,7 @@ export function SiteHeader() {
 
             <span
               className="header-profile-icon"
-              onClick={() => router.push("/account")}
+              onClick={() => auth.customer ? router.push("/account") : router.push("/?login=1")}
               style={{ cursor: "pointer", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
               title={auth.customer ? auth.customer.name || "Профиль" : lang === "ru" ? "Войти" : "Даромадан"}
             >
