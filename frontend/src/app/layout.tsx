@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { CartProvider } from "./cart-context";
+import { CategoriesProvider } from "./categories-context";
 import { AuthProvider } from "./auth-context";
 import { ThemeProvider } from "./theme-context";
 import { LangProvider } from "./lang-context";
@@ -59,10 +60,12 @@ export default function RootLayout({
             <CityProvider>
             <AuthProvider>
               <CartProvider>
+                <CategoriesProvider>
                 {children}
                 <SiteFooter />
                 <BottomNav />
                 <SupportWidget />
+                </CategoriesProvider>
               </CartProvider>
             </AuthProvider>
             </CityProvider>
