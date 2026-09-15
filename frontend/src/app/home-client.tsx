@@ -845,7 +845,274 @@ function HomeInner() {
           style={{ height: "clamp(28px, 8vw, 48px)", cursor: "pointer", flexShrink: 0 }}
         />
 
-        <div className="header-search-slot" style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }} />
+        <div className="header-search-slot" style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ width: "100%", position: "relative" }} ref={searchContainerRef}>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                saveSearchToHistory(searchQuery);
+                setShowSuggestions(false);
+              }}
+              style={{ flex: 1 }}
+            >
+              <input
+                type="text"
+                autoComplete="off"
+                name="oina-site-search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setShowSuggestions(true)}
+                placeholder={lang === "ru" ? "Поиск товаров..." : "Ҷустуҷӯи молҳо..."}
+                style={{
+                  width: "100%",
+                  padding: "10px 0",
+                  background: "transparent",
+                  border: "none",
+                  borderBottom: "1px solid var(--line)",
+                  color: "var(--text)",
+                  fontFamily: "var(--font-body)",
+                  fontSize: 14,
+                  outline: "none",
+                }}
+              />
+            </form>
+            <svg
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              style={{ cursor: "pointer", flexShrink: 0 }}
+            >
+              <line x1="3" y1="6" x2="17" y2="6" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
+              <circle cx="12" cy="6" r="2" fill="var(--bg)" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
+              <line x1="3" y1="14" x2="17" y2="14" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
+              <circle cx="8" cy="14" r="2" fill="var(--bg)" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
+            </svg>
+          </div>
+
+          {showSuggestions && (searchQuery.trim() ? searchSuggestions.length > 0 : searchHistory.length > 0) && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 40,
+                right: 40,
+                background: "var(--bg)",
+                border: "none",
+                borderTop: "none",
+                zIndex: 20,
+                maxHeight: 360,
+                overflowY: "auto",
+              }}
+            >
+              {searchQuery.trim() ? (
+                searchSuggestions.map((p) => (
+                  <div
+                    key={p.id}
+                    onMouseDown={() => {
+                      saveSearchToHistory(searchQuery);
+                      setShowSuggestions(false);
+                      router.push(`/product/${p.id}`);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "10px 16px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid var(--line)",
+                    }}
+                  >
+                    {(() => {
+                      const thumb = p.images?.find((img) => img.media_type !== "video");
+                      return thumb ? (
+                        <img
+                          src={thumb.url}
+                          alt={p.title_ru}
+                          style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
+                        />
+                      ) : null;
+                    })()}
+                    <span style={{ flex: 1, fontSize: 13, color: "var(--text)" }}>
+                      {lang === "ru" ? p.title_ru : p.title_tj || p.title_ru}
+                    </span>
+                    <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{p.price} с.</span>
+                  </div>
+                ))
+              ) : (
+                searchHistory.map((h) => (
+                  <div
+                    key={h}
+                    onMouseDown={() => {
+                      setSearchQuery(h);
+                      setShowSuggestions(false);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "10px 16px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid var(--line)",
+                      fontSize: 13,
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    <span>🕓</span>
+                    <span>{h}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {filtersOpen && (
+            <div style={{ display: "flex", gap: 16, marginTop: 16, flexWrap: "wrap" }}>
+              <input
+                type="number"
+                placeholder={lang === "ru" ? "Цена от" : "Нарх аз"}
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                style={{
+                  width: 120,
+                  padding: "8px",
+                  background: "var(--surface)",
+                  border: "none",
+                  color: "var(--text)",
+                  fontSize: 13,
+                }}
+              />
+              <input
+                type="number"
+                placeholder={lang === "ru" ? "Цена до" : "Нарх то"}
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                style={{
+                  width: 120,
+                  padding: "8px",
+                  background: "var(--surface)",
+                  border: "none",
+                  color: "var(--text)",
+                  fontSize: 13,
+                }}
+              />
+              <select
+                value={filterSize}
+                onChange={(e) => setFilterSize(e.target.value)}
+                style={{
+                  padding: "8px",
+                  background: "var(--surface)",
+                  border: "none",
+                  color: "var(--text)",
+                  fontSize: 13,
+                }}
+              >
+                <option value="">{lang === "ru" ? "Все размеры" : "Ҳама андозаҳо"}</option>
+                {filterOptions.sizes.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                {filterOptions.colors.map((c) => (
+                  <span
+                    key={c.name}
+                    onClick={() => setFilterColor(filterColor === c.name ? "" : c.name)}
+                    title={c.name}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: "50%",
+                      background: c.hex,
+                      cursor: "pointer",
+                      display: "inline-block",
+                      boxShadow: filterColor === c.name ? "0 0 0 2px var(--accent)" : "0 0 0 1px var(--line)",
+                    }}
+                  />
+                ))}
+              </div>
+              <select
+                value={filterMaterial}
+                onChange={(e) => setFilterMaterial(e.target.value)}
+                style={{
+                  padding: "8px",
+                  background: "var(--surface)",
+                  border: "none",
+                  color: "var(--text)",
+                  fontSize: 13,
+                }}
+              >
+                <option value="">{lang === "ru" ? "Материал" : "Матоъ"}</option>
+                {filterOptions.materials.map((m) => (
+                  <option key={m.ru} value={m.ru}>{lang === "ru" ? m.ru : m.tj}</option>
+                ))}
+              </select>
+              <select
+                value={filterSeason}
+                onChange={(e) => setFilterSeason(e.target.value)}
+                style={{
+                  padding: "8px",
+                  background: "var(--surface)",
+                  border: "none",
+                  color: "var(--text)",
+                  fontSize: 13,
+                }}
+              >
+                <option value="">{lang === "ru" ? "Сезон" : "Мавсим"}</option>
+                {filterOptions.seasons.map((s) => (
+                  <option key={s.ru} value={s.ru}>{lang === "ru" ? s.ru : s.tj}</option>
+                ))}
+              </select>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={filterBrandOnly}
+                  onChange={(e) => setFilterBrandOnly(e.target.checked)}
+                />
+                {lang === "ru" ? "Только бренды" : "Танҳо брендҳо"}
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={filterInStock}
+                  onChange={(e) => setFilterInStock(e.target.checked)}
+                />
+                {lang === "ru" ? "Только в наличии" : "Танҳо мавҷуд"}
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={filterOnSale}
+                  onChange={(e) => setFilterOnSale(e.target.checked)}
+                />
+                {lang === "ru" ? "Только со скидкой" : "Танҳо бо тахфиф"}
+              </label>
+              <span
+                onClick={() => {
+                  setMinPrice("");
+                  setMaxPrice("");
+                  setFilterSize("");
+                  setFilterColor("");
+                  setFilterMaterial("");
+                  setFilterSeason("");
+                  setFilterBrandOnly(false);
+                  setFilterInStock(false);
+                  setFilterOnSale(false);
+                }}
+                style={{
+                  cursor: "pointer",
+                  fontFamily: "var(--font-label)",
+                  fontSize: 12,
+                  color: "var(--text-muted)",
+                  alignSelf: "center",
+                }}
+              >
+                {lang === "ru" ? "Сбросить" : "Тоза кардан"}
+              </span>
+            </div>
+          )}
+        </div>
+        </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
           <span
@@ -1015,272 +1282,6 @@ function HomeInner() {
       </div>
     </nav>
 
-      <div style={{ padding: "16px 40px", borderBottom: "1px solid var(--line)", position: "relative" }} ref={searchContainerRef}>
-        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              saveSearchToHistory(searchQuery);
-              setShowSuggestions(false);
-            }}
-            style={{ flex: 1 }}
-          >
-            <input
-              type="text"
-              autoComplete="off"
-              name="oina-site-search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setShowSuggestions(true)}
-              placeholder={lang === "ru" ? "Поиск товаров..." : "Ҷустуҷӯи молҳо..."}
-              style={{
-                width: "100%",
-                padding: "10px 0",
-                background: "transparent",
-                border: "none",
-                borderBottom: "1px solid var(--line)",
-                color: "var(--text)",
-                fontFamily: "var(--font-body)",
-                fontSize: 14,
-                outline: "none",
-              }}
-            />
-          </form>
-          <svg
-            onClick={() => setFiltersOpen(!filtersOpen)}
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            style={{ cursor: "pointer", flexShrink: 0 }}
-          >
-            <line x1="3" y1="6" x2="17" y2="6" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
-            <circle cx="12" cy="6" r="2" fill="var(--bg)" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
-            <line x1="3" y1="14" x2="17" y2="14" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
-            <circle cx="8" cy="14" r="2" fill="var(--bg)" stroke={filtersOpen ? "var(--accent)" : "var(--text-muted)"} strokeWidth="1" />
-          </svg>
-        </div>
-
-        {showSuggestions && (searchQuery.trim() ? searchSuggestions.length > 0 : searchHistory.length > 0) && (
-          <div
-            style={{
-              position: "absolute",
-              top: "100%",
-              left: 40,
-              right: 40,
-              background: "var(--bg)",
-              border: "none",
-              borderTop: "none",
-              zIndex: 20,
-              maxHeight: 360,
-              overflowY: "auto",
-            }}
-          >
-            {searchQuery.trim() ? (
-              searchSuggestions.map((p) => (
-                <div
-                  key={p.id}
-                  onMouseDown={() => {
-                    saveSearchToHistory(searchQuery);
-                    setShowSuggestions(false);
-                    router.push(`/product/${p.id}`);
-                  }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "10px 16px",
-                    cursor: "pointer",
-                    borderBottom: "1px solid var(--line)",
-                  }}
-                >
-                  {(() => {
-                    const thumb = p.images?.find((img) => img.media_type !== "video");
-                    return thumb ? (
-                      <img
-                        src={thumb.url}
-                        alt={p.title_ru}
-                        style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
-                      />
-                    ) : null;
-                  })()}
-                  <span style={{ flex: 1, fontSize: 13, color: "var(--text)" }}>
-                    {lang === "ru" ? p.title_ru : p.title_tj || p.title_ru}
-                  </span>
-                  <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{p.price} с.</span>
-                </div>
-              ))
-            ) : (
-              searchHistory.map((h) => (
-                <div
-                  key={h}
-                  onMouseDown={() => {
-                    setSearchQuery(h);
-                    setShowSuggestions(false);
-                  }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "10px 16px",
-                    cursor: "pointer",
-                    borderBottom: "1px solid var(--line)",
-                    fontSize: 13,
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  <span>🕓</span>
-                  <span>{h}</span>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {filtersOpen && (
-          <div style={{ display: "flex", gap: 16, marginTop: 16, flexWrap: "wrap" }}>
-            <input
-              type="number"
-              placeholder={lang === "ru" ? "Цена от" : "Нарх аз"}
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              style={{
-                width: 120,
-                padding: "8px",
-                background: "var(--surface)",
-                border: "none",
-                color: "var(--text)",
-                fontSize: 13,
-              }}
-            />
-            <input
-              type="number"
-              placeholder={lang === "ru" ? "Цена до" : "Нарх то"}
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              style={{
-                width: 120,
-                padding: "8px",
-                background: "var(--surface)",
-                border: "none",
-                color: "var(--text)",
-                fontSize: 13,
-              }}
-            />
-            <select
-              value={filterSize}
-              onChange={(e) => setFilterSize(e.target.value)}
-              style={{
-                padding: "8px",
-                background: "var(--surface)",
-                border: "none",
-                color: "var(--text)",
-                fontSize: 13,
-              }}
-            >
-              <option value="">{lang === "ru" ? "Все размеры" : "Ҳама андозаҳо"}</option>
-              {filterOptions.sizes.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              {filterOptions.colors.map((c) => (
-                <span
-                  key={c.name}
-                  onClick={() => setFilterColor(filterColor === c.name ? "" : c.name)}
-                  title={c.name}
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: "50%",
-                    background: c.hex,
-                    cursor: "pointer",
-                    display: "inline-block",
-                    boxShadow: filterColor === c.name ? "0 0 0 2px var(--accent)" : "0 0 0 1px var(--line)",
-                  }}
-                />
-              ))}
-            </div>
-            <select
-              value={filterMaterial}
-              onChange={(e) => setFilterMaterial(e.target.value)}
-              style={{
-                padding: "8px",
-                background: "var(--surface)",
-                border: "none",
-                color: "var(--text)",
-                fontSize: 13,
-              }}
-            >
-              <option value="">{lang === "ru" ? "Материал" : "Матоъ"}</option>
-              {filterOptions.materials.map((m) => (
-                <option key={m.ru} value={m.ru}>{lang === "ru" ? m.ru : m.tj}</option>
-              ))}
-            </select>
-            <select
-              value={filterSeason}
-              onChange={(e) => setFilterSeason(e.target.value)}
-              style={{
-                padding: "8px",
-                background: "var(--surface)",
-                border: "none",
-                color: "var(--text)",
-                fontSize: 13,
-              }}
-            >
-              <option value="">{lang === "ru" ? "Сезон" : "Мавсим"}</option>
-              {filterOptions.seasons.map((s) => (
-                <option key={s.ru} value={s.ru}>{lang === "ru" ? s.ru : s.tj}</option>
-              ))}
-            </select>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={filterBrandOnly}
-                onChange={(e) => setFilterBrandOnly(e.target.checked)}
-              />
-              {lang === "ru" ? "Только бренды" : "Танҳо брендҳо"}
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={filterInStock}
-                onChange={(e) => setFilterInStock(e.target.checked)}
-              />
-              {lang === "ru" ? "Только в наличии" : "Танҳо мавҷуд"}
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={filterOnSale}
-                onChange={(e) => setFilterOnSale(e.target.checked)}
-              />
-              {lang === "ru" ? "Только со скидкой" : "Танҳо бо тахфиф"}
-            </label>
-            <span
-              onClick={() => {
-                setMinPrice("");
-                setMaxPrice("");
-                setFilterSize("");
-                setFilterColor("");
-                setFilterMaterial("");
-                setFilterSeason("");
-                setFilterBrandOnly(false);
-                setFilterInStock(false);
-                setFilterOnSale(false);
-              }}
-              style={{
-                cursor: "pointer",
-                fontFamily: "var(--font-label)",
-                fontSize: 12,
-                color: "var(--text-muted)",
-                alignSelf: "center",
-              }}
-            >
-              {lang === "ru" ? "Сбросить" : "Тоза кардан"}
-            </span>
-          </div>
-        )}
-      </div>
 
       {isMobile && menuOpen && (
         <div
