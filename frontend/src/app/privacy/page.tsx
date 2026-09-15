@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { BackButton } from "../back-button";
 import { useRouter } from "next/navigation";
 import { translations, Lang } from "../translations";
-import { Footer } from "../footer";
 
 export default function PrivacyPage() {
   const router = useRouter();
@@ -104,7 +103,6 @@ export default function PrivacyPage() {
           </div>
         )}
       </div>
-      <Footer lang={lang} />
     </div>
   );
 }

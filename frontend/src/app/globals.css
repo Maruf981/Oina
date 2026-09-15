@@ -362,3 +362,9 @@ input:-webkit-autofill:active {
     display: none !important;
   }
 }
+
+@media (max-width: 640px) {
+  .active-filter-chips {
+    padding: 0 12px 10px !important;
+  }
+}

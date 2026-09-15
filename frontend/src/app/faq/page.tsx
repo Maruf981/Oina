@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { BackButton } from "../back-button";
 import { useRouter } from "next/navigation";
 import { translations, Lang } from "../translations";
-import { Footer } from "../footer";
 
 const faqItemsRu = [
   {
@@ -137,7 +136,6 @@ export default function FaqPage() {
           ))}
         </div>
       </div>
-      <Footer lang={lang} />
     </div>
   );
 }

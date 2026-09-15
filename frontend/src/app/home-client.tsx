@@ -1688,6 +1688,62 @@ function HomeInner() {
       </div>
 
 
+      {(() => {
+        const chips: { label: string; clear: () => void }[] = [];
+        if (minPrice) chips.push({ label: (lang === "ru" ? "\u043e\u0442 " : "\u0430\u0437 ") + minPrice + " \u0441\u043c\u043d", clear: () => setMinPrice("") });
+        if (maxPrice) chips.push({ label: (lang === "ru" ? "\u0434\u043e " : "\u0442\u043e ") + maxPrice + " \u0441\u043c\u043d", clear: () => setMaxPrice("") });
+        if (filterSize) chips.push({ label: filterSize, clear: () => setFilterSize("") });
+        if (filterColor) chips.push({ label: filterColor, clear: () => setFilterColor("") });
+        if (filterMaterial) chips.push({ label: filterMaterial, clear: () => setFilterMaterial("") });
+        if (filterSeason) chips.push({ label: filterSeason, clear: () => setFilterSeason("") });
+        if (filterBrandOnly) chips.push({ label: lang === "ru" ? "\u0422\u043e\u043b\u044c\u043a\u043e \u0431\u0440\u0435\u043d\u0434\u044b" : "\u0422\u0430\u043d\u04b3\u043e \u0431\u0440\u0435\u043d\u0434\u04b3\u043e", clear: () => setFilterBrandOnly(false) });
+        if (filterInStock) chips.push({ label: lang === "ru" ? "\u0412 \u043d\u0430\u043b\u0438\u0447\u0438\u0438" : "\u041c\u0430\u0432\u04b7\u0443\u0434", clear: () => setFilterInStock(false) });
+        if (filterOnSale) chips.push({ label: lang === "ru" ? "\u0421\u043e \u0441\u043a\u0438\u0434\u043a\u043e\u0439" : "\u0411\u043e \u0442\u0430\u0445\u0444\u0438\u0444", clear: () => setFilterOnSale(false) });
+        if (chips.length === 0) return null;
+        return (
+          <div className="active-filter-chips" style={{ padding: "0 40px 12px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {chips.map((c, i) => (
+              <span
+                key={i}
+                onClick={c.clear}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "5px 10px",
+                  background: "var(--surface)",
+                  color: "var(--text)",
+                  fontSize: 12,
+                  fontFamily: "var(--font-label)",
+                  borderRadius: 8,
+                  boxShadow: "0 0 0 1px var(--accent)",
+                  cursor: "pointer",
+                }}
+              >
+                {c.label}
+                <span style={{ color: "var(--text-muted)", fontSize: 14, lineHeight: 1 }}>×</span>
+              </span>
+            ))}
+            <span
+              onClick={() => {
+                setMinPrice("");
+                setMaxPrice("");
+                setFilterSize("");
+                setFilterColor("");
+                setFilterMaterial("");
+                setFilterSeason("");
+                setFilterBrandOnly(false);
+                setFilterInStock(false);
+                setFilterOnSale(false);
+              }}
+              style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "underline", cursor: "pointer" }}
+            >
+              {lang === "ru" ? "\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u0432\u0441\u0451" : "\u0422\u043e\u0437\u0430 \u043a\u0430\u0440\u0434\u0430\u043d"}
+            </span>
+          </div>
+        );
+      })()}
+
         <div id="catalog-section" className="catalog-container" style={{ padding: "0 40px 40px" }}>
         <div
           className="products-grid"
@@ -1714,7 +1770,10 @@ function HomeInner() {
               {t.noProducts}
             </div>
           )}
-          {!productsLoading && !productsError && products.slice(0, visibleCount).map((p) => (
+          {!productsLoading && !productsError && [...products].sort((a, b) => {
+            const stock = (x: typeof a) => (x.variants ? x.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0);
+            return Number(stock(a) === 0) - Number(stock(b) === 0);
+          }).slice(0, visibleCount).map((p) => (
             <div key={p.id} style={{ background: "var(--bg)", padding: 12, borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden" }}>
               <div
                 style={{

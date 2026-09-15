@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { BackButton } from "../back-button";
 import { useRouter } from "next/navigation";
 import { translations, Lang } from "../translations";
-import { Footer } from "../footer";
 
 export default function DeliveryPage() {
   const router = useRouter();
@@ -102,7 +101,6 @@ export default function DeliveryPage() {
           </div>
         )}
       </div>
-      <Footer lang={lang} />
     </div>
   );
 }
