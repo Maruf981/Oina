@@ -373,7 +373,7 @@ export default function ProductDetailClient() {
       style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}
     >
       <SiteHeader />
-      <div className="product-detail-container" style={{ maxWidth: 1000, margin: "0 auto", padding: "40px", paddingTop: 140 }}>
+      <div className="product-detail-container" style={{ maxWidth: 1000, margin: "0 auto", padding: "40px", paddingTop: 140, paddingBottom: "calc(88px + env(safe-area-inset-bottom))" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>
           <span onClick={() => router.push("/")} style={{ cursor: "pointer" }}>
             Главная

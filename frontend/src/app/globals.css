@@ -113,12 +113,14 @@ html, body {
   .favorites-container {
     padding: 20px 16px !important;
     padding-top: 140px !important;
+    padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important;
   }
 }
 @media (max-width: 640px) {
   .product-detail-container {
     padding: 12px !important;
     padding-top: 140px !important;
+    padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important;
     padding-bottom: calc(74px + max(22px, env(safe-area-inset-bottom))) !important;
   }
   .product-detail-grid {

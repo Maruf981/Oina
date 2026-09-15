@@ -121,7 +121,7 @@ export default function CartPage() {
   return (
     <>
       <SiteHeader />
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: 40, paddingTop: 140, paddingBottom: "calc(88px + env(safe-area-inset-bottom))" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: 40, paddingTop: 140 }}>
         <div style={{ marginBottom: 16 }}>
           <BackButton href="/" />
         </div>

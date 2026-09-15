@@ -82,7 +82,7 @@ export default function OrdersPage() {
   return (
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <SiteHeader />
-      <div style={{ maxWidth: 700, margin: "0 auto", padding: 40, paddingTop: 140 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto", padding: 40, paddingTop: 140, paddingBottom: "calc(88px + env(safe-area-inset-bottom))" }}>
         <BackButton href="/" />
 
         <h1 className="product-title" style={{ fontSize: 28, margin: "24px 0 30px" }}>
@@ -96,7 +96,7 @@ export default function OrdersPage() {
         )}
 
         {orders.map((order) => (
-          <div key={order.id} style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 16 }}>
+          <div key={order.id} style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: "var(--panel-radius)", boxShadow: "var(--panel-shadow)", padding: 20, marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
               <span className="product-title" style={{ fontSize: 16 }}>{lang === "ru" ? `Заказ №${order.id}` : `Фармоиши №${order.id}`}</span>
               <span className="price">{order.total} смн</span>

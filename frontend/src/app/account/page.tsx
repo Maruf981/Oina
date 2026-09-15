@@ -259,7 +259,7 @@ export default function AccountPage() {
   return (
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <SiteHeader />
-      <div style={{ maxWidth: 500, margin: "0 auto", padding: 40, paddingTop: 140 }}>
+      <div style={{ maxWidth: 500, margin: "0 auto", padding: 40, paddingTop: 140, paddingBottom: "calc(88px + env(safe-area-inset-bottom))" }}>
         <BackButton href="/" />
 
         <h1 className="product-title" style={{ fontSize: 28, margin: "24px 0 30px" }}>

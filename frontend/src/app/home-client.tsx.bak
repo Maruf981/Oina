@@ -356,16 +356,6 @@ function HomeInner() {
   });
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
-
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    setIsMobile(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-
   const { lang, toggleLang } = useLang();
   const { city, toggleCity } = useCity();
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("search") || "");
@@ -2027,12 +2017,10 @@ function HomeInner() {
                     minHeight: 26,
                   }}
                 >
-                  {!isMobile && (
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-                      <span>🚚</span>
-                      <span>{city === "dushanbe" ? (lang === "ru" ? "Завтра" : "Пагоҳ") : (lang === "ru" ? "В регион" : "Ба минтақа")}</span>
-                    </div>
-                  )}
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                    <span>🚚</span>
+                    <span>{city === "dushanbe" ? (lang === "ru" ? "Завтра" : "Пагоҳ") : (lang === "ru" ? "В регион" : "Ба минтақа")}</span>
+                  </div>
                   <StarRating avgRating={p.avg_rating} reviewCount={p.review_count} />
                 </div>
             </div>

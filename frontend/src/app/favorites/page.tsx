@@ -139,7 +139,7 @@ export default function FavoritesPage() {
   return (
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <SiteHeader />
-      <div className="favorites-container" style={{ maxWidth: 900, margin: "0 auto", padding: 40, paddingTop: 140 }}>
+      <div className="favorites-container" style={{ maxWidth: 900, margin: "0 auto", padding: 40, paddingTop: 140, paddingBottom: "calc(88px + env(safe-area-inset-bottom))" }}>
         <BackButton href="/" />
 
         <h1 className="product-title" style={{ fontSize: 28, margin: "24px 0 30px" }}>
@@ -161,13 +161,14 @@ export default function FavoritesPage() {
           }}
         >
           {favorites.map(({ product: p }) => (
-            <div key={p.id}>
+            <div key={p.id} style={{ background: "var(--bg)", padding: 12, borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden" }}>
               <div
                 style={{
                   position: "relative",
-                  aspectRatio: "3/4",
+                  aspectRatio: "var(--card-aspect)",
                   background: "var(--surface)",
-                  border: "1px solid var(--line)",
+                  borderRadius: 8,
+                  overflow: "hidden",
                   marginBottom: 10,
                 }}
               >
