@@ -77,7 +77,7 @@ html, body {
 }
 
 @media (max-width: 640px) {
-  .products-grid > div {
+  .products-grid:not(.related-products-grid) > div {
     padding: 10px !important;
   }
 }
@@ -285,7 +285,7 @@ html, body {
   }
 }
 
-.products-grid > div {
+.products-grid:not(.related-products-grid) > div {
   padding: var(--card-pad) !important;
 }
 
@@ -297,7 +297,7 @@ html, body {
   .products-grid .product-price {
     font-size: 14px !important;
   }
-  .products-grid > div > div:not(:first-child) {
+  .products-grid:not(.related-products-grid) > div > div:not(:first-child) {
     margin-top: 2px !important;
     margin-bottom: 4px !important;
   }
@@ -476,4 +476,11 @@ input:-webkit-autofill:active {
 
 :root {
   --header-line: #D8D4C8;
+}
+
+@media (max-width: 640px) {
+  nav > div:first-child {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
 }

@@ -161,15 +161,14 @@ export default function FavoritesPage() {
           }}
         >
           {favorites.map(({ product: p }) => (
-            <div key={p.id} style={{ background: "var(--bg)", padding: 12, borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden" }}>
+            <div key={p.id} style={{ background: "var(--bg)", padding: "var(--card-pad)", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden" }}>
               <div
                 style={{
                   position: "relative",
                   aspectRatio: "var(--card-aspect)",
                   background: "var(--surface)",
-                  borderRadius: 8,
                   overflow: "hidden",
-                  marginBottom: 10,
+                  margin: "calc(var(--card-pad) * -1) calc(var(--card-pad) * -1) 8px",
                 }}
               >
                 <div

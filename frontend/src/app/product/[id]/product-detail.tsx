@@ -956,7 +956,7 @@ export default function ProductDetailClient() {
                 <div
                   key={p.id}
                   onClick={() => router.push(`/product/${p.id}`)}
-                  style={{ cursor: "pointer", background: "var(--bg)", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden", padding: "0 var(--card-pad) var(--card-pad)" }}
+                  style={{ cursor: "pointer", background: "var(--bg)", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden", padding: 0 }}
                 >
                   <div
                     style={{
@@ -970,10 +970,10 @@ export default function ProductDetailClient() {
                       backgroundPosition: "center",
                     }}
                   />
-                  <div className="product-title product-card-title" style={{ fontSize: 13, marginBottom: 3 }}>
+                  <div className="product-title product-card-title" style={{ fontSize: 13, marginBottom: 3, padding: "0 var(--card-pad)" }}>
                     {localized(p.title_ru, p.title_tj)}
                   </div>
-                  <div className="price" style={{ fontSize: 13 }}>
+                  <div className="price" style={{ fontSize: 13, padding: "0 var(--card-pad) var(--card-pad)" }}>
                     {p.price} смн
                   </div>
                 </div>
@@ -992,7 +992,7 @@ export default function ProductDetailClient() {
                 <div
                   key={p.id}
                   onClick={() => router.push(`/product/${p.id}`)}
-                  style={{ cursor: "pointer", background: "var(--bg)", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden", padding: "0 var(--card-pad) var(--card-pad)" }}
+                  style={{ cursor: "pointer", background: "var(--bg)", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden", padding: 0 }}
                 >
                   <div
                     style={{
@@ -1006,10 +1006,10 @@ export default function ProductDetailClient() {
                       backgroundPosition: "center",
                     }}
                   />
-                  <div className="product-title product-card-title" style={{ fontSize: 13, marginBottom: 3 }}>
+                  <div className="product-title product-card-title" style={{ fontSize: 13, marginBottom: 3, padding: "0 var(--card-pad)" }}>
                     {localized(p.title_ru, p.title_tj)}
                   </div>
-                  <div className="price" style={{ fontSize: 13 }}>
+                  <div className="price" style={{ fontSize: 13, padding: "0 var(--card-pad) var(--card-pad)" }}>
                     {p.price} смн
                   </div>
                 </div>
