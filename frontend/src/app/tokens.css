@@ -38,6 +38,18 @@
   --menu-panel-bg: #E8E4D9;
 }
 
+[data-theme="dark"] {
+  --bg: #0E0E10;
+  --surface: #18181B;
+  --line: #2A2A2E;
+  --text: #F2F0EA;
+  --text-muted: #8C8A85;
+  --accent: #B08D57;
+  --accent-hover: #C9A96A;
+  --menu-panel-bg: #0E2B33;
+}
+
+
 body {
   background: var(--bg);
   color: var(--text);
