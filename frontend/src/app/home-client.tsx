@@ -741,10 +741,10 @@ function HomeInner() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <h2 className="product-title"
                   style={{
-                    fontSize: 13,
+                    fontSize: 26,
                     fontWeight: 500,
-                    lineHeight: "17px",
-                    height: 34,
+                    lineHeight: "32px",
+                    height: "auto",
                     color: "var(--text)",
                     marginTop: 4,
                     marginBottom: 6,
