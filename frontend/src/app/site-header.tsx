@@ -235,7 +235,7 @@ export function SiteHeader() {
             src="/logo.png"
             alt="Oina.tj"
             onClick={() => router.push("/")}
-            style={{ height: "clamp(28px, 8vw, 48px)", cursor: "pointer", flexShrink: 0 }}
+            style={{ height: "clamp(39px, 11.2vw, 67px)", cursor: "pointer", flexShrink: 0 }}
           />
 
           <div className="header-search-slot" style={{ flex: 1, minWidth: 0 }}>
