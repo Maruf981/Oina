@@ -89,13 +89,12 @@ html, body {
 }
 @media (max-width: 640px) {
   .banner-wrapper {
-    padding: 16px 12px 0 !important;
+    padding: 0 12px 0 !important;
   }
   .banner-slider {
-    height: 150px !important;
   }
   .banner-slide-bg {
-    background-size: cover !important;
+    background-size: contain !important; background-repeat: no-repeat !important;
     background-position: center top !important;
   }
   .banner-slide-bg h2 {
@@ -398,7 +397,7 @@ input:-webkit-autofill:active {
 
 @media (max-width: 640px) {
   .home-root {
-    padding-top: 152px;
+    padding-top: calc(var(--header-h, 152px) + (168px - var(--header-h, 152px)) * 0.4);
   }
 }
 
@@ -518,7 +517,6 @@ input:-webkit-autofill:active {
     margin-top: calc(-1 * var(--cats-h, 48px));
   }
   .home-root .banner-slider {
-    height: 440px !important;
     border-radius: 0 !important;
   }
 }

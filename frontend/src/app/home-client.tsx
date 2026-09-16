@@ -1619,7 +1619,8 @@ function BannerSlider({ banners, router }: { banners: Banner[]; router: any }) {
 
   return (
     <div className="banner-wrapper" style={{ padding: "24px 40px 0" }}>
-    <div className="banner-slider" style={{ position: "relative", width: "100%", height: 380, overflow: "hidden", borderRadius: 0 }}>
+    <div className="banner-slider" style={{ position: "relative", width: "100%", overflow: "hidden", borderRadius: 0 }}>
+      <img src={current.image_url || ""} alt="" aria-hidden="true" style={{ display: "block", width: "100%", height: "auto", visibility: "hidden" }} />
       {active.map((b, i) => (
         <div
           key={b.id}
@@ -1629,7 +1630,7 @@ function BannerSlider({ banners, router }: { banners: Banner[]; router: any }) {
             position: "absolute",
             inset: 0,
             backgroundImage: `url(${b.image_url})`,
-            backgroundSize: "cover",
+            backgroundSize: "contain", backgroundRepeat: "no-repeat",
             backgroundPosition: "top center",
             cursor: "pointer",
             opacity: i === index % active.length ? 1 : 0,
