@@ -2957,6 +2957,7 @@ function BannersTab({ t, authFetch, products, categories }: any) {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const refresh = () => {
     setLoading(true);
@@ -2997,14 +2998,12 @@ function BannersTab({ t, authFetch, products, categories }: any) {
 
   const handleSave = async () => {
     setError("");
-    if (!form.title.trim()) {
-      setError("Введите заголовок баннера");
-      return;
-    }
     if (!form.category_id) {
       setError("Выберите категорию");
       return;
     }
+    if (saving) return;
+    setSaving(true);
     const payload = {
       title: form.title,
       subtitle: form.subtitle || null,
@@ -3021,6 +3020,7 @@ function BannersTab({ t, authFetch, products, categories }: any) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
+      setSaving(false);
       setError("Не удалось сохранить баннер");
       return;
     }
@@ -3030,6 +3030,7 @@ function BannersTab({ t, authFetch, products, categories }: any) {
       fd.append("file", imageFile);
       await authFetch(`${API}/upload/banner-image/${saved.id}`, { method: "POST", body: fd });
     }
+    setSaving(false);
     resetForm();
     refresh();
   };
@@ -3096,7 +3097,7 @@ function BannersTab({ t, authFetch, products, categories }: any) {
           </label>
           {error && <p style={{ color: "#E24B4A", fontSize: 13, marginBottom: 10 }}>{error}</p>}
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={handleSave} style={{ padding: "10px 16px", background: "var(--text)", color: "var(--bg)", border: "none", cursor: "pointer" }}>{t.save}</button>
+            <button onClick={handleSave} disabled={saving} style={{ padding: "10px 16px", background: "var(--text)", color: "var(--bg)", border: "none", cursor: saving ? "wait" : "pointer", opacity: saving ? 0.6 : 1 }}>{saving ? "Сохранение..." : t.save}</button>
             <button onClick={resetForm} style={{ padding: "10px 16px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", cursor: "pointer" }}>{t.cancel}</button>
           </div>
         </div>
