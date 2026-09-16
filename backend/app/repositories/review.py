@@ -23,12 +23,6 @@ def has_delivered_purchase(db: Session, customer_id: int, product_id: int) -> bo
 
 
 def upsert_review(db: Session, product_id: int, customer_id: int, rating: int, comment: str | None = None) -> ProductReview:
-    if not has_delivered_purchase(db, customer_id, product_id):
-        raise HTTPException(
-            status_code=403,
-            detail="Оставить отзыв можно только на товар из доставленного заказа",
-        )
-
     existing = (
         db.query(ProductReview)
         .filter(ProductReview.product_id == product_id, ProductReview.customer_id == customer_id)
