@@ -1,4 +1,5 @@
 "use client";
+import { DualSlidesSection } from "./dual-slides-section";
 
 import { useEffect, useState, useRef } from "react";
 
@@ -3124,6 +3125,7 @@ function BannersTab({ t, authFetch, products, categories }: any) {
           </div>
         </div>
       ))}
+      <DualSlidesSection api={API} authFetch={authFetch} categories={categories} />
     </div>
   );
 }

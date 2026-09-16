@@ -1,6 +1,7 @@
 "use client";
+import { DualSlider, type DualSlide } from "./dual-slider";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { Fragment, useEffect, useState, useRef, Suspense } from "react";
 import Image from "next/image";
 import { translations, Lang } from "./translations";
 import { useCart } from "./cart-context";
@@ -273,6 +274,13 @@ function HomeInner() {
   });
   const [openMegaMenu, setOpenMegaMenu] = useState<number | null>(null);
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [dualSlides, setDualSlides] = useState<DualSlide[]>([]);
+  useEffect(() => {
+    fetch(`${API_URL}/dual-slides/`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setDualSlides(Array.isArray(d) ? d : []))
+      .catch(() => setDualSlides([]));
+  }, []);
   useEffect(() => {
     fetch(`${API_URL}/banners/`)
       .then((r) => r.json())
@@ -348,6 +356,9 @@ function HomeInner() {
     setFilterBrandOnly((prev) => (prev !== bool("brand_only") ? bool("brand_only") : prev));
     setFilterInStock((prev) => (prev !== bool("in_stock_only") ? bool("in_stock_only") : prev));
     setFilterOnSale((prev) => (prev !== bool("on_sale_only") ? bool("on_sale_only") : prev));
+    const catRaw = searchParams.get("category_id") || searchParams.get("category");
+    const catNum = catRaw ? Number(catRaw) : null;
+    setSelectedCategoryId((prev) => (prev !== catNum ? catNum : prev));
   }, [searchParams]);
   const t = translations[lang];
   const cart = useCart();
@@ -565,7 +576,7 @@ function HomeInner() {
       if (filterInStock) params.set("in_stock_only", "true");
       if (filterOnSale) params.set("on_sale_only", "true");
       const managedKeys = [
-        "search", "min_price", "max_price", "size", "color", "category_id",
+        "search", "min_price", "max_price", "size", "color", "category_id", "category",
         "recommended_only", "sort", "material", "season", "brand_only",
         "in_stock_only", "on_sale_only",
       ];
@@ -894,7 +905,9 @@ function HomeInner() {
           {!productsLoading && !productsError && [...products].sort((a, b) => {
             const stock = (x: typeof a) => (x.variants ? x.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0);
             return Number(stock(a) === 0) - Number(stock(b) === 0);
-          }).slice(0, visibleCount).map((p) => (
+          }).slice(0, visibleCount).map((p, idx) => (
+            <Fragment key={p.id}>
+            
             <div key={p.id} style={{ background: "var(--bg)", padding: 12, borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden" }}>
               <div
                 style={{
@@ -1204,6 +1217,12 @@ function HomeInner() {
                   <StarRating avgRating={p.avg_rating} reviewCount={p.review_count} />
                 </div>
             </div>
+            {idx === Math.min(24, products.length) - 1 && dualSlides.length > 0 && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <DualSlider slides={dualSlides} router={router} lang={lang} />
+              </div>
+            )}
+            </Fragment>
           ))}
         </div>
         <div ref={loadMoreRef} style={{ height: 1 }} />

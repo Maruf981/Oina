@@ -11,6 +11,7 @@ from app.models.product import Product, ProductImage
 from app.models.customer import Customer
 from app.models.employee import Employee
 from app.models.home_banner import HomeBanner
+from app.models.dual_slide import DualSlide
 
 cloudinary.config(
     cloud_name=settings.CLOUDINARY_CLOUD_NAME,
@@ -176,3 +177,23 @@ async def upload_avatar(
     db.commit()
     db.refresh(current)
     return {"avatar_url": current.avatar_url}
+
+
+@router.post("/dual-slide-image/{slide_id}")
+async def upload_dual_slide_image(
+    slide_id: int,
+    side: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin),
+):
+    if side not in ("left", "right"):
+        raise HTTPException(status_code=400, detail="side must be left or right")
+    slide = db.query(DualSlide).filter(DualSlide.id == slide_id).first()
+    if not slide:
+        raise HTTPException(status_code=404, detail="Slide not found")
+    result = cloudinary.uploader.upload(file.file, folder="oina/dual-slides", resource_type="image")
+    setattr(slide, f"{side}_image_url", result["secure_url"])
+    db.commit()
+    db.refresh(slide)
+    return {f"{side}_image_url": result["secure_url"]}
