@@ -1,6 +1,6 @@
 :root {
   /* Color */
-  --bg: #0E0E10;
+  --bg: #121316;
   --surface: #18181B;
   --line: #2A2A2E;
   --text: #F2F0EA;
@@ -39,7 +39,7 @@
 }
 
 [data-theme="dark"] {
-  --bg: #0E0E10;
+  --bg: #121316;
   --surface: #18181B;
   --line: #2A2A2E;
   --text: #F2F0EA;
