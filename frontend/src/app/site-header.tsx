@@ -1,4 +1,5 @@
 "use client";
+import { SocialLinks } from "./social-links";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -701,11 +702,11 @@ export function SiteHeader() {
                 );
               })}
             </div>
-            <div style={{ padding: "16px 24px", borderTop: "1px solid var(--line)" }}>
+            <div style={{ background: "var(--header-bg)", color: "var(--header-text)", padding: "18px 24px calc(36px + env(safe-area-inset-bottom))", borderTop: "1px solid var(--header-border)", borderBottomRightRadius: 16, display: "flex", flexDirection: "column", gap: 14 }}>
               {auth.customer ? (
                 <span
                   onClick={() => { setMenuOpen(false); router.push("/account"); }}
-                  style={{ fontSize: 14, color: "var(--text)", cursor: "pointer" }}
+                  style={{ fontSize: 14, color: "var(--header-text)", cursor: "pointer" }}
                 >
                   {auth.customer.name || (lang === "ru" ? "Профиль" : "Уток")}
                 </span>
@@ -717,6 +718,7 @@ export function SiteHeader() {
                   {lang === "ru" ? "Войти" : "Даромадан"}
                 </span>
               )}
+              <SocialLinks />
             </div>
           </div>
         </div>
