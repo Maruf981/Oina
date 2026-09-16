@@ -192,9 +192,37 @@ export function SiteHeader() {
 
   const parents = categories.filter((c) => !c.parent_id);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const update = () => {
+      const nav = document.querySelector(".site-header-nav") as HTMLElement | null;
+      const cats = document.querySelector(".category-nav-desktop") as HTMLElement | null;
+      const h = nav ? nav.offsetHeight : 0;
+      const ch = cats ? cats.offsetHeight : 0;
+      root.style.setProperty("--header-h", h + "px");
+      root.style.setProperty("--cats-h", ch + "px");
+      const banner = document.querySelector(".home-root .banner-slider");
+      root.classList.toggle("cats-over", !!banner && banner.getBoundingClientRect().bottom > h + ch);
+    };
+    update();
+    const t1 = setTimeout(update, 600);
+    const t2 = setTimeout(update, 2000);
+    const ro = new ResizeObserver(update);
+    const nav = document.querySelector(".site-header-nav");
+    if (nav) ro.observe(nav);
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      clearTimeout(t1); clearTimeout(t2); ro.disconnect();
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      root.classList.remove("cats-over");
+    };
+  }, []);
+
   return (
     <>
-      <nav
+      <nav className="site-header-nav"
         style={{
           position: "fixed",
           top: 0,

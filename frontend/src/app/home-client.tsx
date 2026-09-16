@@ -1619,7 +1619,7 @@ function BannerSlider({ banners, router }: { banners: Banner[]; router: any }) {
 
   return (
     <div className="banner-wrapper" style={{ padding: "24px 40px 0" }}>
-    <div className="banner-slider" style={{ position: "relative", width: "100%", height: 380, overflow: "hidden", borderRadius: 8 }}>
+    <div className="banner-slider" style={{ position: "relative", width: "100%", height: 380, overflow: "hidden", borderRadius: 0 }}>
       {active.map((b, i) => (
         <div
           key={b.id}
