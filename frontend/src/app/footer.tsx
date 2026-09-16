@@ -58,7 +58,6 @@ export function Footer({ lang }: { lang: Lang }) {
             className="catalog-label"
             style={{ border: "none", padding: 0, marginBottom: 14 }}
           >
-            {t.footerContact}
           </div>
           <SocialLinks />
         </div>
