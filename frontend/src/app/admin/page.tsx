@@ -3093,7 +3093,7 @@ function BannersTab({ t, authFetch, products, categories }: any) {
           </label>
           <label style={{ display: "block", marginBottom: 10, fontSize: 13, color: "var(--text-muted)" }}>
             {t.uploadImage}
-            <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} style={{ display: "block", marginTop: 6 }} />
+            <input type="file" accept="image/*,video/mp4,video/webm" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} style={{ display: "block", marginTop: 6 }} />
           </label>
           {error && <p style={{ color: "#E24B4A", fontSize: 13, marginBottom: 10 }}>{error}</p>}
           <div style={{ display: "flex", gap: 10 }}>
@@ -3108,7 +3108,11 @@ function BannersTab({ t, authFetch, products, categories }: any) {
       {banners.map((b) => (
         <div key={b.id} style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 16, display: "flex", gap: 20, flexWrap: "wrap", opacity: b.is_active ? 1 : 0.5 }}>
           {b.image_url && (
-            <div style={{ width: 160, height: 90, flexShrink: 0, backgroundImage: `url(${b.image_url})`, backgroundSize: "cover", backgroundPosition: "center", border: "1px solid var(--line)" }} />
+            /\/video\/upload\/|\.(mp4|webm|mov)(\?|$)/i.test(b.image_url) ? (
+              <video src={b.image_url} muted loop autoPlay playsInline style={{ width: 160, height: 90, flexShrink: 0, objectFit: "cover", border: "1px solid var(--line)" }} />
+            ) : (
+              <div style={{ width: 160, height: 90, flexShrink: 0, backgroundImage: `url(${b.image_url})`, backgroundSize: "cover", backgroundPosition: "center", border: "1px solid var(--line)" }} />
+            )
           )}
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>

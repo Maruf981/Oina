@@ -155,7 +155,7 @@ async def upload_banner_image(
     result = cloudinary.uploader.upload(
         file.file,
         folder="oina/banners",
-        resource_type="image",
+        resource_type="auto",
     )
     banner.image_url = result["secure_url"]
     db.commit()
