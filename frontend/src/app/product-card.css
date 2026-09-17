@@ -225,3 +225,41 @@
   .sec-sort::-webkit-scrollbar { display: none; }
   .sec-sort .coll-item { white-space: nowrap; }
 }
+
+/* --- отзывы покупателей --- */
+.rv-scroll {
+  display: flex; gap: 1.5rem; overflow-x: auto; scroll-snap-type: x mandatory;
+  scrollbar-width: none; padding-bottom: 1rem;
+}
+.rv-scroll::-webkit-scrollbar { display: none; }
+.rv {
+  flex: 0 0 calc((100% - 4.5rem) / 4); min-width: 0; scroll-snap-align: start;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 0;
+  padding: 1.5rem; cursor: pointer; display: flex; flex-direction: column;
+  transition: border-color .3s ease;
+}
+.rv:hover { border-color: var(--text-muted); }
+.rv-top { display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; }
+.rv-img { width: 3rem; height: 3.6rem; flex-shrink: 0; background-size: cover; background-position: center; border-radius: 0; }
+.rv-meta { min-width: 0; }
+.rv-product {
+  font-family: var(--font-label); font-size: .5625rem; font-weight: 500;
+  letter-spacing: var(--tracking-label, .18em); text-transform: uppercase; color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rv-stars { margin-top: .35rem; font-size: .75rem; letter-spacing: 1px; color: var(--line); }
+.rv-stars .is-on { color: var(--text); }
+.rv-text {
+  font-family: var(--font-display); font-size: 1.15rem; line-height: 1.45; color: var(--text);
+  margin: 0 0 1rem; flex: 1;
+  display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
+}
+.rv-name {
+  font-family: var(--font-label); font-size: .625rem; font-weight: 500;
+  letter-spacing: var(--tracking-label, .18em); text-transform: uppercase; color: var(--text-muted);
+}
+@media (max-width: 1100px) { .rv { flex-basis: calc((100% - 3rem) / 3); } }
+@media (max-width: 640px) {
+  .rv-scroll { gap: .75rem; }
+  .rv { flex-basis: 80%; padding: 1.1rem; }
+}

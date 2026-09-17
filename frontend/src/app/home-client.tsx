@@ -1177,61 +1177,31 @@ function HomeInner() {
         </div>
       )}
       {homepageReviews.length > 0 && (
-        <div style={{ padding: "24px 40px" }}>
-          <h2 className="product-title" style={{ fontSize: 22, marginBottom: 14 }}>
-            {lang === "ru" ? "Отзывы покупателей" : "Назари мизоҷон"}
-          </h2>
-          <div style={{ display: "flex", gap: 12, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <section className="pc-wrap sec">
+          <div className="sec-head">
+            <span className="coll-rule" />
+            <h2 className="sec-title">{lang === "ru" ? "Отзывы покупателей" : "Назари мизоҷон"}</h2>
+          </div>
+          <div className="rv-scroll">
             {homepageReviews.map((r) => (
-              <div
-                key={r.id}
-                onClick={() => router.push(`/product/${r.product_id}`)}
-                style={{
-                  minWidth: 260,
-                  maxWidth: 260,
-                  flexShrink: 0,
-                  border: "none",
-                  borderRadius: 12,
-                  padding: 14,
-                  cursor: "pointer",
-                  background: "var(--surface)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  {r.product_image && (
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 8,
-                        backgroundImage: `url(${r.product_image})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        flexShrink: 0,
-                      }}
-                    />
-                  )}
-                  <div style={{ overflow: "hidden" }}>
-                    <div style={{ fontSize: 12, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {localized(r.product_title_ru, r.product_title_tj)}
-                    </div>
-                    <div style={{ display: "flex", gap: 1 }}>
+              <div key={r.id} className="rv" onClick={() => router.push(`/product/${r.product_id}`)}>
+                <div className="rv-top">
+                  {r.product_image && <div className="rv-img" style={{ backgroundImage: `url(${r.product_image})` }} />}
+                  <div className="rv-meta">
+                    <div className="rv-product">{localized(r.product_title_ru, r.product_title_tj)}</div>
+                    <div className="rv-stars">
                       {[1, 2, 3, 4, 5].map((n) => (
-                        <span key={n} style={{ fontSize: 11, color: r.rating >= n ? "var(--accent)" : "var(--line)" }}>★</span>
+                        <span key={n} className={r.rating >= n ? "is-on" : ""}>★</span>
                       ))}
                     </div>
                   </div>
                 </div>
-                <p style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 8, color: "var(--text)" }}>
-                  {r.comment}
-                </p>
-                {r.customer_name && (
-                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>— {r.customer_name}</div>
-                )}
+                <p className="rv-text">{r.comment}</p>
+                {r.customer_name && <div className="rv-name">— {r.customer_name}</div>}
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
       <Footer lang={lang} />
     </div>
