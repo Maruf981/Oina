@@ -257,3 +257,53 @@
 [data-theme="dark"] .bd-error { color: #F2B8B0; }
 .bag-links--center { justify-content: center; }
 .bag-checkout:disabled { opacity: .5; cursor: wait; }
+
+/* ===== Мобильное меню на весь экран (Sundra style) ===== */
+.oh-burger { position: relative; width: 22px; height: 22px; gap: 0; }
+.oh-burger span { position: absolute; left: 0; right: 0; top: 50%; transition: transform .3s ease; }
+.oh-burger span:first-child { transform: translateY(-4px); }
+.oh-burger span:last-child { transform: translateY(4px); }
+.oh-burger.is-open span:first-child { transform: rotate(45deg); }
+.oh-burger.is-open span:last-child { transform: rotate(-45deg); }
+
+.mm {
+  position: fixed; top: var(--header-h, 64px); left: 0; right: 0; bottom: 0; z-index: 99;
+  background: var(--bg); color: var(--text); overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 1.6rem 1rem calc(6rem + env(safe-area-inset-bottom));
+  animation: mmIn .35s ease;
+}
+@keyframes mmIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+[data-theme="dark"] .mm { background: #2A221D; }
+
+.mm-main { display: flex; flex-direction: column; }
+.mm-link {
+  display: flex; justify-content: space-between; align-items: baseline; cursor: pointer;
+  font-family: var(--font-display); font-weight: 300; font-size: 2rem; line-height: 1.15; padding: .28rem 0;
+}
+.mm-link i { font-style: normal; font-family: var(--font-body); font-size: 1rem; color: var(--text-muted); }
+.mm-link.is-active { font-style: italic; }
+.mm-sub { display: flex; flex-direction: column; gap: .55rem; padding: .4rem 0 .9rem 1rem; }
+.mm-sub span { font-size: .9375rem; cursor: pointer; color: var(--text-muted); }
+.mm-sub span:first-child {
+  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .2em; text-transform: uppercase;
+}
+.mm-sub span.is-active { color: var(--text); }
+
+.mm-rule { height: 1px; background: var(--line); margin: 1.8rem 0 1.5rem; }
+
+.mm-small { display: flex; flex-direction: column; gap: .95rem; }
+.mm-small span { font-size: .8125rem; font-weight: 300; cursor: pointer; }
+
+.mm-foot { margin-top: 2.2rem; display: flex; flex-direction: column; gap: 1.4rem; }
+.mm-toggles { display: flex; gap: 1.6rem; }
+.mm-toggles span {
+  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; cursor: pointer;
+}
+.mm-toggles b { font-weight: 500; opacity: .45; }
+.mm-toggles b.is-on { opacity: 1; }
+.mm-social > div { gap: 1.3rem !important; }
+.mm-social a { background: transparent !important; width: auto !important; height: auto !important; border-radius: 0 !important; color: var(--text); }
+.mm-social svg { width: 19px !important; height: 19px !important; fill: currentColor !important; }
+.mm-social a[title="Email"] svg { fill: none !important; stroke: currentColor !important; }
+
+@media (min-width: 901px) { .mm { display: none; } }

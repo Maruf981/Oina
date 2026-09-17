@@ -218,7 +218,7 @@ export function SiteHeader() {
       <header ref={headerRef} className={`oh${clear ? " oh--clear" : ""}`}>
 
         <div className="oh-main">
-          <button className="oh-burger" onClick={() => setMenuOpen(true)} aria-label={tr("Меню", "Меню")}>
+          <button className={`oh-burger${menuOpen ? " is-open" : ""}`} onClick={() => setMenuOpen((o) => !o)} aria-label={tr("Меню", "Меню")}>
             <span /><span />
           </button>
 
@@ -360,51 +360,57 @@ export function SiteHeader() {
       )}
 
       {menuOpen && (
-        <div className="oh-drawer-backdrop" onClick={() => setMenuOpen(false)}>
-          <div className="oh-drawer oh-drawer--left" onClick={(e) => e.stopPropagation()}>
-            <div className="oh-drawer-head">
-              <img className="oh-logo oh-logo--drawer" src="/logo.png" alt="Oina.tj" />
-              <span className="oh-action" onClick={() => setMenuOpen(false)}>{tr("Закрыть", "Пӯшидан")}</span>
-            </div>
-            <div className="oh-drawer-body">
-              {parents.map((parent) => {
-                const children = categories.filter((c) => c.parent_id === parent.id);
-                const expanded = mobileExpanded === parent.id;
-                return (
-                  <div key={parent.id} className="oh-m-group">
-                    <div
-                      className="oh-m-cat"
-                      onClick={() => {
-                        if (children.length > 0) setMobileExpanded(expanded ? null : parent.id);
-                        else goToCatalog({ category_id: String(parent.id) });
-                      }}
-                    >
-                      <span>{catName(parent)}</span>
-                      {children.length > 0 && <span className="oh-m-sign">{expanded ? "\u2212" : "+"}</span>}
+        <div className="mm">
+          <nav className="mm-main">
+            <span className="mm-link" onClick={() => { setMenuOpen(false); router.push("/"); }}>{tr("Главная", "Асосӣ")}</span>
+            {parents.map((parent) => {
+              const children = categories.filter((c) => c.parent_id === parent.id);
+              const expanded = mobileExpanded === parent.id;
+              return (
+                <div key={parent.id} className="mm-group">
+                  <span
+                    className={`mm-link${selectedCategoryId === parent.id ? " is-active" : ""}`}
+                    onClick={() => {
+                      if (children.length > 0) setMobileExpanded(expanded ? null : parent.id);
+                      else goToCatalog({ category_id: String(parent.id) });
+                    }}
+                  >
+                    {catName(parent)}
+                    {children.length > 0 && <i>{expanded ? "\u2212" : "+"}</i>}
+                  </span>
+                  {expanded && (
+                    <div className="mm-sub">
+                      <span onClick={() => goToCatalog({ category_id: String(parent.id) })}>{tr("Все товары", "Ҳамаи молҳо")}</span>
+                      {children.map((child) => (
+                        <span key={child.id} className={selectedCategoryId === child.id ? "is-active" : ""} onClick={() => goToCatalog({ category_id: String(child.id) })}>
+                          {catName(child)}
+                        </span>
+                      ))}
                     </div>
-                    {expanded && (
-                      <div className="oh-m-children">
-                        <span className="oh-m-all" onClick={() => goToCatalog({ category_id: String(parent.id) })}>{tr("Все товары", "Ҳамаи молҳо")}</span>
-                        {children.map((child) => (
-                          <span key={child.id} onClick={() => goToCatalog({ category_id: String(child.id) })}>{catName(child)}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+
+          <div className="mm-rule" />
+
+          <nav className="mm-small">
+            <span onClick={() => { setMenuOpen(false); router.push("/favorites"); }}>{tr("Избранное", "Интихобҳо")} ({favoritesCount})</span>
+            <span onClick={() => { setMenuOpen(false); router.push(auth.customer ? "/account" : "/?login=1"); }}>
+              {auth.customer ? tr("Профиль", "Уток") : tr("Войти", "Даромадан")}
+            </span>
+            {auth.customer && <span onClick={() => { setMenuOpen(false); router.push("/orders"); }}>{tr("Мои заказы", "Фармоишҳои ман")}</span>}
+            <span onClick={() => { setMenuOpen(false); router.push("/delivery"); }}>{tr("Доставка и оплата", "Расонидан ва пардохт")}</span>
+            <span onClick={() => { setMenuOpen(false); router.push("/faq"); }}>{tr("Частые вопросы", "Саволҳои маъмул")}</span>
+          </nav>
+
+          <div className="mm-foot">
+            <div className="mm-toggles">
+              <span onClick={toggleLang}><b className={lang === "ru" ? "is-on" : ""}>RU</b> / <b className={lang === "tj" ? "is-on" : ""}>TJ</b></span>
+              <span onClick={toggleTheme}>{theme === "dark" ? tr("Светлая тема", "Мавзӯи равшан") : tr("Тёмная тема", "Мавзӯи торик")}</span>
             </div>
-            <div className="oh-drawer-foot">
-              <span className="oh-action" onClick={() => router.push("/favorites")}>{tr("Избранное", "Интихобҳо")}</span>
-              <span className="oh-action" onClick={() => router.push(auth.customer ? "/account" : "/?login=1")}>
-                {auth.customer ? tr("Профиль", "Уток") : tr("Войти", "Даромадан")}
-              </span>
-              <div className="oh-drawer-toggles">
-                <span className="oh-action" onClick={toggleLang}>{lang === "ru" ? "RU / tj" : "ru / TJ"}</span>
-                <span className="oh-action" onClick={toggleTheme}>{theme === "dark" ? tr("Светлая тема", "Мавзӯи равшан") : tr("Тёмная тема", "Мавзӯи торик")}</span>
-              </div>
-              <SocialLinks />
-            </div>
+            <div className="mm-social"><SocialLinks /></div>
           </div>
         </div>
       )}
