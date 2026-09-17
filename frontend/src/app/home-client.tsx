@@ -885,23 +885,25 @@ function HomeInner() {
 
       <div className="sec-head">
         <span className="coll-rule" />
-        <h2 className="sec-title">{t.allCategories}</h2>
+        <h2 className="sec-title">{lang === "ru" ? "Все товары" : "Ҳамаи молҳо"}</h2>
         <span className="sec-count">
           {lang === "ru" ? "Показано" : "Нишон дода шуд"} {Math.min(visibleCount, products.length)} {lang === "ru" ? "из" : "аз"} {products.length}
         </span>
-        <SortDropdown
-          value={sortOption}
-          onChange={setSortOption}
-          options={[
-            { value: "", label: t.sortDefault },
-            { value: "popularity", label: t.sortPopularity },
-            { value: "price_asc", label: t.sortPriceAsc },
-            { value: "price_desc", label: t.sortPriceDesc },
-            { value: "newest", label: t.sortNewest },
-            { value: "rating", label: t.sortRating },
-            { value: "discount", label: t.sortDiscount },
-          ]}
-        />
+        <nav className="sec-sort">
+          {[
+              { value: "", label: t.sortDefault },
+              { value: "popularity", label: t.sortPopularity },
+              { value: "price_asc", label: t.sortPriceAsc },
+              { value: "price_desc", label: t.sortPriceDesc },
+              { value: "newest", label: t.sortNewest },
+              { value: "rating", label: t.sortRating },
+              { value: "discount", label: t.sortDiscount },
+            ].map((o) => (
+            <span key={o.value} className={`coll-item${sortOption === o.value ? " is-active" : ""}`} onClick={() => setSortOption(o.value)}>
+              {o.label}
+            </span>
+          ))}
+        </nav>
       </div>
 
 
