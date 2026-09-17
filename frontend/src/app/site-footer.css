@@ -69,3 +69,9 @@
   .ft { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
   .ft-word { font-size: 2rem; }
 }
+
+/* нижнее меню на телефоне — цвет футера */
+.bottom-nav-mobile > div {
+  background: #221e1a !important;
+  border-top: 1px solid rgba(239, 233, 224, .16) !important;
+}
