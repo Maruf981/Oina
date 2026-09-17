@@ -370,6 +370,7 @@ export default function ProductDetailClient() {
     setToastType("success");
     setToastMessage(lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд");
     setTimeout(() => setToastMessage(null), 2000);
+    window.dispatchEvent(new Event("oina:open-bag"));
   };
   const tr = (ru: string, tj: string) => (lang === "ru" ? ru : tj);
   const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);

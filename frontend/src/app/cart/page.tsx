@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { BackButton } from "../back-button";
-import { useRouter } from "next/navigation";
+import "../hero.css";
+import "./cart.css";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../auth-context";
 import { useCart } from "../cart-context";
 import { SiteHeader } from "../site-header";
@@ -19,11 +20,21 @@ type ProductImage = { url: string; media_type?: string };
 type ProductForImages = { id: number; images: ProductImage[] };
 
 export default function CartPage() {
+  return (
+    <Suspense fallback={null}>
+      <CartInner />
+    </Suspense>
+  );
+}
+
+function CartInner() {
   const auth = useAuth();
   const cart = useCart();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { lang } = useLang();
   const t = translations[lang];
+  const tr = (ru: string, tj: string) => (lang === "ru" ? ru : tj);
 
   const [checkoutStep, setCheckoutStep] = useState<"cart" | "form" | "payment" | "done">("cart");
   const [customerName, setCustomerName] = useState("");
@@ -33,10 +44,15 @@ export default function CartPage() {
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [orderComment, setOrderComment] = useState("");
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
+  const [orderTotal, setOrderTotal] = useState(0);
   const [placing, setPlacing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"qr" | "card">("qr");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [productImages, setProductImages] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    if (searchParams.get("checkout") === "1" && cart.items.length > 0) setCheckoutStep("form");
+  }, [searchParams, cart.items.length]);
 
   useEffect(() => {
     if (!auth.customer) return;
@@ -47,10 +63,7 @@ export default function CartPage() {
 
   useEffect(() => {
     const ids = Array.from(new Set(cart.items.map((i) => i.productId)));
-    if (ids.length === 0) {
-      setProductImages({});
-      return;
-    }
+    if (ids.length === 0) return;
     fetch(`${API_URL}/products/?ids=${ids.join(",")}`)
       .then((res) => res.json())
       .then((data: ProductForImages[]) => {
@@ -63,6 +76,10 @@ export default function CartPage() {
       })
       .catch(() => setProductImages({}));
   }, [cart.items]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [checkoutStep]);
 
   const handlePlaceOrder = async () => {
     setAttemptedSubmit(true);
@@ -92,6 +109,7 @@ export default function CartPage() {
         throw new Error(err?.detail || "Order failed");
       }
       const order = await res.json();
+      setOrderTotal(cart.totalPrice);
       await cart.clearCart();
       setOrderNumber(order.id);
       setCheckoutStep("payment");
@@ -99,7 +117,7 @@ export default function CartPage() {
       const msg = typeof err?.message === "string" ? err.message : "";
       const friendlyMsg = msg.includes("В наличии только")
         ? msg
-        : (lang === "ru" ? "Ошибка оформления заказа. Попробуйте ещё раз." : "Хатогӣ ҳангоми фармоиш. Бори дигар кӯшиш кунед.");
+        : tr("Ошибка оформления заказа. Попробуйте ещё раз.", "Хатогӣ ҳангоми фармоиш. Бори дигар кӯшиш кунед.");
       setToastMessage(friendlyMsg);
       setTimeout(() => setToastMessage(null), 3000);
     } finally {
@@ -107,189 +125,208 @@ export default function CartPage() {
     }
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: 12,
-    background: "var(--surface)",
-    border: "1px solid var(--panel-border)",
-    borderRadius: 8,
-    color: "var(--text)",
-    fontSize: 14,
-    boxSizing: "border-box",
-  };
+  const steps = [
+    { key: "cart", label: tr("Корзина", "Сабад") },
+    { key: "form", label: tr("Доставка", "Расонидан") },
+    { key: "payment", label: tr("Оплата", "Пардохт") },
+    { key: "done", label: tr("Готово", "Тайёр") },
+  ];
+  const stepIndex = steps.findIndex((s) => s.key === checkoutStep);
+
+  const field = (
+    label: string,
+    value: string,
+    onChange: (v: string) => void,
+    error: string | null,
+    placeholder?: string,
+  ) => (
+    <label className={`ck-field${error ? " has-error" : ""}`}>
+      <span className="ck-field-label">{label}</span>
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+      {error && <span className="ck-error">{error}</span>}
+    </label>
+  );
+
+  const summary = (
+    <aside className="ck-summary">
+      <div className="ck-label">{tr("Ваш заказ", "Фармоиши шумо")} ({cart.totalCount})</div>
+      <div className="ck-sum-list">
+        {cart.items.map((item) => (
+          <div key={item.variantId} className="ck-sum-item">
+            <div className="ck-sum-img">{productImages[item.productId] && <img src={productImages[item.productId]} alt={item.title} />}</div>
+            <div className="ck-sum-info">
+              <div className="ck-meta">{item.size} · {item.color} · ×{item.qty}</div>
+              <div className="ck-sum-title">{item.title}</div>
+            </div>
+            <div className="ck-sum-price">{item.price * item.qty} смн</div>
+          </div>
+        ))}
+      </div>
+      <div className="ck-sum-row"><span>{tr("Товары", "Молҳо")}</span><span>{cart.totalPrice} смн</span></div>
+      <div className="ck-sum-row"><span>{tr("Доставка", "Расонидан")}</span><span>{tr("Уточнит оператор", "Оператор мегӯяд")}</span></div>
+      <div className="ck-sum-total"><span>{tr("Итого", "Ҳамагӣ")}</span><span>{cart.totalPrice} смн</span></div>
+    </aside>
+  );
 
   return (
-    <>
+    <div className="ck-root">
       <SiteHeader />
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: 40, paddingTop: 140, paddingBottom: "calc(88px + env(safe-area-inset-bottom))" }}>
-        <div style={{ marginBottom: 16 }}>
-          <BackButton href="/" />
+      <div className="ck">
+        <div className="ck-head">
+          <span className="coll-rule" />
+          <div className="ck-eyebrow">{tr("Оформление", "Фармоиш")}</div>
+          <h1 className="ck-title">
+            {checkoutStep === "cart" && tr("Ваша корзина", "Сабади шумо")}
+            {checkoutStep === "form" && tr("Доставка", "Расонидан")}
+            {checkoutStep === "payment" && tr("Оплата", "Пардохт")}
+            {checkoutStep === "done" && tr("Спасибо", "Ташаккур")}
+          </h1>
+          <ol className="ck-steps">
+            {steps.map((s, i) => (
+              <li key={s.key} className={i === stepIndex ? "is-active" : i < stepIndex ? "is-done" : ""}>
+                <span>{String(i + 1).padStart(2, "0")}</span> {s.label}
+              </li>
+            ))}
+          </ol>
         </div>
-        <div className="product-title" style={{ fontSize: 24, marginBottom: 24 }}>{t.cart}</div>
 
         {checkoutStep === "cart" && (
-          <>
-            {cart.items.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "60px 0" }}>
-                <p style={{ color: "var(--text-muted)", marginBottom: 20 }}>{t.noProducts}</p>
-                <button
-                  onClick={() => router.push("/")}
-                  style={{ padding: "12px 24px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
-                >
-                  {lang === "ru" ? "В каталог" : "Ба каталог"}
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-                <div style={{ flex: 2, minWidth: 320 }}>
-                  {cart.items.map((item) => (
-                    <div
-                      key={item.variantId}
-                      style={{ display: "flex", gap: 16, background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 12, boxShadow: "var(--panel-shadow)", padding: 20, marginBottom: 16, position: "relative" }}
-                    >
-                      {productImages[item.productId] && (
-                        <img
-                          src={productImages[item.productId]}
-                          alt={item.title}
-                          style={{ width: 88, height: 88, objectFit: "cover", borderRadius: 8, flexShrink: 0, background: "#fff" }}
-                        />
-                      )}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="product-title" style={{ fontSize: 15, marginBottom: 6 }}>{item.title}</div>
-                        <div className="catalog-label" style={{ marginBottom: 10 }}>{item.size} / {item.color}</div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span onClick={() => cart.updateQty(item.variantId, item.qty - 1)} style={{ cursor: "pointer", fontFamily: "var(--font-label)" }}>−</span>
-                            <span style={{ fontFamily: "var(--font-label)" }}>{item.qty}</span>
-                            <span onClick={() => cart.updateQty(item.variantId, item.qty + 1)} style={{ cursor: "pointer", fontFamily: "var(--font-label)" }}>+</span>
-                          </div>
-                          <span className="price">{item.price * item.qty} смн</span>
-                          <span onClick={() => cart.removeItem(item.variantId)} style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: 14 }}>✕</span>
-                        </div>
+          cart.items.length === 0 ? (
+            <div className="ck-empty">
+              <p>{tr("В корзине пока пусто", "Сабад холӣ аст")}</p>
+              <button className="ck-btn ck-btn--outline" onClick={() => router.push("/")}>{tr("Перейти в каталог", "Ба каталог")}</button>
+            </div>
+          ) : (
+            <div className="ck-grid">
+              <div className="ck-list">
+                <div className="ck-list-head">
+                  <span>{tr("Товар", "Мол")}</span>
+                  <span>{tr("Количество", "Миқдор")}</span>
+                  <span>{tr("Сумма", "Маблағ")}</span>
+                </div>
+                {cart.items.map((item) => (
+                  <div key={item.variantId} className="ck-item">
+                    <div className="ck-item-main">
+                      <div className="ck-img" onClick={() => router.push(`/product/${item.productId}`)}>
+                        {productImages[item.productId] && <img src={productImages[item.productId]} alt={item.title} />}
+                      </div>
+                      <div>
+                        <div className="ck-meta">{item.size} · {item.color}</div>
+                        <div className="ck-item-title" onClick={() => router.push(`/product/${item.productId}`)}>{item.title}</div>
+                        <div className="ck-item-unit">{item.price} смн</div>
+                        <span className="ck-remove" onClick={() => cart.removeItem(item.variantId)}>{tr("Удалить", "Нест кардан")}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 280 }}>
-                  <div style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: 12, boxShadow: "var(--panel-shadow)", padding: 20, position: "sticky", top: 140 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                      <span className="product-title" style={{ fontSize: 16 }}>{t.cartTotal}</span>
-                      <span style={{ fontSize: 20, fontWeight: 600, color: "var(--accent-gold)" }}>{cart.totalPrice} смн</span>
+                    <div className="ck-qty">
+                      <button onClick={() => cart.updateQty(item.variantId, item.qty - 1)}>−</button>
+                      <span>{item.qty}</span>
+                      <button onClick={() => cart.updateQty(item.variantId, item.qty + 1)}>+</button>
                     </div>
-                    <button
-                      onClick={() => setCheckoutStep("form")}
-                      style={{ width: "100%", height: 50, background: "var(--accent-btn-bg)", color: "var(--accent-btn-text)", border: "none", borderRadius: 8, fontFamily: "var(--font-label)", fontWeight: 700, fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer" }}
-                    >
-                      {t.checkoutConfirmOrder}
-                    </button>
+                    <div className="ck-item-sum">{item.price * item.qty} смн</div>
                   </div>
+                ))}
+                <div className="ck-list-foot">
+                  <span className="ck-link" onClick={() => router.push("/")}>{tr("Продолжить покупки", "Идомаи харид")}</span>
+                  <span className="ck-link ck-link--muted" onClick={() => cart.clearCart()}>{tr("Очистить корзину", "Холӣ кардан")}</span>
                 </div>
               </div>
-            )}
-          </>
+
+              <aside className="ck-summary ck-summary--cart">
+                <div className="ck-sum-total ck-sum-total--big"><span>{tr("Итого", "Ҳамагӣ")}</span><span>{cart.totalPrice} смн</span></div>
+                <p className="ck-note">{tr("Стоимость доставки уточнится при оформлении.", "Нархи расонидан ҳангоми фармоиш муайян мешавад.")}</p>
+                <button className="ck-btn" onClick={() => setCheckoutStep("form")}>{tr("Оформить заказ", "Фармоиш додан")}</button>
+                <p className="ck-note ck-note--center">{tr("Доставка за 24 часа по Душанбе", "Расонидан дар 24 соат дар Душанбе")}</p>
+              </aside>
+            </div>
+          )
         )}
 
         {checkoutStep === "form" && (
-          <div style={{ maxWidth: 480, display: "flex", flexDirection: "column", gap: 14, background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: "var(--panel-radius)", boxShadow: "var(--panel-shadow)", padding: 24 }}>
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: -6 }}>{t.checkoutRequiredNote}</div>
-            <div>
-              <input placeholder={`${t.checkoutName} *`} value={customerName} onChange={(e) => setCustomerName(e.target.value)} style={{ ...inputStyle, border: attemptedSubmit && !customerName ? "1px solid #E24B4A" : inputStyle.border }} />
-              {attemptedSubmit && !customerName && <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 4 }}>{t.checkoutFillField}</div>}
-            </div>
-            <div>
-              <input placeholder="Телефон (+992ХХХХХХХХХ или 900ХХХХХХ) *" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} style={{ ...inputStyle, border: (customerPhone && !isValidPhone(customerPhone)) || (attemptedSubmit && !customerPhone) ? "1px solid #E24B4A" : inputStyle.border }} />
-              {customerPhone && !isValidPhone(customerPhone) && <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 4 }}>{lang === "ru" ? "Формат: +992ХХХХХХХХХ или 900ХХХХХХ" : "Формат: +992ХХХХХХХХХ ё 900ХХХХХХ"}</div>}
-              {attemptedSubmit && !customerPhone && <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 4 }}>{t.checkoutFillField}</div>}
-            </div>
-            <div>
-              <input placeholder={`${t.checkoutAddress} *`} value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} style={{ ...inputStyle, border: attemptedSubmit && !deliveryAddress ? "1px solid #E24B4A" : inputStyle.border }} />
-              {attemptedSubmit && !deliveryAddress && <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 4 }}>{t.checkoutFillField}</div>}
-            </div>
-            <div>
-              <input placeholder={`${t.checkoutLandmark} *`} value={landmark} onChange={(e) => setLandmark(e.target.value)} style={{ ...inputStyle, border: attemptedSubmit && !landmark ? "1px solid #E24B4A" : inputStyle.border }} />
-              {attemptedSubmit && !landmark && <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 4 }}>{t.checkoutFillField}</div>}
-            </div>
-            <textarea placeholder={t.checkoutCommentPlaceholder} value={orderComment} onChange={(e) => setOrderComment(e.target.value)} rows={3} style={{ padding: 12, background: "var(--surface)", border: "1px solid var(--panel-border)", borderRadius: 8, color: "var(--text)", fontSize: 14, resize: "none" }} />
+          <div className="ck-grid">
+            <div className="ck-form">
+              <div className="ck-label">{tr("Контактные данные", "Маълумоти тамос")}</div>
+              {field(`${t.checkoutName} *`, customerName, setCustomerName, attemptedSubmit && !customerName ? t.checkoutFillField : null)}
+              {field(
+                tr("Телефон *", "Телефон *"),
+                customerPhone,
+                setCustomerPhone,
+                customerPhone && !isValidPhone(customerPhone)
+                  ? tr("Формат: +992ХХХХХХХХХ или 900ХХХХХХ", "Формат: +992ХХХХХХХХХ ё 900ХХХХХХ")
+                  : attemptedSubmit && !customerPhone ? t.checkoutFillField : null,
+                "+992",
+              )}
 
-            <div>
-              <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 10 }}>{t.checkoutPaymentMethod}</div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <div onClick={() => setPaymentMethod("qr")} style={{ flex: 1, padding: 14, borderRadius: 8, textAlign: "center", border: paymentMethod === "qr" ? "1px solid var(--accent)" : "1px solid var(--line)", color: paymentMethod === "qr" ? "var(--accent)" : "var(--text-muted)", cursor: "pointer", fontSize: 13 }}>QR-код</div>
-                <div onClick={() => auth.customer && setPaymentMethod("card")} style={{ flex: 1, padding: 14, borderRadius: 8, textAlign: "center", border: paymentMethod === "card" ? "1px solid var(--accent)" : "1px solid var(--line)", color: !auth.customer ? "var(--line)" : paymentMethod === "card" ? "var(--accent)" : "var(--text-muted)", cursor: auth.customer ? "pointer" : "not-allowed", fontSize: 13 }}>
-                  {t.checkoutCardLoginRequired.split(" ")[0]} {!auth.customer && `(${lang === "ru" ? "войдите" : "даромадан"})`}
-                </div>
+              <div className="ck-label ck-label--gap">{tr("Адрес доставки", "Суроғаи расонидан")}</div>
+              {field(`${t.checkoutAddress} *`, deliveryAddress, setDeliveryAddress, attemptedSubmit && !deliveryAddress ? t.checkoutFillField : null)}
+              {field(`${t.checkoutLandmark} *`, landmark, setLandmark, attemptedSubmit && !landmark ? t.checkoutFillField : null)}
+              <label className="ck-field">
+                <span className="ck-field-label">{tr("Комментарий", "Шарҳ")}</span>
+                <textarea value={orderComment} onChange={(e) => setOrderComment(e.target.value)} placeholder={t.checkoutCommentPlaceholder} rows={3} />
+              </label>
+
+              <div className="ck-label ck-label--gap">{t.checkoutPaymentMethod}</div>
+              <div className="ck-pay">
+                <button className={`ck-pay-opt${paymentMethod === "qr" ? " is-active" : ""}`} onClick={() => setPaymentMethod("qr")}>
+                  <span className="ck-radio" />
+                  <span>{tr("QR-код", "QR-код")}</span>
+                </button>
+                <button
+                  className={`ck-pay-opt${paymentMethod === "card" ? " is-active" : ""}`}
+                  onClick={() => auth.customer && setPaymentMethod("card")}
+                  disabled={!auth.customer}
+                >
+                  <span className="ck-radio" />
+                  <span>{tr("Карта", "Корт")}{!auth.customer && <em> — {tr("войдите в аккаунт", "ворид шавед")}</em>}</span>
+                </button>
               </div>
-            </div>
+              <p className="ck-note">{t.checkoutRequiredNote}</p>
 
-            <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-              <button onClick={handlePlaceOrder} disabled={placing} style={{ width: "100%", height: 50, background: "var(--accent-btn-bg)", color: "var(--accent-btn-text)", border: "none", borderRadius: 8, fontFamily: "var(--font-label)", fontWeight: 700, fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", opacity: placing ? 0.6 : 1 }}>
-                {placing ? t.checkoutPlacing : t.checkoutConfirmOrder}
+              <button className="ck-btn" onClick={handlePlaceOrder} disabled={placing}>
+                {placing ? t.checkoutPlacing : tr("Подтвердить заказ", "Тасдиқи фармоиш")}
               </button>
-              <span onClick={() => setCheckoutStep("cart")} style={{ textAlign: "center", cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}>{t.checkoutBackToCart}</span>
+              <span className="ck-link ck-back" onClick={() => setCheckoutStep("cart")}>← {t.checkoutBackToCart}</span>
             </div>
+            {summary}
           </div>
         )}
 
         {checkoutStep === "payment" && (
-          <div style={{ maxWidth: 480, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 20, margin: "0 auto", background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: "var(--panel-radius)", boxShadow: "var(--panel-shadow)", padding: 24 }}>
-            <span className="product-title" style={{ fontSize: 18 }}>{t.checkoutOrderCreated.replace("{id}", String(orderNumber))}</span>
+          <div className="ck-center">
+            <div className="ck-eyebrow">{tr(`Заказ № ${orderNumber}`, `Фармоиш № ${orderNumber}`)}</div>
+            <p className="ck-lead">{t.checkoutOrderCreated.replace("{id}", String(orderNumber))}</p>
             {paymentMethod === "qr" ? (
               <>
-                <div style={{ width: 180, height: 180, background: "var(--surface)", border: "1px solid var(--panel-border)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 12 }}>
-                  {t.checkoutQrMock}
-                </div>
-                <p style={{ color: "var(--text-muted)", fontSize: 13, maxWidth: 260 }}>{t.checkoutScanQr.replace("{amount}", String(cart.totalPrice))}</p>
+                <div className="ck-qr">{t.checkoutQrMock}</div>
+                <p className="ck-note ck-note--center">{t.checkoutScanQr.replace("{amount}", String(orderTotal))}</p>
               </>
             ) : (
-              <>
-                <div style={{ width: "100%", padding: 20, background: "var(--surface)", border: "1px solid var(--panel-border)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 12 }}>
-                  <input placeholder="Номер карты" disabled style={{ width: "100%", padding: 10, background: "var(--bg)", border: "1px solid var(--panel-border)", borderRadius: 8, color: "var(--text-muted)", fontSize: 13, boxSizing: "border-box" }} />
-                  <div style={{ display: "flex", gap: 10, width: "100%" }}>
-                    <input placeholder="ММ/ГГ" disabled style={{ flex: 1, minWidth: 0, padding: 10, background: "var(--bg)", border: "1px solid var(--panel-border)", borderRadius: 8, color: "var(--text-muted)", fontSize: 13, boxSizing: "border-box" }} />
-                    <input placeholder="CVV" disabled style={{ flex: 1, minWidth: 0, padding: 10, background: "var(--bg)", border: "1px solid var(--panel-border)", borderRadius: 8, color: "var(--text-muted)", fontSize: 13, boxSizing: "border-box" }} />
-                  </div>
+              <div className="ck-card">
+                <label className="ck-field"><span className="ck-field-label">{tr("Номер карты", "Рақами корт")}</span><input disabled /></label>
+                <div className="ck-card-row">
+                  <label className="ck-field"><span className="ck-field-label">ММ/ГГ</span><input disabled /></label>
+                  <label className="ck-field"><span className="ck-field-label">CVV</span><input disabled /></label>
                 </div>
-                <p style={{ color: "var(--text-muted)", fontSize: 13, maxWidth: 260 }}>Оплата картой {cart.totalPrice} смн (макет — интеграция с эквайрингом появится позже).</p>
-              </>
+                <p className="ck-note">{tr(`Оплата картой ${orderTotal} смн (макет — интеграция с эквайрингом появится позже).`, `Пардохт бо корт ${orderTotal} смн (макет).`)}</p>
+              </div>
             )}
-            <button
-              onClick={() => setCheckoutStep("done")}
-              style={{ width: "100%", height: 50, background: "var(--accent-btn-bg)", color: "var(--accent-btn-text)", border: "none", borderRadius: 8, fontFamily: "var(--font-label)", fontWeight: 700, fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer" }}
-            >
-              {t.checkoutPaidMock}
-            </button>
+            <button className="ck-btn" onClick={() => setCheckoutStep("done")}>{t.checkoutPaidMock}</button>
           </div>
         )}
 
         {checkoutStep === "done" && (
-          <div style={{ maxWidth: 480, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 16, margin: "0 auto", background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: "var(--panel-radius)", boxShadow: "var(--panel-shadow)", padding: 28 }}>
-            <span className="product-title" style={{ fontSize: 20 }}>{t.checkoutThankYou}</span>
-            <p style={{ color: "var(--text-muted)", fontSize: 14 }}>{t.checkoutOrderAccepted.replace("{id}", String(orderNumber)).replace("{phone}", customerPhone)}</p>
-            <button
-              onClick={() => {
-                setCheckoutStep("cart");
-                setCustomerName("");
-                setCustomerPhone("");
-                setDeliveryAddress("");
-                setLandmark("");
-                setOrderComment("");
-                setOrderNumber(null);
-                router.push("/");
-              }}
-              style={{ height: 48, padding: "0 24px", background: "transparent", color: "var(--text)", border: "1px solid var(--panel-border)", borderRadius: 8, fontFamily: "var(--font-label)", fontSize: 13, cursor: "pointer" }}
-            >
-              {t.checkoutClose}
-            </button>
+          <div className="ck-center">
+            <div className="ck-eyebrow">{tr(`Заказ № ${orderNumber}`, `Фармоиш № ${orderNumber}`)}</div>
+            <p className="ck-lead">{t.checkoutThankYou}</p>
+            <p className="ck-note ck-note--center">{t.checkoutOrderAccepted.replace("{id}", String(orderNumber)).replace("{phone}", customerPhone)}</p>
+            <div className="ck-done-actions">
+              <button className="ck-btn" onClick={() => router.push("/")}>{tr("Продолжить покупки", "Идомаи харид")}</button>
+              {auth.customer && <span className="ck-link" onClick={() => router.push("/orders")}>{tr("Мои заказы", "Фармоишҳои ман")}</span>}
+            </div>
           </div>
         )}
       </div>
 
-      {toastMessage && (
-        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "#E24B4A", color: "#fff", padding: "12px 20px", borderRadius: 8, fontSize: 13, zIndex: 300 }}>
-          {toastMessage}
-        </div>
-      )}
-    </>
+      {toastMessage && <div className="ck-toast">{toastMessage}</div>}
+    </div>
   );
 }
