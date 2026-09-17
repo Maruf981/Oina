@@ -344,7 +344,6 @@ function HomeInner() {
   const [filterRecommendedOnly, setFilterRecommendedOnly] = useState(
     () => searchParams.get("recommended") === "1" || searchParams.get("recommended_only") === "true"
   );
-  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     const str = (key: string) => searchParams.get(key) || "";
@@ -903,9 +902,6 @@ function HomeInner() {
               {o.label}
             </span>
           ))}
-          <span className="coll-item sec-filter-btn" onClick={() => window.dispatchEvent(new Event("oina:open-filters"))}>
-            {lang === "ru" ? "Фильтры" : "Филтрҳо"} +
-          </span>
         </nav>
       </div>
 
