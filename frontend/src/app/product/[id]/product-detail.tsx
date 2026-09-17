@@ -169,6 +169,19 @@ export default function ProductDetailClient() {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState(0);
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  useEffect(() => {
+    if (lightbox === null) return;
+    const n = product?.images.length || 1;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightbox(null);
+      else if (e.key === "ArrowRight") setLightbox((i) => (i === null ? i : (i + 1) % n));
+      else if (e.key === "ArrowLeft") setLightbox((i) => (i === null ? i : (i - 1 + n) % n));
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [lightbox, product]);
   const [mainVideoMuted, setMainVideoMuted] = useState(true);
   const [related, setRelated] = useState<ProductBrief[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<ProductBrief[]>([]);
@@ -292,6 +305,8 @@ export default function ProductDetailClient() {
   };
   const handleSelectColor = (color: string) => {
     setSelectedColor(color);
+    const cImg = product.images.findIndex((img) => img.color === color);
+    if (cImg !== -1) setActiveImage(cImg);
     const match = product.variants.find((v) => v.color === color && v.size === selectedSize);
     if (match) {
       setQuantity((q) => Math.min(q, match.stock || 1));
@@ -380,9 +395,7 @@ export default function ProductDetailClient() {
     : stockForNote <= 5
     ? tr(`Осталось ${stockForNote} шт`, `${stockForNote} дона монд`)
     : tr("В наличии", "Мавҷуд ҳаст");
-  const orderedImages = selectedColor
-    ? [...product.images.filter((img) => img.color === selectedColor), ...product.images.filter((img) => img.color !== selectedColor)]
-    : product.images;
+  const orderedImages = product.images;
   const hasMaterial = !!(product.material_ru || product.season_ru || product.pattern_ru || product.country_of_origin_ru || product.care_instructions_ru);
   const specRows: { label: string; value: string }[] = [
     { label: tr("Материал", "Матоъ"), value: product.material_ru ? localized(product.material_ru, product.material_tj) : "" },
@@ -458,17 +471,44 @@ export default function ProductDetailClient() {
               <div key={img.id} className={`pd-shot${idx === 0 ? " pd-shot--main" : ""}`}>
                 {isVid(img) ? (
                   <>
-                    <video src={img.url} autoPlay muted={mainVideoMuted} loop playsInline />
+                    <video src={img.url} autoPlay muted={mainVideoMuted} loop playsInline onClick={() => setLightbox(idx)} />
                     <button className="pd-sound" onClick={() => setMainVideoMuted((m) => !m)}>
                       {mainVideoMuted ? tr("Включить звук", "Садо") : tr("Выключить звук", "Бесадо")}
                     </button>
                   </>
                 ) : (
-                  <img src={img.url} alt={localized(product.title_ru, product.title_tj)} loading={idx < 2 ? "eager" : "lazy"} />
+                  <img src={img.url} alt={localized(product.title_ru, product.title_tj)} loading={idx < 2 ? "eager" : "lazy"} onClick={() => setLightbox(idx)} />
                 )}
               </div>
             ))}
           </div>
+
+          {lightbox !== null && orderedImages[lightbox] && (
+            <div
+              className="pd-lb"
+              onClick={() => setLightbox(null)}
+              onTouchStart={(e) => { e.currentTarget.dataset.x = String(e.touches[0].clientX); }}
+              onTouchEnd={(e) => {
+                const dx = e.changedTouches[0].clientX - Number(e.currentTarget.dataset.x || 0);
+                const n = orderedImages.length;
+                if (Math.abs(dx) > 50) setLightbox((i) => (i === null ? i : (i + (dx < 0 ? 1 : -1) + n) % n));
+              }}
+            >
+              {isVid(orderedImages[lightbox]) ? (
+                <video className="pd-lb-media" src={orderedImages[lightbox].url} controls autoPlay playsInline onClick={(e) => e.stopPropagation()} />
+              ) : (
+                <img className="pd-lb-media" src={orderedImages[lightbox].url} alt={localized(product.title_ru, product.title_tj)} onClick={(e) => e.stopPropagation()} />
+              )}
+              <button className="pd-lb-close" onClick={() => setLightbox(null)} aria-label="close">×</button>
+              {orderedImages.length > 1 && (
+                <>
+                  <button className="pd-lb-nav pd-lb-prev" aria-label="prev" onClick={(e) => { e.stopPropagation(); setLightbox((i) => (i === null ? i : (i - 1 + orderedImages.length) % orderedImages.length)); }}>‹</button>
+                  <button className="pd-lb-nav pd-lb-next" aria-label="next" onClick={(e) => { e.stopPropagation(); setLightbox((i) => (i === null ? i : (i + 1) % orderedImages.length)); }}>›</button>
+                  <div className="pd-lb-count">{lightbox + 1} / {orderedImages.length}</div>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="pd-info">
             <div className="pd-top">
