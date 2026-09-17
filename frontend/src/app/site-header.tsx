@@ -2,7 +2,7 @@
 import "./site-header.css";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useTheme } from "./theme-context";
 import { useLang } from "./lang-context";
 import { useAuth } from "./auth-context";
@@ -28,6 +28,14 @@ type FilterOptions = {
 };
 
 export function SiteHeader() {
+  return (
+    <Suspense fallback={null}>
+      <SiteHeaderInner />
+    </Suspense>
+  );
+}
+
+function SiteHeaderInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
