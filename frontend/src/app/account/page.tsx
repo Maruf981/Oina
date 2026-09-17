@@ -1,7 +1,9 @@
 "use client";
 
+import "../hero.css";
+import "../cart/cart.css";
+import "./account.css";
 import { useEffect, useState } from "react";
-import { BackButton } from "../back-button";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../auth-context";
 import { SiteHeader } from "../site-header";
@@ -210,343 +212,168 @@ export default function AccountPage() {
     );
   }
 
-  const inputStyle: React.CSSProperties = {
-    padding: 12,
-    background: "var(--surface)",
-    border: "1px solid var(--line)",
-    color: "var(--text)",
-    fontSize: 14,
-    width: "100%",
-  };
-
-  const tabs: { key: Tab; label: string; icon: string }[] = lang === "ru" ? [
-    { key: "profile", label: "Данные", icon: "user" },
-    { key: "orders", label: "Заказы", icon: "package" },
-    { key: "password", label: "Пароль", icon: "lock" },
-  ] : [
-    { key: "profile", label: "Маълумот", icon: "user" },
-    { key: "orders", label: "Таърих", icon: "package" },
-    { key: "password", label: "Парол", icon: "lock" },
+  const tr = (ru: string, tj: string) => (lang === "ru" ? ru : tj);
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "profile", label: tr("Данные", "Маълумот") },
+    { key: "orders", label: `${tr("Заказы", "Фармоишҳо")} (${orders.length})` },
+    { key: "password", label: tr("Пароль", "Парол") },
   ];
 
-  const renderTabIcon = (icon: string, active: boolean) => {
-    const color = active ? "var(--accent)" : "var(--text-muted)";
-    if (icon === "user") {
-      return (
-        <svg width="18" height="18" viewBox="0 0 20 20">
-          <circle cx="10" cy="7" r="3.2" fill="none" stroke={color} strokeWidth="1.3" />
-          <path d="M4 17 C4 13 6.5 11 10 11 C13.5 11 16 13 16 17" fill="none" stroke={color} strokeWidth="1.3" />
-        </svg>
-      );
-    }
-    if (icon === "package") {
-      return (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.3">
-          <path d="M3 8 L12 3 L21 8 L21 16 L12 21 L3 16 Z" strokeLinejoin="round" />
-          <path d="M3 8 L12 13 L21 8" strokeLinejoin="round" />
-          <path d="M12 13 V21" />
-        </svg>
-      );
-    }
-    return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.3">
-        <rect x="5" y="11" width="14" height="9" rx="1.5" />
-        <path d="M8 11 V7 C8 4.8 9.8 3 12 3 C14.2 3 16 4.8 16 7 V11" strokeLinecap="round" />
-      </svg>
-    );
-  };
-
   return (
-    <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
+    <div data-theme={theme} className="ac-root">
       <SiteHeader />
-      <div style={{ maxWidth: 500, margin: "0 auto", padding: 40, paddingTop: 140, paddingBottom: "calc(88px + env(safe-area-inset-bottom))" }}>
-        <BackButton href="/" />
+      <div className="ac">
+        <div className="ac-head">
+          <span className="coll-rule" />
+          <div className="ck-eyebrow">{tr("Личный кабинет", "Утоқи шахсӣ")}</div>
 
-        <h1 className="product-title" style={{ fontSize: 28, margin: "24px 0 30px" }}>
-          {lang === "ru" ? "Профиль" : "Уток"}
-        </h1>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 28 }}>
-          <label style={{ cursor: "pointer", position: "relative", display: "inline-block" }}>
-            <div
-              style={{
-                width: 84,
-                height: 84,
-                borderRadius: "50%",
-                background: "var(--surface)",
-                border: "1px solid var(--line)",
-                backgroundImage: auth.customer.avatar_url ? `url(${auth.customer.avatar_url})` : "none",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: "var(--font-label)",
-                fontSize: 11,
-                color: "var(--text-muted)",
-                textAlign: "center",
-                opacity: uploadingAvatar ? 0.5 : 1,
-              }}
+          <label className={`ac-avatar${uploadingAvatar ? " is-loading" : ""}`}>
+            <span
+              className="ac-avatar-img"
+              style={{ backgroundImage: auth.customer.avatar_url ? `url(${auth.customer.avatar_url})` : "none" }}
             >
-              {!auth.customer.avatar_url && !uploadingAvatar && "Фото"}
-              {uploadingAvatar && "..."}
-            </div>
-            <div
-              style={{
-                position: "absolute",
-                bottom: 0,
-                right: 0,
-                width: 26,
-                height: 26,
-                borderRadius: "50%",
-                background: "var(--accent)",
-                border: "2px solid var(--bg)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2">
-                <path d="M12 20h9" strokeLinecap="round" />
-                <path d="M16.5 3.5 L20.5 7.5 L8 20 H4 V16 Z" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: "none" }} />
+              {!auth.customer.avatar_url && (auth.customer.name || "?").trim().charAt(0).toUpperCase()}
+            </span>
+            <span className="ac-avatar-edit">{uploadingAvatar ? "…" : tr("Изменить фото", "Иваз кардани акс")}</span>
+            <input type="file" accept="image/*" onChange={handleAvatarChange} />
           </label>
-          <div>
-            <div className="product-title" style={{ fontSize: 18 }}>{auth.customer.name || "Без имени"}</div>
-            <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>{auth.customer.phone}</div>
-          </div>
-        </div>
 
-        <div
-          style={{
-            display: "flex",
-            borderBottom: "1px solid var(--line)",
-            marginBottom: 28,
-          }}
-        >
-          {tabs.map((tItem) => {
-            const active = tab === tItem.key;
-            return (
-              <div
-                key={tItem.key}
-                onClick={() => setTab(tItem.key)}
-                style={{
-                  flex: 1,
-                  cursor: "pointer",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "0 0 12px",
-                  borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
-                }}
-              >
-                {renderTabIcon(tItem.icon, active)}
-                <span
-                  style={{
-                    fontFamily: "var(--font-label)",
-                    fontSize: 11,
-                    letterSpacing: "0.02em",
-                    color: active ? "var(--accent)" : "var(--text-muted)",
-                  }}
-                >
-                  {tItem.label}
-                </span>
-              </div>
-            );
-          })}
+          <h1 className="ac-title">{auth.customer.name || tr("Без имени", "Бе ном")}</h1>
+          <div className="ac-phone">{auth.customer.phone}</div>
+
+          <nav className="ac-tabs">
+            {tabs.map((tItem) => (
+              <span key={tItem.key} className={`coll-item${tab === tItem.key ? " is-active" : ""}`} onClick={() => setTab(tItem.key)}>
+                {tItem.label}
+              </span>
+            ))}
+          </nav>
         </div>
 
         {tab === "profile" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: "var(--panel-radius)", boxShadow: "var(--panel-shadow)", padding: 20 }}>
-            <input placeholder="Имя" value={name} onChange={(e) => setName(e.target.value)} disabled={!editingProfile} style={{ ...inputStyle, opacity: editingProfile ? 1 : 0.6, cursor: editingProfile ? "text" : "default" }} />
-            <input placeholder="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!editingProfile} style={{ ...inputStyle, opacity: editingProfile ? 1 : 0.6, cursor: editingProfile ? "text" : "default" }} />
-            <input placeholder={lang === "ru" ? "Адрес доставки" : "Суроғаи расонидани мол"} value={address} onChange={(e) => setAddress(e.target.value)} disabled={!editingProfile} style={{ ...inputStyle, opacity: editingProfile ? 1 : 0.6, cursor: editingProfile ? "text" : "default" }} />
+          <div className="ac-panel">
+            <div className="ck-label">{tr("Личные данные", "Маълумоти шахсӣ")}</div>
+            <label className="ck-field">
+              <span className="ck-field-label">{tr("Имя", "Ном")}</span>
+              <input value={name} onChange={(e) => setName(e.target.value)} disabled={!editingProfile} />
+            </label>
+            <label className="ck-field">
+              <span className="ck-field-label">{tr("Телефон", "Телефон")}</span>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!editingProfile} />
+            </label>
+            <label className="ck-field">
+              <span className="ck-field-label">{tr("Адрес доставки", "Суроғаи расонидани мол")}</span>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} disabled={!editingProfile} />
+            </label>
             {editingProfile ? (
-              <button
-                onClick={handleSaveProfile}
-                disabled={savingProfile}
-                style={{
-                  height: 48,
-                  padding: "0 16px",
-                  background: "var(--accent-btn-bg)",
-                  color: "var(--accent-btn-text)",
-                  border: "none",
-                  borderRadius: 8,
-                  fontFamily: "var(--font-label)",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                  opacity: savingProfile ? 0.6 : 1,
-                }}
-              >
-                {savingProfile ? (lang === "ru" ? "Сохраняем..." : "Сабт мешавад...") : (lang === "ru" ? "Сохранить" : "Сабт")}
-              </button>
+              <div className="ac-actions">
+                <button className="ck-btn" onClick={handleSaveProfile} disabled={savingProfile}>
+                  {savingProfile ? tr("Сохраняем...", "Сабт мешавад...") : tr("Сохранить", "Сабт")}
+                </button>
+                <span className="ck-link ck-link--muted" onClick={() => {
+                  setEditingProfile(false);
+                  setName(auth.customer?.name || "");
+                  setPhone(auth.customer?.phone || "");
+                  setAddress(auth.customer?.address || "");
+                }}>{tr("Отмена", "Бекор")}</span>
+              </div>
             ) : (
-              <button
-                onClick={() => { setEditingProfile(true); setProfileMsg(""); }}
-                style={{
-                  height: 48,
-                  padding: "0 16px",
-                  background: "var(--accent-btn-bg)",
-                  color: "var(--accent-btn-text)",
-                  border: "none",
-                  borderRadius: 8,
-                  fontFamily: "var(--font-label)",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                }}
-              >
-                {lang === "ru" ? "Изменить" : "Таъғир додан"}
+              <button className="ck-btn ck-btn--outline ac-btn-full" onClick={() => { setEditingProfile(true); setProfileMsg(""); }}>
+                {tr("Изменить данные", "Таъғир додан")}
               </button>
             )}
-            {profileMsg && <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{profileMsg}</span>}
+            {profileMsg && <p className="ck-note ck-note--center">{profileMsg}</p>}
           </div>
         )}
 
         {tab === "orders" && (
-          <div>
-            {orders.length === 0 && (
-              <p style={{ color: "var(--text-muted)" }}>
-                {lang === "ru" ? "У вас пока нет заказов" : "Айни ҳол фармоиш мавҷуд нест"}
-              </p>
-            )}
-            {orders.map((order) => (
-              <div key={order.id} style={{ background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: "var(--panel-radius)", boxShadow: "var(--panel-shadow)", padding: 20, marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                  <span className="product-title" style={{ fontSize: 16 }}>{lang === "ru" ? "Заказ №" : "Фармоиш №"}{order.id}</span>
-                  <span className="price">{order.total} смн</span>
-                </div>
-                <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 10 }}>
-                  {(lang === "ru" ? statusLabelsRu : statusLabelsTj)[order.status] || order.status} · {new Date(order.created_at).toLocaleDateString("ru-RU")}
-                </div>
-                {order.delivery_address && (
-                  <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 10 }}>{order.delivery_address}</p>
-                )}
-                {order.items.length > 0 && (
-                  <div style={{ borderTop: "1px solid var(--line)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-                    {order.items.map((item) => (
-                      <div key={item.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text-muted)" }}>
-                        <span>
-                          {item.variant ? (lang === "ru" ? item.variant.title_ru : item.variant.title_tj || item.variant.title_ru) : (lang === "ru" ? "Товар" : "Мол")}
-                          {item.variant && ` (${item.variant.color}, ${item.variant.size})`}
-                        </span>
-                        <span>{item.quantity} {lang === "ru" ? "шт" : "дона"} × {item.price_at_order} смн</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+          <div className="ac-panel ac-panel--wide">
+            {orders.length === 0 ? (
+              <div className="ck-empty">
+                <p>{tr("У вас пока нет заказов", "Айни ҳол фармоиш мавҷуд нест")}</p>
+                <button className="ck-btn ck-btn--outline" onClick={() => router.push("/")}>{tr("Перейти в каталог", "Ба каталог")}</button>
               </div>
-            ))}
+            ) : (
+              orders.map((order) => (
+                <div key={order.id} className="ac-order">
+                  <div className="ac-order-top">
+                    <div>
+                      <div className="ck-meta">
+                        {new Date(order.created_at).toLocaleDateString("ru-RU")} · {order.payment_method === "card" ? tr("Карта", "Корт") : "QR"}
+                      </div>
+                      <div className="ac-order-title">{tr("Заказ №", "Фармоиш №")} {order.id}</div>
+                    </div>
+                    <div className="ac-order-right">
+                      <span className="ac-status">{(lang === "ru" ? statusLabelsRu : statusLabelsTj)[order.status] || order.status}</span>
+                      <span className="ac-order-total">{order.total} смн</span>
+                    </div>
+                  </div>
+                  {order.delivery_address && <p className="ac-order-address">{order.delivery_address}</p>}
+                  {order.items.length > 0 && (
+                    <div className="ac-order-items">
+                      {order.items.map((item) => (
+                        <div key={item.id} className="ac-order-item">
+                          <span>
+                            {item.variant ? (lang === "ru" ? item.variant.title_ru : item.variant.title_tj || item.variant.title_ru) : tr("Товар", "Мол")}
+                            {item.variant && <em> · {item.variant.size} · {item.variant.color}</em>}
+                          </span>
+                          <span>{item.quantity} × {item.price_at_order} смн</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         )}
 
         {tab === "password" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: "var(--panel-radius)", boxShadow: "var(--panel-shadow)", padding: 20 }}>
-            <input
-              type="password"
-              placeholder={lang === "ru" ? "Текущий пароль" : "Пароли ҳозира"}
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              style={inputStyle}
-            />
-            <input
-              type="password"
-              placeholder={lang === "ru" ? "Новый пароль" : "Пароли нав"}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              style={inputStyle}
-            />
-            <button
-              onClick={handleChangePassword}
-              disabled={savingPassword || !oldPassword || !newPassword}
-              style={{
-                height: 48,
-                padding: "0 16px",
-                background: "var(--accent-btn-bg)",
-                color: "var(--accent-btn-text)",
-                border: "none",
-                borderRadius: 8,
-                fontFamily: "var(--font-label)",
-                fontWeight: 700,
-                fontSize: 13,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                cursor: "pointer",
-                opacity: savingPassword ? 0.6 : 1,
-              }}
-            >
-              {savingPassword ? (lang === "ru" ? "Сохраняем..." : "Нигоҳ дошта истодааст...") : (lang === "ru" ? "Изменить пароль" : "Ивази парол")}
+          <div className="ac-panel">
+            <div className="ck-label">{tr("Смена пароля", "Иваз кардани парол")}</div>
+            <label className="ck-field">
+              <span className="ck-field-label">{tr("Текущий пароль", "Пароли ҳозира")}</span>
+              <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
+            </label>
+            <label className="ck-field">
+              <span className="ck-field-label">{tr("Новый пароль", "Пароли нав")}</span>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+            </label>
+            <button className="ck-btn" onClick={handleChangePassword} disabled={savingPassword || !oldPassword || !newPassword}>
+              {savingPassword ? tr("Сохраняем...", "Нигоҳ дошта истодааст...") : tr("Изменить пароль", "Ивази парол")}
             </button>
-            {passwordMsg && <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{passwordMsg}</span>}
-            <div style={{ marginTop: 30, paddingTop: 24, borderTop: "1px solid var(--line)" }}>
-              <div style={{ color: "#E24B4A", fontSize: 13, marginBottom: 12 }}>
-                {lang === "ru" ? "Удаление аккаунта необратимо. Ваши персональные данные будут стёрты, история заказов сохранится в анонимном виде." : "Нест кардани ҳисоб бебозгашт аст."}
-              </div>
+            {passwordMsg && <p className="ck-note ck-note--center">{passwordMsg}</p>}
+
+            <div className="ac-danger">
+              <div className="ck-label">{tr("Удаление аккаунта", "Нест кардани ҳисоб")}</div>
+              <p className="ck-note">
+                {tr("Удаление аккаунта необратимо. Ваши персональные данные будут стёрты, история заказов сохранится в анонимном виде.", "Нест кардани ҳисоб бебозгашт аст.")}
+              </p>
               {!confirmDelete ? (
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  style={{ padding: "10px 18px", background: "transparent", color: "#E24B4A", border: "1px solid #E24B4A", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
-                >
-                  {lang === "ru" ? "Удалить аккаунт" : "Ҳисобро нест кардан"}
-                </button>
+                <span className="ck-link ac-danger-link" onClick={() => setConfirmDelete(true)}>{tr("Удалить аккаунт", "Ҳисобро нест кардан")}</span>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 320 }}>
-                  <input
-                    type="password"
-                    placeholder={lang === "ru" ? "Введите пароль для подтверждения" : "Парол"}
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
-                    style={inputStyle}
-                  />
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <button
-                      onClick={handleDeleteAccount}
-                      disabled={deletingAccount || !deletePassword}
-                      style={{ padding: "10px 18px", background: "#E24B4A", color: "#fff", border: "none", fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", opacity: deletingAccount ? 0.6 : 1 }}
-                    >
-                      {deletingAccount ? (lang === "ru" ? "Удаляем..." : "...") : (lang === "ru" ? "Подтвердить удаление" : "Тасдиқ")}
+                <>
+                  <label className="ck-field">
+                    <span className="ck-field-label">{tr("Пароль для подтверждения", "Парол барои тасдиқ")}</span>
+                    <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} />
+                  </label>
+                  <div className="ac-actions">
+                    <button className="ck-btn ac-btn-danger" onClick={handleDeleteAccount} disabled={deletingAccount || !deletePassword}>
+                      {deletingAccount ? tr("Удаляем...", "...") : tr("Подтвердить удаление", "Тасдиқ")}
                     </button>
-                    <span
-                      onClick={() => { setConfirmDelete(false); setDeletePassword(""); setDeleteMsg(""); }}
-                      style={{ padding: "10px 18px", cursor: "pointer", fontSize: 12, color: "var(--text-muted)" }}
-                    >
-                      {lang === "ru" ? "Отмена" : "Бекор"}
+                    <span className="ck-link ck-link--muted" onClick={() => { setConfirmDelete(false); setDeletePassword(""); setDeleteMsg(""); }}>
+                      {tr("Отмена", "Бекор")}
                     </span>
                   </div>
-                  {deleteMsg && <span style={{ fontSize: 13, color: "#E24B4A" }}>{deleteMsg}</span>}
-                </div>
+                  {deleteMsg && <span className="ck-error">{deleteMsg}</span>}
+                </>
               )}
             </div>
           </div>
         )}
 
-        <div style={{ marginTop: 40, borderTop: "1px solid var(--line)", paddingTop: 24 }}>
-          <span
-            onClick={() => {
-              auth.logout();
-              router.push("/");
-            }}
-            style={{
-              cursor: "pointer",
-              fontFamily: "var(--font-label)",
-              fontSize: 12,
-              letterSpacing: "0.04em",
-              color: "var(--text-muted)",
-              border: "1px solid var(--line)",
-              padding: "10px 18px",
-              display: "inline-block",
-            }}
-          >
-            {lang === "ru" ? "Выйти" : "Баромад"}
-          </span>
+        <div className="ac-logout">
+          <span className="ck-link ck-link--muted" onClick={() => { auth.logout(); router.push("/"); }}>{tr("Выйти из аккаунта", "Баромад")}</span>
         </div>
       </div>
     </div>
