@@ -47,6 +47,7 @@ export function SiteHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
+  const [favoritesCount, setFavoritesCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [history, setHistory] = useState<string[]>([]);
@@ -97,6 +98,28 @@ export function SiteHeader() {
     setMenuOpen(false);
     setSearchOpen(false);
   }, [pathname, searchParams]);
+
+  // счётчик избранного: гость — localStorage, вошедший — API
+  useEffect(() => {
+    const load = () => {
+      if (!auth.token) {
+        try {
+          const ids = JSON.parse(localStorage.getItem("guest_favorites") || "[]");
+          setFavoritesCount(Array.isArray(ids) ? ids.length : 0);
+        } catch { setFavoritesCount(0); }
+        return;
+      }
+      fetch(`${API_URL}/favorites/`, { headers: { Authorization: `Bearer ${auth.token}` } })
+        .then((res) => res.json())
+        .then((data) => setFavoritesCount(Array.isArray(data) ? data.length : 0))
+        .catch(() => setFavoritesCount(0));
+    };
+    load();
+    const t = setTimeout(load, 800);
+    window.addEventListener("focus", load);
+    window.addEventListener("oina:favorites-changed", load);
+    return () => { clearTimeout(t); window.removeEventListener("focus", load); window.removeEventListener("oina:favorites-changed", load); };
+  }, [auth.token, pathname, searchParams]);
 
   useEffect(() => {
     setSearchQuery(searchParams.get("search") || "");
@@ -207,9 +230,34 @@ export function SiteHeader() {
           <img className="oh-logo" src="/logo.png" alt="Oina.tj" onClick={() => router.push("/")} />
 
           <div className="oh-actions">
-            <span className="oh-action" onClick={() => setSearchOpen(true)}>{tr("Поиск", "Ҷустуҷӯ")}</span>
-            <span className="oh-action oh-cart" onClick={() => router.push("/cart")}>
-              {tr("Корзина", "Сабад")} <span className="oh-count">({cart.totalCount})</span>
+            <span className="oh-action" onClick={() => setSearchOpen(true)} title={tr("Поиск", "Ҷустуҷӯ")}>
+              <span className="oh-txt">{tr("Поиск", "Ҷустуҷӯ")}</span>
+              <span className="oh-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 L21 21" strokeLinecap="round" /></svg>
+              </span>
+            </span>
+
+            <span className="oh-action" onClick={() => router.push("/favorites")} title={tr("Избранное", "Интихобҳо")}>
+              <span className="oh-txt">{tr("Избранное", "Интихобҳо")} <span className="oh-count">({favoritesCount})</span></span>
+              <span className="oh-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M12 20.5 C12 20.5 3.5 14.6 3.5 8.9 C3.5 6 5.7 4 8.3 4 C10 4 11.3 4.9 12 6 C12.7 4.9 14 4 15.7 4 C18.3 4 20.5 6 20.5 8.9 C20.5 14.6 12 20.5 12 20.5 Z" strokeLinejoin="round" /></svg>
+                {favoritesCount > 0 && <span className="oh-badge">{favoritesCount}</span>}
+              </span>
+            </span>
+
+            <span className="oh-action" onClick={() => router.push("/cart")} title={tr("Корзина", "Сабад")}>
+              <span className="oh-txt">{tr("Корзина", "Сабад")} <span className="oh-count">({cart.totalCount})</span></span>
+              <span className="oh-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M5 8.5 H19 L18 21 H6 Z" strokeLinejoin="round" /><path d="M8.5 8.5 V7 C8.5 4.8 10 3.3 12 3.3 C14 3.3 15.5 4.8 15.5 7 V8.5" /></svg>
+                {cart.totalCount > 0 && <span className="oh-badge">{cart.totalCount}</span>}
+              </span>
+            </span>
+
+            <span className="oh-action" onClick={() => router.push(auth.customer ? "/account" : "/?login=1")} title={auth.customer ? tr("Профиль", "Уток") : tr("Войти", "Даромадан")}>
+              <span className="oh-txt oh-name">{auth.customer ? auth.customer.name || tr("Профиль", "Уток") : tr("Войти", "Даромадан")}</span>
+              <span className="oh-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="12" cy="8" r="4" /><path d="M4.5 21 C4.5 16.5 7.8 13.8 12 13.8 C16.2 13.8 19.5 16.5 19.5 21" strokeLinecap="round" /></svg>
+              </span>
             </span>
           </div>
         </div>
