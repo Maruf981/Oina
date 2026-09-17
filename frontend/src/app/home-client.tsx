@@ -903,6 +903,9 @@ function HomeInner() {
               {o.label}
             </span>
           ))}
+          <span className="coll-item sec-filter-btn" onClick={() => window.dispatchEvent(new Event("oina:open-filters"))}>
+            {lang === "ru" ? "Фильтры" : "Филтрҳо"} +
+          </span>
         </nav>
       </div>
 

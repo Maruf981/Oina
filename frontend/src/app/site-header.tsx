@@ -63,6 +63,13 @@ export function SiteHeader() {
   const filterBrandOnly = searchParams.get("brand_only") === "true";
   const filterInStock = searchParams.get("in_stock_only") === "true";
   const filterOnSale = searchParams.get("on_sale_only") === "true";
+  const activeFilters = [minPrice, maxPrice, filterSize, filterColor, filterMaterial, filterSeason].filter(Boolean).length + [filterBrandOnly, filterInStock, filterOnSale].filter(Boolean).length;
+
+  useEffect(() => {
+    const open = () => setFiltersOpen(true);
+    window.addEventListener("oina:open-filters", open);
+    return () => window.removeEventListener("oina:open-filters", open);
+  }, []);
 
   // высота хедера -> CSS-переменная --header-h (для отступов страниц)
   useEffect(() => {
@@ -317,43 +324,105 @@ export function SiteHeader() {
 
       {filtersOpen && (
         <div className="oh-drawer-backdrop" onClick={() => setFiltersOpen(false)}>
-          <div className="oh-drawer oh-drawer--right filters-drawer" onClick={(e) => e.stopPropagation()}>
-            <div className="oh-drawer-head">
-              <span className="oh-label">{tr("Фильтры", "Филтрҳо")}</span>
-              <span className="oh-action" onClick={() => setFiltersOpen(false)}>{tr("Закрыть", "Пӯшидан")}</span>
+          <div className="oh-drawer oh-drawer--right flt" onClick={(e) => e.stopPropagation()}>
+            <div className="bag-head">
+              <span className="oh-label">{tr("Фильтры", "Филтрҳо")}{activeFilters > 0 && <span className="bag-count"> ({activeFilters})</span>}</span>
+              <span className="oh-action" onClick={() => setFiltersOpen(false)}>{tr("Закрыть", "Пӯшидан")} ×</span>
             </div>
-            <div className="oh-filters">
-              <input type="number" placeholder={tr("Цена от", "Нарх аз")} defaultValue={minPrice}
-                onBlur={(e) => goToCatalog({ min_price: e.target.value || null })} />
-              <input type="number" placeholder={tr("Цена до", "Нарх то")} defaultValue={maxPrice}
-                onBlur={(e) => goToCatalog({ max_price: e.target.value || null })} />
-              <select value={filterSize} onChange={(e) => goToCatalog({ size: e.target.value || null })}>
-                <option value="">{tr("Все размеры", "Ҳама андозаҳо")}</option>
-                {filterOptions.sizes.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <div className="oh-colors">
-                {filterOptions.colors.map((c) => (
-                  <span
-                    key={c.name}
-                    title={c.name}
-                    className={filterColor === c.name ? "is-active" : ""}
-                    style={{ background: c.hex }}
-                    onClick={() => goToCatalog({ color: filterColor === c.name ? null : c.name })}
-                  />
+
+            <div className="flt-body">
+              <div className="flt-sec">
+                <div className="flt-label">{tr("Цена, смн", "Нарх, смн")}</div>
+                <div className="flt-price">
+                  <label className="ck-field">
+                    <span className="ck-field-label">{tr("От", "Аз")}</span>
+                    <input key={`min-${minPrice}`} type="number" inputMode="numeric" defaultValue={minPrice}
+                      onBlur={(e) => e.target.value !== minPrice && goToCatalog({ min_price: e.target.value || null })}
+                      onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} />
+                  </label>
+                  <span className="flt-dash">—</span>
+                  <label className="ck-field">
+                    <span className="ck-field-label">{tr("До", "То")}</span>
+                    <input key={`max-${maxPrice}`} type="number" inputMode="numeric" defaultValue={maxPrice}
+                      onBlur={(e) => e.target.value !== maxPrice && goToCatalog({ max_price: e.target.value || null })}
+                      onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} />
+                  </label>
+                </div>
+              </div>
+
+              {filterOptions.sizes.length > 0 && (
+                <div className="flt-sec">
+                  <div className="flt-label">{tr("Размер", "Андоза")}{filterSize && <b> — {filterSize}</b>}</div>
+                  <div className="flt-sizes">
+                    {filterOptions.sizes.map((sz) => (
+                      <button key={sz} className={`pd-size${filterSize === sz ? " is-active" : ""}`} onClick={() => goToCatalog({ size: filterSize === sz ? null : sz })}>{sz}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {filterOptions.colors.length > 0 && (
+                <div className="flt-sec">
+                  <div className="flt-label">{tr("Цвет", "Ранг")}{filterColor && <b> — {filterColor}</b>}</div>
+                  <div className="flt-colors">
+                    {filterOptions.colors.map((c) => (
+                      <button
+                        key={c.name}
+                        title={c.name}
+                        className={`pd-color${filterColor === c.name ? " is-active" : ""}`}
+                        style={{ background: c.hex }}
+                        onClick={() => goToCatalog({ color: filterColor === c.name ? null : c.name })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {filterOptions.materials.length > 0 && (
+                <div className="flt-sec">
+                  <div className="flt-label">{tr("Материал", "Матоъ")}</div>
+                  <div className="flt-chips">
+                    {filterOptions.materials.map((m) => (
+                      <button key={m.ru} className={`flt-chip${filterMaterial === m.ru ? " is-active" : ""}`} onClick={() => goToCatalog({ material: filterMaterial === m.ru ? null : m.ru })}>
+                        {lang === "ru" ? m.ru : m.tj}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {filterOptions.seasons.length > 0 && (
+                <div className="flt-sec">
+                  <div className="flt-label">{tr("Сезон", "Мавсим")}</div>
+                  <div className="flt-chips">
+                    {filterOptions.seasons.map((se) => (
+                      <button key={se.ru} className={`flt-chip${filterSeason === se.ru ? " is-active" : ""}`} onClick={() => goToCatalog({ season: filterSeason === se.ru ? null : se.ru })}>
+                        {lang === "ru" ? se.ru : se.tj}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flt-sec">
+                <div className="flt-label">{tr("Показать", "Нишон додан")}</div>
+                {[
+                  { on: filterInStock, key: "in_stock_only", label: tr("Только в наличии", "Танҳо мавҷуд") },
+                  { on: filterOnSale, key: "on_sale_only", label: tr("Только со скидкой", "Танҳо бо тахфиф") },
+                  { on: filterBrandOnly, key: "brand_only", label: tr("Только бренды", "Танҳо брендҳо") },
+                ].map((o) => (
+                  <button key={o.key} className={`flt-check${o.on ? " is-on" : ""}`} onClick={() => goToCatalog({ [o.key]: o.on ? null : "true" })}>
+                    <span className="flt-box" />{o.label}
+                  </button>
                 ))}
               </div>
-              <select value={filterMaterial} onChange={(e) => goToCatalog({ material: e.target.value || null })}>
-                <option value="">{tr("Материал", "Матоъ")}</option>
-                {filterOptions.materials.map((m) => <option key={m.ru} value={m.ru}>{lang === "ru" ? m.ru : m.tj}</option>)}
-              </select>
-              <select value={filterSeason} onChange={(e) => goToCatalog({ season: e.target.value || null })}>
-                <option value="">{tr("Сезон", "Мавсим")}</option>
-                {filterOptions.seasons.map((s) => <option key={s.ru} value={s.ru}>{lang === "ru" ? s.ru : s.tj}</option>)}
-              </select>
-              <label><input type="checkbox" checked={filterBrandOnly} onChange={(e) => goToCatalog({ brand_only: e.target.checked ? "true" : null })} />{tr("Только бренды", "Танҳо брендҳо")}</label>
-              <label><input type="checkbox" checked={filterInStock} onChange={(e) => goToCatalog({ in_stock_only: e.target.checked ? "true" : null })} />{tr("Только в наличии", "Танҳо мавҷуд")}</label>
-              <label><input type="checkbox" checked={filterOnSale} onChange={(e) => goToCatalog({ on_sale_only: e.target.checked ? "true" : null })} />{tr("Только со скидкой", "Танҳо бо тахфиф")}</label>
-              <span className="oh-underline" onClick={resetFilters}>{tr("Сбросить", "Тоза кардан")}</span>
+            </div>
+
+            <div className="bag-foot">
+              <button className="bag-checkout" onClick={() => setFiltersOpen(false)}>{tr("Показать товары", "Нишон додани молҳо")}</button>
+              <div className="bag-links bag-links--center">
+                <span className={`bag-link${activeFilters === 0 ? " bag-link--muted" : ""}`} onClick={resetFilters}>{tr("Сбросить все", "Ҳамаро тоза кардан")}</span>
+              </div>
             </div>
           </div>
         </div>
