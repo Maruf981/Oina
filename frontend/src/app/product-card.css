@@ -210,3 +210,6 @@
 .pc-rating-count { opacity: .7; }
 .rec-item .pc-rating { top: .3rem; right: .3rem; padding: 0; gap: .2rem; }
 .rec-item .pc-rating-num { font-size: .5rem; }
+
+/* --- лента рекомендаций: без рейтинга --- */
+.rec-item .pc-rating { display: none; }
