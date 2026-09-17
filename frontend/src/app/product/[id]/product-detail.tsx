@@ -408,9 +408,22 @@ export default function ProductDetailClient() {
             <div key={p.id} className="rec-item">
               <div className="pc" onClick={() => router.push(`/product/${p.id}`)}>
                 <div className="pc-media">
-                  {p.images[0] && (
-                    <div className="pc-slides"><div className="pc-slide is-active"><img src={p.images[0].url} alt={localized(p.title_ru, p.title_tj)} loading="lazy" /></div></div>
-                  )}
+                  {(() => {
+                    const isV = (m: { url: string; media_type?: string }) => m.media_type === "video" || /\/video\/upload\/|\.(mp4|webm|mov)(\?|$)/i.test(m.url);
+                    const imgs = p.images as { url: string; media_type?: string }[];
+                    const photo = imgs.find((m) => !isV(m));
+                    const first = photo || imgs[0];
+                    if (!first) return null;
+                    return (
+                      <div className="pc-slides"><div className="pc-slide is-active">
+                        {isV(first) ? (
+                          <video src={first.url} muted loop autoPlay playsInline />
+                        ) : (
+                          <img src={first.url} alt={localized(p.title_ru, p.title_tj)} loading="lazy" />
+                        )}
+                      </div></div>
+                    );
+                  })()}
                 </div>
                 <div className="pc-info">
                   <div className="pc-title">{localized(p.title_ru, p.title_tj)}</div>
