@@ -152,11 +152,12 @@ async def upload_banner_image(
     banner = db.query(HomeBanner).filter(HomeBanner.id == banner_id).first()
     if not banner:
         raise HTTPException(status_code=404, detail="Banner not found")
-    result = cloudinary.uploader.upload(
-        file.file,
-        folder="oina/banners",
-        resource_type="auto",
-    )
+    is_video = (file.content_type or "").startswith("video/")
+    options = {"folder": "oina/banners", "resource_type": "video" if is_video else "image"}
+    if is_video:
+        # убираем звук, ограничиваем ширину 1920 и сжимаем
+        options["transformation"] = [{"audio_codec": "none", "width": 1920, "crop": "limit", "quality": "auto"}]
+    result = cloudinary.uploader.upload(file.file, **options)
     banner.image_url = result["secure_url"]
     db.commit()
     db.refresh(banner)
