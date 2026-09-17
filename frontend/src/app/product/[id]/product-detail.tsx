@@ -10,6 +10,9 @@ import { useTheme } from "../../theme-context";
 import { useLang } from "../../lang-context";
 import { useCity } from "../../city-context";
 import { translations, Lang } from "../../translations";
+import "../../hero.css";
+import "../../product-card.css";
+import "./product-detail.css";
 
 type Variant = {
   id: number;
@@ -175,6 +178,7 @@ export default function ProductDetailClient() {
   const { city } = useCity();
   const [shareCopied, setShareCopied] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [openAcc, setOpenAcc] = useState<string | null>("material");
 
   const handleCopyLink = async () => {
     const url = window.location.href;
@@ -367,749 +371,341 @@ export default function ProductDetailClient() {
     setToastMessage(lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд");
     setTimeout(() => setToastMessage(null), 2000);
   };
+  const tr = (ru: string, tj: string) => (lang === "ru" ? ru : tj);
+  const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+  const stockForNote = currentVariant ? currentVariant.stock : totalStock;
+  const stockNote = stockForNote === 0
+    ? tr("Нет в наличии", "Мавҷуд нест")
+    : stockForNote <= 5
+    ? tr(`Осталось ${stockForNote} шт`, `${stockForNote} дона монд`)
+    : tr("В наличии", "Мавҷуд ҳаст");
+  const orderedImages = selectedColor
+    ? [...product.images.filter((img) => img.color === selectedColor), ...product.images.filter((img) => img.color !== selectedColor)]
+    : product.images;
+  const hasMaterial = !!(product.material_ru || product.season_ru || product.pattern_ru || product.country_of_origin_ru || product.care_instructions_ru);
+  const specRows: { label: string; value: string }[] = [
+    { label: tr("Материал", "Матоъ"), value: product.material_ru ? localized(product.material_ru, product.material_tj) : "" },
+    { label: tr("Сезон", "Мавсим"), value: product.season_ru ? localized(product.season_ru, product.season_tj) : "" },
+    { label: tr("Рисунок", "Акс"), value: product.pattern_ru ? localized(product.pattern_ru, product.pattern_tj) : "" },
+    { label: tr("Производство", "Истеҳсол"), value: product.country_of_origin_ru ? localized(product.country_of_origin_ru, product.country_of_origin_tj) : "" },
+    { label: tr("Уход", "Нигоҳубин"), value: product.care_instructions_ru ? localized(product.care_instructions_ru, product.care_instructions_tj) : "" },
+  ].filter((r) => r.value);
+  const deliveryText = city === "dushanbe"
+    ? tr("Доставка за 24 часа по Душанбе", "Дар давоми 24 соат дар Душанбе расонида мешавад")
+    : tr("Доставка в другие города — через доверенное лицо", "Ба шаҳрҳои дигар — тавассути шахси боэътимод");
+  const toggleAcc = (key: string) => setOpenAcc((cur) => (cur === key ? null : key));
+  const isVid = (img: { media_type?: string }) => img.media_type === "video";
+
+  const miniRow = (title: string, list: ProductBrief[]) =>
+    list.length > 0 && (
+      <section className="pd-more">
+        <div className="sec-head">
+          <span className="coll-rule" />
+          <h2 className="sec-title">{title}</h2>
+        </div>
+        <div className="rec-scroll">
+          {list.map((p) => (
+            <div key={p.id} className="rec-item">
+              <div className="pc" onClick={() => router.push(`/product/${p.id}`)}>
+                <div className="pc-media">
+                  {p.images[0] && (
+                    <div className="pc-slides"><div className="pc-slide is-active"><img src={p.images[0].url} alt={localized(p.title_ru, p.title_tj)} loading="lazy" /></div></div>
+                  )}
+                </div>
+                <div className="pc-info">
+                  <div className="pc-title">{localized(p.title_ru, p.title_tj)}</div>
+                  <div className="pc-price">{p.price} смн</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+
   return (
-    <div
-      data-theme={theme}
-      style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}
-    >
+    <div data-theme={theme} className="pd-root">
       <SiteHeader />
-      <div className="product-detail-container" style={{ maxWidth: 1000, margin: "0 auto", padding: "40px", paddingTop: 140, paddingBottom: "calc(88px + env(safe-area-inset-bottom))" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-label)", fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>
-          <span onClick={() => router.push("/")} style={{ cursor: "pointer" }}>
-            Главная
-          </span>
+      <div className="pd">
+        <nav className="pd-crumbs">
+          <span onClick={() => router.push("/")}>{tr("Главная", "Асосӣ")}</span>
           {product.category && (
             <>
-              <span>/</span>
-              <span onClick={() => router.push("/")} style={{ cursor: "pointer" }}>
-                {product.category.name}
-              </span>
+              <i>/</i>
+              <span onClick={() => router.push(`/?category_id=${product.category!.id}`)}>{product.category.name}</span>
             </>
           )}
-          <span>/</span>
-          <span style={{ color: "var(--text)" }}>{localized(product.title_ru, product.title_tj)}</span>
-        </div>
+        </nav>
 
-        <div className="product-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, marginTop: 30 }}>
-          <div>
-            <div
-              className="product-detail-image"
-              style={{
-                position: "relative",
-                aspectRatio: "3/4",
-                maxWidth: "75%",
-                background: "var(--surface)",
-                border: "1px solid var(--line)",
-                marginBottom: 10,
-                overflow: "hidden",
-              }}
-            >
-              {product.images[activeImage]?.media_type === "video" ? (
-                <video
-                  key={product.images[activeImage].url}
-                  src={product.images[activeImage].url}
-                  autoPlay
-                  muted={mainVideoMuted}
-                  loop
-                  playsInline
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }}
-                />
-              ) : (
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    backgroundImage: product.images[activeImage]
-                      ? `url(${product.images[activeImage].url})`
-                      : "none",
-                    backgroundSize: "contain",
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "center",
-                  }}
-                />
-              )}
-              {product.images[activeImage]?.media_type === "video" && (
-                <span
-                  onClick={() => setMainVideoMuted((m) => !m)}
-                  style={{
-                    position: "absolute",
-                    bottom: 10,
-                    right: 10,
-                    width: 30,
-                    height: 30,
-                    borderRadius: "50%",
-                    background: "rgba(0,0,0,0.5)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    zIndex: 2,
-                  }}
-                >
-                  <span style={{ fontSize: 15 }}>{mainVideoMuted ? "🔇" : "🔊"}</span>
-                </span>
-              )}
-            </div>
-            {product.images.length > 1 && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {product.images.map((img, idx) => (
-                  <div
-                    key={img.id}
-                    onClick={() => setActiveImage(idx)}
-                    style={{
-                      position: "relative",
-                      width: 60,
-                      height: 60,
-                      backgroundImage: img.media_type === "video" ? "none" : `url(${img.url})`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                      border: idx === activeImage ? "2px solid var(--accent)" : "1px solid var(--line)",
-                      cursor: "pointer",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {img.media_type === "video" && (
-                      <>
-                        <video
-                          src={img.url}
-                          muted
-                          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                        <span
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            background: "rgba(0,0,0,0.25)",
-                            fontSize: 16,
-                          }}
-                        >
-                          ▶
-                        </span>
-                      </>
-                    )}
-                  </div>
-                ))}
+        <div className="pd-grid">
+          <div className="pd-gallery">
+            {orderedImages.length === 0 && <div className="pd-shot pd-shot--main pd-empty" />}
+            {orderedImages.map((img, idx) => (
+              <div key={img.id} className={`pd-shot${idx === 0 ? " pd-shot--main" : ""}`}>
+                {isVid(img) ? (
+                  <>
+                    <video src={img.url} autoPlay muted={mainVideoMuted} loop playsInline />
+                    <button className="pd-sound" onClick={() => setMainVideoMuted((m) => !m)}>
+                      {mainVideoMuted ? tr("Включить звук", "Садо") : tr("Выключить звук", "Бесадо")}
+                    </button>
+                  </>
+                ) : (
+                  <img src={img.url} alt={localized(product.title_ru, product.title_tj)} loading={idx < 2 ? "eager" : "lazy"} />
+                )}
               </div>
-            )}
+            ))}
           </div>
 
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div className="catalog-label" style={{ border: "none", padding: 0 }}>
-                Арт. {product.catalog_number}
+          <div className="pd-info">
+            <div className="pd-top">
+              <div className="pd-eyebrow">
+                {product.category ? `${product.category.name} · ` : ""}{tr("Арт.", "Арт.")} {product.catalog_number}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <span
-                onClick={() => product && toggleFavorite(product.id)}
-                style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-                title={lang === "ru" ? "В избранное" : "Ба дилхоҳ"}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24">
-                  <path
-                    d="M12 21 C12 21 3 14.5 3 8.6 C3 5.5 5.4 3.3 8.2 3.3 C10 3.3 11.3 4.2 12 5.4 C12.7 4.2 14 3.3 15.8 3.3 C18.6 3.3 21 5.5 21 8.6 C21 14.5 12 21 12 21 Z"
-                    fill={product && isFavorite(product.id) ? "var(--heart-active-color)" : "none"}
-                    stroke={product && isFavorite(product.id) ? "var(--heart-active-color)" : "var(--card-action-stroke)"}
-                    strokeWidth="1.5"
-                  />
-                </svg>
-              </span>
-              <span
-                onClick={() => setShareMenuOpen(!shareMenuOpen)}
-                style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6, position: "relative" }}
-                title={lang === "ru" ? "Поделиться" : "Мубодила кардан"}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24">
-                  <circle cx="18" cy="5" r="2.5" fill="none" stroke="var(--text-muted)" strokeWidth="1.4" />
-                  <circle cx="6" cy="12" r="2.5" fill="none" stroke="var(--text-muted)" strokeWidth="1.4" />
-                  <circle cx="18" cy="19" r="2.5" fill="none" stroke="var(--text-muted)" strokeWidth="1.4" />
-                  <line x1="8.2" y1="10.8" x2="15.8" y2="6.2" stroke="var(--text-muted)" strokeWidth="1.4" />
-                  <line x1="8.2" y1="13.2" x2="15.8" y2="17.8" stroke="var(--text-muted)" strokeWidth="1.4" />
-                </svg>
-                {shareCopied && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      right: 0,
-                      top: 24,
-                      background: "var(--text)",
-                      color: "var(--bg)",
-                      fontSize: 11,
-                      padding: "4px 8px",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {lang === "ru" ? "Ссылка скопирована" : "Пайванд нусхабардорӣ шуд"}
-                  </span>
-                )}
-                {shareMenuOpen && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      right: 0,
-                      top: 24,
-                      background: "var(--bg)",
-                      display: "flex",
-                      gap: 4,
-                      padding: 8,
-                      zIndex: 10,
-                    }}
-                  >
-                    <div
-                      onClick={(e) => { e.stopPropagation(); handleShareWhatsApp(); }}
-                      style={{ width: 34, height: 34, borderRadius: "50%", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-                      title="WhatsApp"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-                        <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l5.06-1.33C8.5 21.51 10.2 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.28 1.2-1.76 1.24-.45.05-1.02.07-1.65-.1-.38-.11-.87-.28-1.5-.55-2.64-1.14-4.36-3.8-4.5-3.98-.13-.18-1.08-1.43-1.08-2.73s.68-1.94.92-2.2c.24-.27.52-.33.7-.33h.5c.16 0 .38-.06.59.45.22.53.75 1.83.82 1.96.07.13.11.29.02.47-.09.18-.14.29-.27.44-.14.16-.29.35-.41.47-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.89 1.05.94 1.94 1.23 2.22 1.37.27.13.43.11.59-.07.16-.18.68-.79.86-1.06.18-.27.36-.22.6-.13.24.09 1.55.73 1.81.86.27.13.45.2.51.31.06.11.06.63-.16 1.25z"/>
-                      </svg>
+              <div className="pd-tools">
+                <button
+                  className={`pd-tool${isFavorite(product.id) ? " is-on" : ""}`}
+                  onClick={() => { toggleFavorite(product.id); setTimeout(() => window.dispatchEvent(new Event("oina:favorites-changed")), 700); }}
+                  title={tr("В избранное", "Ба интихобҳо")}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M12 20.5 C12 20.5 3.5 14.6 3.5 8.9 C3.5 6 5.7 4 8.3 4 C10 4 11.3 4.9 12 6 C12.7 4.9 14 4 15.7 4 C18.3 4 20.5 6 20.5 8.9 C20.5 14.6 12 20.5 12 20.5 Z" strokeLinejoin="round" /></svg>
+                </button>
+                <div className="pd-share">
+                  <button className="pd-tool" onClick={() => setShareMenuOpen(!shareMenuOpen)} title={tr("Поделиться", "Мубодила кардан")}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" /><path d="M8.2 10.8 L15.8 6.2 M8.2 13.2 L15.8 17.8" /></svg>
+                  </button>
+                  {shareMenuOpen && (
+                    <div className="pd-share-menu">
+                      <span onClick={handleShareWhatsApp}>WhatsApp</span>
+                      <span onClick={handleShareTelegram}>Telegram</span>
+                      <span onClick={handleCopyLink}>{tr("Копировать ссылку", "Нусхаи пайванд")}</span>
                     </div>
-                    <div
-                      onClick={(e) => { e.stopPropagation(); handleShareTelegram(); }}
-                      style={{ width: 34, height: 34, borderRadius: "50%", background: "#26A5E4", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-                      title="Telegram"
-                    >
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="#fff">
-                        <path d="M22 4.01L2.3 11.5c-1.3.5-1.3 1.2-.24 1.53l4.98 1.55L18.2 7.05c.5-.32.96-.14.58.2l-8.5 7.67h-.02l.02.01-.32 4.9c.47 0 .68-.22.93-.47l2.24-2.15 4.66 3.42c.86.47 1.48.23 1.7-.8L22.9 5.4c.32-1.25-.47-1.82-1.13-1.4z"/>
-                      </svg>
-                    </div>
-                    <div
-                      onClick={(e) => { e.stopPropagation(); handleCopyLink(); }}
-                      style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--surface)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-                      title="Copy link"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.5">
-                        <rect x="9" y="9" width="12" height="12" rx="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                      </svg>
-                    </div>
-                  </div>
-                )}
-              </span>
+                  )}
+                  {shareCopied && <div className="pd-share-menu"><span>{tr("Ссылка скопирована", "Пайванд нусхабардорӣ шуд")}</span></div>}
+                </div>
               </div>
             </div>
-            <h1 className="product-title" style={{ fontSize: 32, marginBottom: 8 }}>
-              {localized(product.title_ru, product.title_tj)}
-            </h1>
-            {(() => {
-              const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
-              const out = totalStock === 0;
-              const low = totalStock > 0 && totalStock <= 5;
-              const label = out
-                ? (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")
-                : low
-                ? (lang === "ru" ? `Осталось ${totalStock} шт` : `${totalStock} дона монд`)
-                : (lang === "ru" ? "В наличии" : "Мавҷуд ҳаст");
-              const c = out
-                ? { text: "#E24B4A", bg: "rgba(226,75,74,0.10)", border: "rgba(226,75,74,0.35)" }
-                : low
-                ? { text: "#E8A33D", bg: "rgba(232,163,61,0.12)", border: "rgba(232,163,61,0.40)" }
-                : { text: "#4CAF50", bg: "rgba(76,175,80,0.12)", border: "rgba(76,175,80,0.35)" };
-              return (
-                <div style={{ marginBottom: 12 }}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      padding: "4px 10px",
-                      borderRadius: 6,
-                      fontFamily: "var(--font-label)",
-                      fontSize: 13,
-                      lineHeight: 1.2,
-                      color: c.text,
-                      background: c.bg,
-                      border: `1px solid ${c.border}`,
-                    }}
-                  >
-                    {label}
-                  </span>
-                </div>
-              );
-            })()}
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-              <div style={{ display: "flex", gap: 2 }}>
+            <h1 className="pd-title">{localized(product.title_ru, product.title_tj)}</h1>
+
+            <div className="pd-price">
+              <span>{product.price} смн</span>
+              {isDiscountActive(product) && (
+                <>
+                  <s>{Math.round(product.original_price ?? (product.price / (1 - (product.discount_percent as number) / 100)))} смн</s>
+                  <em>−{product.discount_percent}%</em>
+                </>
+              )}
+            </div>
+
+            <div className="pd-rating">
+              <span className="pd-stars">
                 {[1, 2, 3, 4, 5].map((n) => {
-                  const displayRating = hoverRating ?? myRating ?? 0;
-                  const filled = displayRating >= n;
+                  const shown = hoverRating ?? myRating ?? Math.round(product.avg_rating ?? 0);
                   return (
                     <svg
                       key={n}
-                      width="22"
-                      height="22"
                       viewBox="0 0 24 24"
+                      className={shown >= n ? "is-on" : ""}
                       onMouseEnter={() => auth.token && setHoverRating(n)}
                       onMouseLeave={() => setHoverRating(null)}
                       onClick={() => handleSubmitRating(n)}
                       style={{ cursor: auth.token ? "pointer" : "default" }}
                     >
-                      <path
-                        d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7-5.4-4.7 7.1-.6z"
-                        fill={filled ? "var(--accent)" : "none"}
-                        stroke="var(--accent)"
-                        strokeWidth="1"
-                      />
+                      <path d="M12 2.8l2.8 6.1 6.7.7-5 4.5 1.4 6.6L12 17.3l-5.9 3.4 1.4-6.6-5-4.5 6.7-.7z" />
                     </svg>
                   );
                 })}
-              </div>
-              {product.avg_rating ? (
-                <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  {product.avg_rating.toFixed(1)} ({product.review_count})
-                </span>
-              ) : (
-                <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  {lang === "ru" ? "Пока нет оценок" : "Ҳанӯз баҳо нест"}
-                </span>
-              )}
-              {!auth.token && (
-                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                  {lang === "ru" ? "— войдите, чтобы оценить" : "— барои баҳодиҳӣ ворид шавед"}
-                </span>
-              )}
-              {product.sold_count > 0 && (
-                <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  {lang === "ru" ? `Куплено ${product.sold_count} раз` : `${product.sold_count} бор харида шуд`}
-                </span>
-              )}
+              </span>
+              <span>
+                {product.avg_rating ? `${product.avg_rating.toFixed(1)} (${product.review_count})` : tr("Пока нет оценок", "Ҳанӯз баҳо нест")}
+                {product.sold_count > 0 && ` · ${tr(`Куплено ${product.sold_count} раз`, `${product.sold_count} бор харида шуд`)}`}
+              </span>
+              {!auth.token && <span className="pd-hint">{tr("Войдите, чтобы оценить", "Барои баҳодиҳӣ ворид шавед")}</span>}
             </div>
 
-            {auth.token && myRating !== null && (
-              <div style={{ marginBottom: 20 }}>
-                <textarea
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  placeholder={lang === "ru" ? "Напишите отзыв о товаре (необязательно)" : "Дар бораи мол назар нависед (ихтиёрӣ)"}
-                  maxLength={1000}
-                  rows={3}
-                  style={{ width: "100%", padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13, resize: "none", boxSizing: "border-box", marginBottom: 8 }}
-                />
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <button
-                    onClick={() => handleSubmitRating(myRating)}
-                    disabled={submittingRating}
-                    style={{ padding: "8px 16px", background: "var(--header-bg)", color: "var(--header-text)", border: "none", borderRadius: 8, fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", opacity: submittingRating ? 0.6 : 1 }}
-                  >
-                    {lang === "ru" ? "Сохранить отзыв" : "Назарро нигоҳ доред"}
-                  </button>
-                  {commentSaved && (
-                    <span style={{ fontSize: 12, color: "#4CAF50" }}>
-                      {lang === "ru" ? "Сохранено" : "Нигоҳ дошта шуд"}
-                    </span>
+            {uniqueColors.length > 0 && (
+              <div className="pd-block">
+                <div className="pd-label">
+                  {tr("Цвет", "Ранг")} — <b>{selectedColor ?? tr("не выбран", "интихоб нашудааст")}</b>
+                </div>
+                <div className="pd-colors">
+                  {uniqueColors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      title={color}
+                      className={`pd-color${selectedColor === color ? " is-active" : ""}`}
+                      disabled={!isColorAvailable(color)}
+                      onClick={() => isColorAvailable(color) && handleSelectColor(color)}
+                      style={{ background: getColorHex(color) }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {uniqueSizes.length > 0 && (
+              <div className="pd-block">
+                <div className="pd-label pd-label--row">
+                  <span>{tr("Размер", "Андоза")}</span>
+                  {product.size_guide && product.size_guide.length > 0 && (
+                    <span className="pd-link" onClick={() => setSizeGuideOpen(true)}>{tr("Гид по размерам", "Маълумот оиди андоза")}</span>
                   )}
                 </div>
+                <div className="pd-sizes">
+                  {sizesToShow.map((size) => {
+                    const available = isSizeAvailable(size);
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        className={`pd-size${selectedSize === size ? " is-active" : ""}`}
+                        disabled={!available}
+                        onClick={() => available && handleSelectSize(size)}
+                      >
+                        {size === "Безразмерный" ? tr("Безразмерный", "Беандоза") : size}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className={`pd-stock${stockForNote === 0 ? " is-out" : ""}`}>{stockNote}</div>
               </div>
             )}
 
-            <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
-              <span className="price" style={{ fontSize: 26, fontWeight: 700, color: "#16a34a", letterSpacing: "-0.02em" }}>
-                {product.price} смн
-              </span>
-              {isDiscountActive(product) && (
-                <>
-                  <span style={{ fontSize: 14, color: "var(--text-muted)", textDecoration: "line-through" }}>
-                    {Math.round(product.original_price ?? (product.price / (1 - (product.discount_percent as number) / 100)))} смн
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "#D64545", padding: "3px 7px", borderRadius: 4 }}>
-                    -{product.discount_percent}%
-                  </span>
-                </>
-              )}
-            </div>
-
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 24, display: "flex", alignItems: "center", gap: 6 }}>
-              <span>🚚</span>
-              <span>
-                {city === "dushanbe"
-                  ? (lang === "ru" ? "Доставка за 24 часа по Душанбе" : "Дар давоми 24 соат дар Душанбе расонида мешавад")
-                  : (lang === "ru" ? "Доставка в другие города — через доверенное лицо" : "Ба шаҳрҳои дигар — тавассути шахси боэътимод")}
-              </span>
-            </div>
-
-            {product.variants.length > 0 && (
-              <>
-                {uniqueSizes.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontFamily: "var(--font-label)", fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
-                      {lang === "ru" ? "Размер" : "Андоза"}
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {sizesToShow.map((size) => {
-                        const active = selectedSize === size;
-                        const available = isSizeAvailable(size);
-                        return (
-                          <button
-                            key={size}
-                            type="button"
-                            onClick={() => available && handleSelectSize(size)}
-                            disabled={!available}
-                            style={{
-                              minWidth: 26,
-                              height: 28,
-                              padding: "0 16px",
-                              background: active ? "var(--accent)" : "var(--surface)",
-                              color: active ? "var(--bg)" : available ? "var(--text)" : "var(--text-muted)",
-                              border: active ? "1px solid var(--accent)" : "1px solid var(--line)",
-                              fontFamily: "var(--font-label)",
-                              fontSize: 13,
-                              cursor: available ? "pointer" : "not-allowed",
-                              opacity: available ? 1 : 0.5,
-                            }}
-                          >
-                            {size === "Безразмерный" ? (lang === "ru" ? "Безразмерный" : "Беандоза") : size}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {uniqueColors.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontFamily: "var(--font-label)", fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
-                      {lang === "ru" ? "Цвет" : "Ранг"}: <span style={{ color: "var(--text)", fontWeight: 600 }}>{selectedColor ?? (lang === "ru" ? "не выбран" : "интихоб нашудааст")}</span>
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
-                      {uniqueColors.map((color) => {
-                        const active = selectedColor === color;
-                        const available = isColorAvailable(color);
-                        return (
-                          <button
-                            key={color}
-                            type="button"
-                            onClick={() => available && handleSelectColor(color)}
-                            disabled={!available}
-                            title={color}
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: "50%",
-                              background: getColorHex(color),
-                              border: "1px solid var(--line)",
-                              outline: active ? "2px solid var(--text)" : "none",
-                              outlineOffset: "2px",
-                              transform: active ? "scale(1.15)" : "scale(1)",
-                              transition: "transform 0.2s ease, outline 0.2s ease",
-                              cursor: available ? "pointer" : "not-allowed",
-                              opacity: available ? 1 : 0.35,
-                              padding: 0,
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {product.size_guide && product.size_guide.length > 0 && (
-                  <span
-                    onClick={() => setSizeGuideOpen(true)}
-                    style={{
-                      display: "block",
-                      cursor: "pointer",
-                      fontFamily: "var(--font-label)",
-                      fontSize: 12,
-                      color: "var(--accent)",
-                      marginBottom: 16,
-                    }}
-                  >
-                    {lang === "ru" ? "Гид по размерам" : "Маълумот оиди андоза"}
-                  </span>
-                )}
-              </>
-            )}
-
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-              <span style={{ fontFamily: "var(--font-label)", fontSize: 12, color: "var(--text-muted)" }}>
-                {lang === "ru" ? "Количество" : "Миқдор"}
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  style={{ width: 36, height: 36, background: "transparent", color: "var(--text)", border: "none", fontSize: 18, cursor: "pointer" }}
-                >
-                  −
-                </button>
-                <span style={{ minWidth: 44, height: 36, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "var(--accent-btn-bg)", color: "var(--accent-btn-text)", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600 }}>{quantity}</span>
-                <button
-                  type="button"
-                  onClick={() => setQuantity((q) => Math.min(currentVariant?.stock ?? 99, q + 1))}
-                  style={{ width: 36, height: 36, background: "transparent", color: "var(--text)", border: "none", fontSize: 18, cursor: "pointer" }}
-                >
-                  +
-                </button>
+            <div className="pd-block pd-buy">
+              <div className="pd-qty">
+                <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))}>−</button>
+                <span>{quantity}</span>
+                <button type="button" onClick={() => setQuantity((q) => Math.min(currentVariant?.stock ?? 99, q + 1))}>+</button>
               </div>
-            </div>
-
-            <div className="pdp-cta-row" style={{ display: "flex", gap: 10, marginBottom: 32 }}>
-              <button
-                onClick={handleAddToCart}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  height: 50,
-                  padding: "0 8px",
-                  borderRadius: 8,
-                  background: "var(--header-bg)",
-                  color: "var(--header-text)",
-                  border: "none",
-                  fontFamily: "var(--font-label)",
-                  fontWeight: 600,
-                  fontSize: lang === "ru" ? 13 : 12,
-                  letterSpacing: "0.05em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {lang === "ru" ? "Добавить в корзину" : "Ба сабад"}
-              </button>
-              <button
-                disabled
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  height: 50,
-                  padding: "0 16px",
-                  borderRadius: 8,
-                  background: "transparent",
-                  color: "var(--accent-btn-bg)",
-                  border: "1px solid var(--line)",
-                  fontFamily: "var(--font-label)",
-                  fontSize: lang === "ru" ? 13 : 11,
-                  letterSpacing: "0.05em",
-                  textTransform: "uppercase",
-                  cursor: "not-allowed",
-                  opacity: 0.5,
-                  whiteSpace: "normal",
-                  lineHeight: 1.2,
-                }}
-              >
-                {lang === "ru" ? "Оформить заказ" : "Пардохти фармоиш"}
+              <button className="pd-add" onClick={handleAddToCart} disabled={!canAddToCart && totalStock === 0}>
+                {tr("Добавить в корзину", "Ба сабад")}
               </button>
             </div>
+            <button
+              className="pd-checkout"
+              onClick={async () => {
+                if (!canAddToCart) { handleAddToCart(); return; }
+                await handleAddToCart();
+                router.push("/cart");
+              }}
+            >
+              {tr("Оформить заказ", "Фармоиш додан")}
+            </button>
 
-            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 20 }}>
-              {(product.material_ru || product.material_tj) && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
-                  <span className="catalog-label" style={{ border: "none", padding: 0 }}>
-                    {lang === "ru" ? "Материал" : "Матоъ"}
-                  </span>
-                  <span style={{ fontSize: 14 }}>{localized(product.material_ru ?? "", product.material_tj)}</span>
-                </div>
-              )}
-              {(product.season_ru || product.season_tj) && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
-                  <span className="catalog-label" style={{ border: "none", padding: 0 }}>
-                    {lang === "ru" ? "Сезон" : "Мавсим"}
-                  </span>
-                  <span style={{ fontSize: 14 }}>{localized(product.season_ru ?? "", product.season_tj)}</span>
-                </div>
-              )}
-              {(product.pattern_ru || product.pattern_tj) && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
-                  <span className="catalog-label" style={{ border: "none", padding: 0 }}>
-                    {lang === "ru" ? "Рисунок" : "Акс"}
-                  </span>
-                  <span style={{ fontSize: 14 }}>{localized(product.pattern_ru ?? "", product.pattern_tj)}</span>
-                </div>
-              )}
-              {(product.country_of_origin_ru || product.country_of_origin_tj) && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
-                  <span className="catalog-label" style={{ border: "none", padding: 0 }}>
-                    {lang === "ru" ? "Производство" : "Истеҳсол"}
-                  </span>
-                  <span style={{ fontSize: 14 }}>{localized(product.country_of_origin_ru ?? "", product.country_of_origin_tj)}</span>
-                </div>
-              )}
-              {(product.care_instructions_ru || product.care_instructions_tj) && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0" }}>
-                  <span className="catalog-label" style={{ border: "none", padding: 0 }}>
-                    {lang === "ru" ? "Уход" : "Нигоҳубин"}
-                  </span>
-                  <span style={{ fontSize: 14, textAlign: "right", maxWidth: "60%" }}>
-                    {localized(product.care_instructions_ru ?? "", product.care_instructions_tj)}
-                  </span>
-                </div>
-              )}
-            </div>
             {(product.description_ru || product.description_tj) && (
-              <div style={{ borderTop: "1px solid var(--line)", paddingTop: 20, marginTop: 20 }}>
-                <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 10 }}>
-                  {lang === "ru" ? "Описание" : "Тавсиф"}
-                </div>
-                <p style={{ color: "var(--text-muted)", lineHeight: 1.6 }}>
-                  {localized(product.description_ru ?? "", product.description_tj)}
-                </p>
+              <div className="pd-block pd-desc">
+                <div className="pd-label">{tr("Описание", "Тавсиф")}</div>
+                <p>{localized(product.description_ru ?? "", product.description_tj)}</p>
               </div>
             )}
+
+            <div className="pd-acc">
+              {hasMaterial && (
+                <div className={`pd-acc-item${openAcc === "material" ? " is-open" : ""}`}>
+                  <button onClick={() => toggleAcc("material")}>{tr("Материал и уход", "Матоъ ва нигоҳубин")}<i>{openAcc === "material" ? "−" : "+"}</i></button>
+                  {openAcc === "material" && (
+                    <div className="pd-acc-body">
+                      {specRows.map((r) => (
+                        <div key={r.label} className="pd-spec"><span>{r.label}</span><span>{r.value}</span></div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className={`pd-acc-item${openAcc === "delivery" ? " is-open" : ""}`}>
+                <button onClick={() => toggleAcc("delivery")}>{tr("Доставка и возврат", "Расонидан ва баргардонӣ")}<i>{openAcc === "delivery" ? "−" : "+"}</i></button>
+                {openAcc === "delivery" && (
+                  <div className="pd-acc-body">
+                    <p>{deliveryText}.</p>
+                    <p><span className="pd-link" onClick={() => router.push("/delivery")}>{tr("Подробнее о доставке и оплате", "Маълумоти бештар")}</span></p>
+                  </div>
+                )}
+              </div>
+              {auth.token && myRating !== null && (
+                <div className={`pd-acc-item${openAcc === "review" ? " is-open" : ""}`}>
+                  <button onClick={() => toggleAcc("review")}>{tr("Ваш отзыв", "Назари шумо")}<i>{openAcc === "review" ? "−" : "+"}</i></button>
+                  {openAcc === "review" && (
+                    <div className="pd-acc-body">
+                      <textarea
+                        className="pd-textarea"
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        placeholder={tr("Напишите отзыв о товаре (необязательно)", "Дар бораи мол назар нависед (ихтиёрӣ)")}
+                        maxLength={1000}
+                        rows={4}
+                      />
+                      <div className="pd-review-row">
+                        <button className="pd-link-btn" onClick={() => handleSubmitRating(myRating)} disabled={submittingRating}>
+                          {tr("Сохранить отзыв", "Назарро нигоҳ доред")}
+                        </button>
+                        {commentSaved && <span className="pd-hint">{tr("Сохранено", "Нигоҳ дошта шуд")}</span>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="pd-foot">
+              <p>{deliveryText}.</p>
+            </div>
           </div>
         </div>
 
-        {related.length > 0 && (
-          <div style={{ marginTop: 60, borderTop: "1px solid var(--line)", paddingTop: 40 }}>
-            <h2 className="product-title" style={{ fontSize: 22, marginBottom: 24 }}>
-              {lang === "ru" ? "Похожие товары" : "Монанд ба ин"}
-            </h2>
-            <div className="related-products-grid products-grid" style={{ display: "grid", gap: 10 }}>
-              {related.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => router.push(`/product/${p.id}`)}
-                  style={{ cursor: "pointer", background: "var(--bg)", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden", padding: 0 }}
-                >
-                  <div
-                    style={{
-                      aspectRatio: "3/4",
-                      background: "var(--surface)",
-                      border: "none",
-                      borderRadius: "12px 12px 0 0",
-                      marginBottom: 8,
-                      backgroundImage: p.images[0] ? `url(${p.images[0].url})` : "none",
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  />
-                  <div className="product-title product-card-title" style={{ fontSize: 13, marginBottom: 3, padding: "0 var(--card-pad)" }}>
-                    {localized(p.title_ru, p.title_tj)}
-                  </div>
-                  <div className="price" style={{ fontSize: 13, padding: "0 var(--card-pad) var(--card-pad)" }}>
-                    {p.price} смн
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {recentlyViewed.length > 0 && (
-          <div style={{ marginTop: 60, borderTop: "1px solid var(--line)", paddingTop: 40 }}>
-            <h2 className="product-title" style={{ fontSize: 22, marginBottom: 24 }}>
-              {lang === "ru" ? "Вы недавно смотрели" : "Ба наздикӣ дидед"}
-            </h2>
-            <div className="related-products-grid products-grid" style={{ display: "grid", gap: 10 }}>
-              {recentlyViewed.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => router.push(`/product/${p.id}`)}
-                  style={{ cursor: "pointer", background: "var(--bg)", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden", padding: 0 }}
-                >
-                  <div
-                    style={{
-                      aspectRatio: "3/4",
-                      background: "var(--surface)",
-                      border: "none",
-                      borderRadius: "12px 12px 0 0",
-                      marginBottom: 8,
-                      backgroundImage: p.images[0] ? `url(${p.images[0].url})` : "none",
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  />
-                  <div className="product-title product-card-title" style={{ fontSize: 13, marginBottom: 3, padding: "0 var(--card-pad)" }}>
-                    {localized(p.title_ru, p.title_tj)}
-                  </div>
-                  <div className="price" style={{ fontSize: 13, padding: "0 var(--card-pad) var(--card-pad)" }}>
-                    {p.price} смн
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {miniRow(tr("Похожие товары", "Монанд ба ин"), related)}
+        {miniRow(tr("Вы недавно смотрели", "Ба наздикӣ дидед"), recentlyViewed)}
       </div>
 
       {sizeGuideOpen && (
-        <div
-          onClick={() => setSizeGuideOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            zIndex: 200,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "var(--bg)",
-              border: "1px solid var(--line)",
-              padding: 32,
-              width: 360,
-              maxWidth: "90vw",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <span className="product-title" style={{ fontSize: 18 }}>{lang === "ru" ? "Гид по размерам" : "Маълумот оиди андоза"}</span>
-              <span onClick={() => setSizeGuideOpen(false)} style={{ cursor: "pointer", fontSize: 20 }}>×</span>
+        <div className="pd-modal-bg" onClick={() => setSizeGuideOpen(false)}>
+          <div className="pd-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pd-modal-head">
+              <span className="pd-modal-title">{tr("Гид по размерам", "Маълумот оиди андоза")}</span>
+              <button className="pd-link-btn" onClick={() => setSizeGuideOpen(false)}>{tr("Закрыть", "Пӯшидан")}</button>
             </div>
             {[
               { label: "", rows: (product.size_guide ?? []).filter((r) => !/^\d+$/.test(r.size)) },
-              { label: lang === "ru" ? "Числовые размеры" : "Андозаҳои рақамӣ", rows: (product.size_guide ?? []).filter((r) => /^\d+$/.test(r.size)) },
-            ].map(
-              ({ label, rows }) =>
-                rows.length > 0 && (
-                  <div key={label} style={{ marginBottom: 20 }}>
-                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8, fontFamily: "var(--font-label)" }}>
-                      {label}
-                    </div>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                      <thead>
-                        <tr style={{ borderBottom: "1px solid var(--line)" }}>
-                          <th style={{ textAlign: "left", padding: "6px 4px 6px 0", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? "Размер" : "Андоза"}</th>
-                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? "Грудь" : <>Кафаси<br />сина</>}</th>
-                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? "Талия" : "Миён"}</th>
-                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? <>Длина<br />одежды</> : <>Дарозии<br />Либос</>}</th>
-                          <th style={{ textAlign: "left", padding: "6px 4px", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? <>Длина<br />рукав</> : <>Дарозии<br />Остин</>}</th>
-                          <th style={{ textAlign: "left", padding: "6px 0", color: "var(--text-muted)", fontFamily: "var(--font-label)" }}>{lang === "ru" ? "Плечи" : "Китф"}</th>
+              { label: tr("Числовые размеры", "Андозаҳои рақамӣ"), rows: (product.size_guide ?? []).filter((r) => /^\d+$/.test(r.size)) },
+            ].map(({ label, rows }) =>
+              rows.length > 0 && (
+                <div key={label || "letters"} className="pd-table-wrap">
+                  {label && <div className="pd-label">{label}</div>}
+                  <table className="pd-table">
+                    <thead>
+                      <tr>
+                        <th>{tr("Размер", "Андоза")}</th>
+                        <th>{tr("Грудь", "Сина")}</th>
+                        <th>{tr("Талия", "Миён")}</th>
+                        <th>{tr("Длина", "Дарозӣ")}</th>
+                        <th>{tr("Рукав", "Остин")}</th>
+                        <th>{tr("Плечи", "Китф")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row) => (
+                        <tr key={row.size}>
+                          <td>{row.size}</td>
+                          <td>{row.chest || "—"}</td>
+                          <td>{row.waist || "—"}</td>
+                          <td>{row.garment_length || "—"}</td>
+                          <td>{row.sleeve_length || "—"}</td>
+                          <td>{row.shoulder_width || "—"}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((row) => (
-                          <tr key={row.size} style={{ borderBottom: "1px solid var(--line)" }}>
-                            <td style={{ padding: "6px 4px 6px 0" }}>{row.size}</td>
-                            <td style={{ padding: "6px 4px", color: "var(--text-muted)" }}>{row.chest || "—"}</td>
-                            <td style={{ padding: "6px 4px", color: "var(--text-muted)" }}>{row.waist || "—"}</td>
-                            <td style={{ padding: "6px 4px", color: "var(--text-muted)" }}>{row.garment_length || "—"}</td>
-                            <td style={{ padding: "6px 4px", color: "var(--text-muted)" }}>{row.sleeve_length || "—"}</td>
-                            <td style={{ padding: "6px 0", color: "var(--text-muted)" }}>{row.shoulder_width || "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
             )}
-            <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 16 }}>
-              {lang === "ru"
-                ? "Значения примерные — точные параметры могут отличаться в зависимости от вашего роста и веса."
-                : "Андозахо тахминӣ мебошанд — андозаҳои дақиқ метавонанд вобаста ба қаду вазни шумо фарқ кунанд."}
+            <p className="pd-hint">
+              {tr("Значения примерные — точные параметры могут отличаться в зависимости от вашего роста и веса.", "Андозаҳо тахминӣ мебошанд — андозаҳои дақиқ метавонанд вобаста ба қаду вазни шумо фарқ кунанд.")}
             </p>
           </div>
         </div>
       )}
-      {toastMessage && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: toastType === "error" ? "#E24B4A" : "var(--text)",
-            color: toastType === "error" ? "#fff" : "var(--bg)",
-            padding: "12px 24px",
-            fontFamily: "var(--font-label)",
-            fontSize: 13,
-            zIndex: 500,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
-          }}
-        >
-          {toastMessage}
-        </div>
-      )}
+
+      {toastMessage && <div className={`pd-toast${toastType === "error" ? " is-error" : ""}`}>{toastMessage}</div>}
     </div>
   );
 }
