@@ -8,6 +8,7 @@ import { useCart } from "./cart-context";
 import { useCategories } from "./categories-context";
 import { SiteHeader } from "./site-header";
 import "./hero.css";
+import "./product-card.css";
 import { CATEGORY_ICONS } from "./category-icons";
 import { useAuth } from "./auth-context";
 import { useTheme } from "./theme-context";
@@ -205,6 +206,7 @@ type Product = {
   is_featured: boolean;
   is_new: boolean;
   is_brand: boolean;
+  category?: { id: number; name: string } | null;
   avg_rating: number | null;
   review_count: number;
   discount_percent: number | null;
@@ -878,12 +880,9 @@ function HomeInner() {
 
 
 
-        <div id="catalog-section" className="catalog-container" style={{ padding: "0 40px 40px" }}>
+        <div id="catalog-section" className="catalog-container pc-wrap">
         <div
-          className="products-grid"
-          style={{
-            display: "grid",
-          }}
+          className="pc-grid"
         >
           {productsLoading && (
             Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
@@ -910,314 +909,112 @@ function HomeInner() {
           }).slice(0, visibleCount).map((p, idx) => (
             <Fragment key={p.id}>
             
-            <div key={p.id} style={{ background: "var(--bg)", padding: 12, borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden" }}>
-              <div
-                style={{
-                  position: "relative",
-                  aspectRatio: "var(--card-aspect)",
-                  background: "var(--surface)",
-                  border: "none",
-                  margin: "calc(var(--card-pad) * -1) calc(var(--card-pad) * -1) 8px",
-                }}
-              >
-                <AutoSlideImage images={p.images} alt={localized(p.title_ru, p.title_tj)} onClick={() => router.push(`/product/${p.id}`)} />
-                {getRecommendedBadge(p) && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 8,
-                      left: 8,
-                      background: getRecommendedBadge(p)!.color,
-                      color: "#fff",
-                      fontFamily: "var(--font-label)",
-                      fontSize: 11,
-                      fontWeight: 500,
-                      letterSpacing: "0.02em",
-                      padding: "4px 8px",
-                      borderRadius: 6,
-                      pointerEvents: "none",
-                      zIndex: 2,
-                    }}
-                  >
-                    {getRecommendedBadge(p)!.text}
-                  </div>
-                )}
-                {p.is_brand && (
-                  <img
-                    src="/badge-brand.png"
-                    alt="Бренд"
-                    style={{ position: "absolute", top: -50, left: "50%", transform: "translateX(-50%)", width: 130, height: 130, objectFit: "contain", pointerEvents: "none" }}
-                  />
-                )}
-
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(p.id);
-                  }}
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 4,
-                    
-                    
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.35))" }}
-                  >
-                    <path
-                      d="M12 21 C12 21 3 14.5 3 8.6 C3 5.5 5.4 3.3 8.2 3.3 C10 3.3 11.3 4.2 12 5.4 C12.7 4.2 14 3.3 15.8 3.3 C18.6 3.3 21 5.5 21 8.6 C21 14.5 12 21 12 21 Z"
-                      fill={favoriteIds.has(p.id) ? "var(--heart-active-color)" : "none"}
-                      stroke={favoriteIds.has(p.id) ? "var(--heart-active-color)" : "var(--card-action-stroke)"}
-                      strokeWidth="1.5"
-                    />
-                  </svg>
-                </div>
-
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const inStock = p.variants.filter((v) => v.stock > 0);
-                    if (inStock.length === 0) return;
-                    if (inStock.length === 1) {
-                      const v = inStock[0];
-                      cart.addItem({
-                        variantId: v.id,
-                        productId: p.id,
-                        title: localized(p.title_ru, p.title_tj),
-                        catalogNumber: p.catalog_number,
-                        price: p.price,
-                        size: v.size,
-                        color: v.color,
-                      }).then((res) => {
-                        setToastType(res.ok ? "success" : "error");
-                        setToastMessage(res.ok ? (lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд") : (res.error || (lang === "ru" ? "Не удалось добавить" : "Илова нашуд")));
-                        setTimeout(() => setToastMessage(null), 3000);
-                      });
-                      return;
-                    }
-                    setQuickAddSize("");
-                    setQuickAddProductId(quickAddProductId === p.id ? null : p.id);
-                  }}
-                  style={{
-                    position: "absolute",
-                    top: 32,
-                      filter: "var(--card-action-shadow)",
-                    right: 4,
-                    
-                    
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: p.variants.some((v) => v.stock > 0) ? "pointer" : "not-allowed",
-                    opacity: p.variants.some((v) => v.stock > 0) ? 1 : 0.4,
-                  }}
-                >
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 30 30"
-                    style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.35))" }}
-                  >
-                    <path
-                      d="M8 13 C8 13 8 11 10 11 L20 11 C22 11 22 13 22 13 L21 25 C21 25.5 20.5 26 20 26 L10 26 C9.5 26 9 25.5 9 25 Z"
-                      fill="none"
-                      stroke="var(--card-action-stroke)"
-                      strokeWidth="1.1"
-                    />
-                    <path
-                      d="M10 11 C10 8 12.2 6 15 6 C17.8 6 20 8 20 11"
-                      fill="none"
-                      stroke="var(--card-action-stroke)"
-                      strokeWidth="1.1"
-                    />
-                    <line x1="12" y1="16" x2="12" y2="21" stroke="var(--card-action-stroke)" strokeWidth="0.7" />
-                    <line x1="15" y1="16" x2="15" y2="21" stroke="var(--card-action-stroke)" strokeWidth="0.7" />
-                    <line x1="18" y1="16" x2="18" y2="21" stroke="var(--card-action-stroke)" strokeWidth="0.7" />
-                  </svg>
-                </div>
-                {quickAddProductId === p.id && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      position: "absolute",
-                      bottom: 8,
-                      left: 8,
-                      right: 8,
-                      background: "var(--bg)",
-                      border: "none",
-                      padding: 10,
-                      zIndex: 5,
-                    }}
-                  >
-                    {!quickAddSize ? (
-                      <>
-                        <div style={{ fontSize: 11, marginBottom: 6, color: "var(--text-muted)" }}>
-                          {lang === "ru" ? "Выберите размер" : "Андозаро интихоб кунед"}
+            <div key={p.id} className="pc">
+              {(() => {
+                const inStock = p.variants.filter((v) => v.stock > 0);
+                const out = inStock.length === 0;
+                const badge = out
+                  ? (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")
+                  : isDiscountActive(p) && p.discount_percent
+                  ? `−${p.discount_percent}%`
+                  : p.is_new
+                  ? (lang === "ru" ? "Новинка" : "Нав")
+                  : p.is_featured
+                  ? (lang === "ru" ? "Хорошая цена" : "Нархи хуб")
+                  : null;
+                const cat = p.category ? categories.find((c) => c.id === p.category!.id) : null;
+                const catName = cat ? (lang === "tj" && cat.name_tj ? cat.name_tj : cat.name) : p.category?.name || "";
+                const eyebrow = p.is_brand ? (catName ? `${lang === "ru" ? "Бренд" : "Бренд"} · ${catName}` : (lang === "ru" ? "Бренд" : "Бренд")) : catName;
+                const addVariant = (v: Variant) => {
+                  cart.addItem({
+                    variantId: v.id,
+                    productId: p.id,
+                    title: localized(p.title_ru, p.title_tj),
+                    catalogNumber: p.catalog_number,
+                    price: p.price,
+                    size: v.size,
+                    color: v.color,
+                  }).then((res) => {
+                    setToastType(res.ok ? "success" : "error");
+                    setToastMessage(res.ok ? (lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд") : (res.error || (lang === "ru" ? "Не удалось добавить" : "Илова нашуд")));
+                    setTimeout(() => setToastMessage(null), 3000);
+                  });
+                };
+                return (
+                  <>
+                    <div className="pc-media" onClick={() => router.push(`/product/${p.id}`)}>
+                      <CardMedia images={p.images} alt={localized(p.title_ru, p.title_tj)} />
+                      {badge && <span className="pc-badge">{badge}</span>}
+                      {quickAddProductId === p.id && (
+                        <div className="pc-quick" onClick={(e) => e.stopPropagation()}>
+                          {!quickAddSize ? (
+                            <>
+                              <div className="pc-quick-label">{lang === "ru" ? "Выберите размер" : "Андозаро интихоб кунед"}</div>
+                              <div className="pc-quick-row">
+                                {Array.from(new Set(inStock.map((v) => v.size))).map((sz) => (
+                                  <span key={sz} className="pc-size" onClick={() => setQuickAddSize(sz)}>{sz}</span>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="pc-quick-label">{lang === "ru" ? "Выберите цвет" : "Рангро интихоб кунед"}</div>
+                              <div className="pc-quick-row">
+                                {inStock.filter((v) => v.size === quickAddSize).map((v) => (
+                                  <span
+                                    key={v.id}
+                                    title={v.color}
+                                    className="pc-color"
+                                    style={{ background: filterOptions.colors.find((c) => c.name === v.color)?.hex || "#999999" }}
+                                    onClick={() => { addVariant(v); setQuickAddProductId(null); }}
+                                  />
+                                ))}
+                              </div>
+                            </>
+                          )}
                         </div>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {Array.from(new Set(p.variants.filter((v) => v.stock > 0).map((v) => v.size))).map((s) => (
-                            <span
-                              key={s}
-                              onClick={() => setQuickAddSize(s)}
-                              style={{ padding: "4px 8px", border: "none", cursor: "pointer", fontSize: 12, background: "var(--surface)" }}
-                            >
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div style={{ fontSize: 11, marginBottom: 6, color: "var(--text-muted)" }}>
-                          {lang === "ru" ? "Выберите цвет" : "Рангро интихоб кунед"}
-                        </div>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {p.variants.filter((v) => v.stock > 0 && v.size === quickAddSize).map((v) => (
-                            <span
-                              key={v.id}
-                              onClick={() => {
-                                cart.addItem({
-                                  variantId: v.id,
-                                  productId: p.id,
-                                  title: localized(p.title_ru, p.title_tj),
-                                  catalogNumber: p.catalog_number,
-                                  price: p.price,
-                                  size: v.size,
-                                  color: v.color,
-                                }).then((res) => {
-                                  setToastType(res.ok ? "success" : "error");
-                                  setToastMessage(res.ok ? (lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд") : (res.error || (lang === "ru" ? "Не удалось добавить" : "Илова нашуд")));
-                                  setTimeout(() => setToastMessage(null), 3000);
-                                });
-                                setQuickAddProductId(null);
-                              }}
-                              title={v.color}
-                              style={{
-                                width: 22,
-                                height: 22,
-                                borderRadius: "50%",
-                                background: filterOptions.colors.find((c) => c.name === v.color)?.hex || "#999999",
-                                cursor: "pointer",
-                                display: "inline-block",
-                                boxShadow: "0 0 0 1px var(--line)",
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div
-                  onClick={() => router.push(`/product/${p.id}`)}
-                  style={{ display: "flex", alignItems: "baseline", gap: 8, cursor: "pointer", marginTop: 4 }}
-                >
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "#16a34a", letterSpacing: "-0.02em" }}>
-                    {p.price} смн
-                  </span>
-                  {isDiscountActive(p) && (
-                    <span style={{ textDecoration: "line-through", color: "var(--text-muted)", fontSize: 12 }}>
-                      {Math.round(p.original_price ?? (p.price / (1 - (p.discount_percent as number) / 100)))} смн
-                    </span>
-                  )}
-                </div>
+                      )}
+                    </div>
 
-                <div
-                  onClick={() => router.push(`/product/${p.id}`)}
-                  className="product-title product-card-title"
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "var(--text)",
-                    marginTop: 3,
-                    marginBottom: 6,
-                    cursor: "pointer",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  title={localized(p.title_ru, p.title_tj)}
-                >
-                  {localized(p.title_ru, p.title_tj)}
-                </div>
-
-                <div style={{ marginTop: 2, marginBottom: 8, display: "flex", alignItems: "center" }}>
-                  {(() => {
-                    const totalStock = p.variants ? p.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0;
-                    const isOut = totalStock === 0;
-                    const isLow = !isOut && totalStock <= 5;
-
-                    const badgeStyle = isOut
-                      ? {
-                          color: "#dc2626",
-                          background: "rgba(220, 38, 38, 0.08)",
-                          border: "1px solid rgba(220, 38, 38, 0.25)",
-                        }
-                      : isLow
-                      ? {
-                          color: "#d97706",
-                          background: "rgba(217, 119, 6, 0.08)",
-                          border: "1px solid rgba(217, 119, 6, 0.25)",
-                        }
-                      : {
-                          color: "#16a34a",
-                          background: "rgba(22, 163, 74, 0.08)",
-                          border: "1px solid rgba(22, 163, 74, 0.25)",
-                        };
-
-                    const label = isOut
-                      ? (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")
-                      : isLow
-                      ? (lang === "ru" ? `Осталось ${totalStock} шт` : `${totalStock} дона монд`)
-                      : (lang === "ru" ? "В наличии" : "Мавҷуд ҳаст");
-
-                    return (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          padding: "2px 7px",
-                          borderRadius: 4,
-                          fontSize: 10,
-                          fontWeight: 600,
-                          lineHeight: "14px",
-                          letterSpacing: "0.02em",
-                          ...badgeStyle,
+                    <div className="pc-actions">
+                      <button
+                        className={`pc-icon${favoriteIds.has(p.id) ? " is-on" : ""}`}
+                        aria-label={lang === "ru" ? "В избранное" : "Ба интихобҳо"}
+                        onClick={() => {
+                          toggleFavorite(p.id);
+                          setTimeout(() => window.dispatchEvent(new Event("oina:favorites-changed")), 700);
                         }}
                       >
-                        {label}
-                      </span>
-                    );
-                  })()}
-                </div>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M12 20.5 C12 20.5 3.5 14.6 3.5 8.9 C3.5 6 5.7 4 8.3 4 C10 4 11.3 4.9 12 6 C12.7 4.9 14 4 15.7 4 C18.3 4 20.5 6 20.5 8.9 C20.5 14.6 12 20.5 12 20.5 Z" strokeLinejoin="round" /></svg>
+                      </button>
+                      <button
+                        className="pc-icon"
+                        disabled={out}
+                        aria-label={lang === "ru" ? "В корзину" : "Ба сабад"}
+                        onClick={() => {
+                          if (out) return;
+                          if (inStock.length === 1) { addVariant(inStock[0]); return; }
+                          setQuickAddSize("");
+                          setQuickAddProductId(quickAddProductId === p.id ? null : p.id);
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M5 8.5 H19 L18 21 H6 Z" strokeLinejoin="round" /><path d="M8.5 8.5 V7 C8.5 4.8 10 3.3 12 3.3 C14 3.3 15.5 4.8 15.5 7 V8.5" /></svg>
+                      </button>
+                    </div>
 
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    paddingTop: 6,
-                    borderTop: "1px solid var(--line)",
-                    minHeight: 22,
-                  }}
-                >
-                  <StarRating avgRating={p.avg_rating} reviewCount={p.review_count} />
-                </div>
+                    <div className="pc-info" onClick={() => router.push(`/product/${p.id}`)}>
+                      {eyebrow && <div className="pc-eyebrow">{eyebrow}</div>}
+                      <div className="pc-title" title={localized(p.title_ru, p.title_tj)}>{localized(p.title_ru, p.title_tj)}</div>
+                      <div className="pc-price">
+                        {p.price} смн
+                        {isDiscountActive(p) && (
+                          <s>{Math.round(p.original_price ?? (p.price / (1 - (p.discount_percent as number) / 100)))} смн</s>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
             {idx === Math.min(24, products.length) - 1 && dualSlides.length > 0 && (
               <div style={{ gridColumn: "1 / -1" }}>
@@ -1528,6 +1325,24 @@ function SkeletonCard() {
     </div>
   );
 }
+function CardMedia({ images, alt }: { images: { url: string; media_type?: string }[]; alt: string }) {
+  const first = images[0];
+  const second = images.slice(1).find((img) => img.media_type !== "video");
+  if (!first) return null;
+  return (
+    <>
+      {first.media_type === "video" ? (
+        <video src={first.url} autoPlay muted loop playsInline />
+      ) : (
+        <Image src={first.url} alt={alt} fill sizes="(max-width: 640px) 50vw, (max-width: 900px) 33vw, 25vw" />
+      )}
+      {second && (
+        <Image className="pc-img2" src={second.url} alt={alt} fill sizes="(max-width: 640px) 50vw, (max-width: 900px) 33vw, 25vw" />
+      )}
+    </>
+  );
+}
+
 function AutoSlideImage({ images, onClick, alt }: { images: { url: string; media_type?: string }[]; onClick: () => void; alt: string }) {
   const [index, setIndex] = useState(0);
   const [muted, setMuted] = useState(true);
