@@ -300,6 +300,7 @@ function HomeInner() {
   const [recommendedProgress, setRecommendedProgress] = useState(0);
   const recommendedScrollRef = useRef<HTMLDivElement>(null);
   const [isDraggingRecommended, setIsDraggingRecommended] = useState(false);
+  const [quickAddCtx, setQuickAddCtx] = useState("grid");
   const dragStartXRef = useRef(0);
   const dragStartScrollRef = useRef(0);
   const [visibleCount, setVisibleCount] = useState(() => {
@@ -731,6 +732,116 @@ function HomeInner() {
     scrollRestoredRef.current = true;
   }, [productsLoading, products]);
 
+  const renderCard = (p: Product, ctx: string) => {
+    const inStock = p.variants.filter((v) => v.stock > 0);
+    const out = inStock.length === 0;
+    const badge = out
+      ? (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")
+      : isDiscountActive(p) && p.discount_percent
+      ? `−${p.discount_percent}%`
+      : p.is_new
+      ? (lang === "ru" ? "Новинка" : "Нав")
+      : p.is_featured
+      ? (lang === "ru" ? "Хорошая цена" : "Нархи хуб")
+      : null;
+    const cat = p.category ? categories.find((c) => c.id === p.category!.id) : null;
+    const catName = cat ? (lang === "tj" && cat.name_tj ? cat.name_tj : cat.name) : p.category?.name || "";
+    const eyebrow = p.is_brand ? (catName ? `Бренд · ${catName}` : "Бренд") : catName;
+    const quickKey = `${ctx}-${p.id}`;
+    const quickOpen = quickAddProductId === p.id && quickAddCtx === ctx;
+    const addVariant = (v: Variant) => {
+      cart.addItem({
+        variantId: v.id,
+        productId: p.id,
+        title: localized(p.title_ru, p.title_tj),
+        catalogNumber: p.catalog_number,
+        price: p.price,
+        size: v.size,
+        color: v.color,
+      }).then((res) => {
+        setToastType(res.ok ? "success" : "error");
+        setToastMessage(res.ok ? (lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд") : (res.error || (lang === "ru" ? "Не удалось добавить" : "Илова нашуд")));
+        setTimeout(() => setToastMessage(null), 3000);
+      });
+    };
+    return (
+      <div key={quickKey} className="pc">
+        <div className="pc-media" onClick={() => router.push(`/product/${p.id}`)}>
+          <CardMedia images={p.images} alt={localized(p.title_ru, p.title_tj)} />
+          {badge && <span className="pc-badge">{badge}</span>}
+          {quickOpen && (
+            <div className="pc-quick" onClick={(e) => e.stopPropagation()}>
+              {!quickAddSize ? (
+                <>
+                  <div className="pc-quick-label">{lang === "ru" ? "Выберите размер" : "Андозаро интихоб кунед"}</div>
+                  <div className="pc-quick-row">
+                    {Array.from(new Set(inStock.map((v) => v.size))).map((sz) => (
+                      <span key={sz} className="pc-size" onClick={() => setQuickAddSize(sz)}>{sz}</span>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="pc-quick-label">{lang === "ru" ? "Выберите цвет" : "Рангро интихоб кунед"}</div>
+                  <div className="pc-quick-row">
+                    {inStock.filter((v) => v.size === quickAddSize).map((v) => (
+                      <span
+                        key={v.id}
+                        title={v.color}
+                        className="pc-color"
+                        style={{ background: filterOptions.colors.find((c) => c.name === v.color)?.hex || "#999999" }}
+                        onClick={() => { addVariant(v); setQuickAddProductId(null); }}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="pc-actions">
+          <button
+            className={`pc-icon${favoriteIds.has(p.id) ? " is-on" : ""}`}
+            aria-label={lang === "ru" ? "В избранное" : "Ба интихобҳо"}
+            onClick={() => {
+              toggleFavorite(p.id);
+              setTimeout(() => window.dispatchEvent(new Event("oina:favorites-changed")), 700);
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M12 20.5 C12 20.5 3.5 14.6 3.5 8.9 C3.5 6 5.7 4 8.3 4 C10 4 11.3 4.9 12 6 C12.7 4.9 14 4 15.7 4 C18.3 4 20.5 6 20.5 8.9 C20.5 14.6 12 20.5 12 20.5 Z" strokeLinejoin="round" /></svg>
+          </button>
+          <button
+            className="pc-icon"
+            disabled={out}
+            aria-label={lang === "ru" ? "В корзину" : "Ба сабад"}
+            onClick={() => {
+              if (out) return;
+              if (inStock.length === 1) { addVariant(inStock[0]); return; }
+              setQuickAddSize("");
+              if (quickOpen) { setQuickAddProductId(null); return; }
+              setQuickAddCtx(ctx);
+              setQuickAddProductId(p.id);
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M5 8.5 H19 L18 21 H6 Z" strokeLinejoin="round" /><path d="M8.5 8.5 V7 C8.5 4.8 10 3.3 12 3.3 C14 3.3 15.5 4.8 15.5 7 V8.5" /></svg>
+          </button>
+        </div>
+
+        <div className="pc-info" onClick={() => router.push(`/product/${p.id}`)}>
+          {eyebrow && <div className="pc-eyebrow">{eyebrow}</div>}
+          <div className="pc-title" title={localized(p.title_ru, p.title_tj)}>{localized(p.title_ru, p.title_tj)}</div>
+          <div className="pc-price">
+            {p.price} смн
+            {isDiscountActive(p) && (
+              <s>{Math.round(p.original_price ?? (p.price / (1 - (p.discount_percent as number) / 100)))} смн</s>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div data-theme={theme} className="home-root" style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <SiteHeader />
@@ -741,128 +852,34 @@ function HomeInner() {
       <CollectionBar selectedCategoryId={selectedCategoryId} router={router} />
 
       {recommendedProducts.length > 0 && (
-        <div className="recommended-wrapper" style={{ padding: "24px 40px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <h2 className="product-title"
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 500,
-                    lineHeight: "32px",
-                    height: "auto",
-                    color: "var(--text)",
-                    marginTop: 4,
-                    marginBottom: 6,
-                    cursor: "pointer",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}>{t.recommended}</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <span
-                onClick={() => router.push("/?recommended=1")}
-                style={{ fontSize: 13, color: "var(--text-muted)", cursor: "pointer", whiteSpace: "nowrap" }}
-              >
-                {t.seeAll} →
-              </span>
-              <span
-                onClick={() => setRecommendedCollapsed((v) => !v)}
-                style={{ fontSize: 13, color: "var(--text-muted)", cursor: "pointer", whiteSpace: "nowrap" }}
-              >
-                {recommendedCollapsed ? "▼" : "▲"}
-              </span>
-            </div>
+        <section className="pc-wrap sec">
+          <div className="sec-head">
+            <span className="coll-rule" />
+            <h2 className="sec-title">{t.recommended}</h2>
+            <span className="sec-link" onClick={() => router.push("/?recommended=1")}>{t.seeAll}</span>
           </div>
-          {!recommendedCollapsed && (
-            <div
-              onMouseDown={(e) => {
-                setIsDraggingRecommended(true);
-                dragStartXRef.current = e.pageX;
-                dragStartScrollRef.current = recommendedScrollRef.current?.scrollLeft ?? 0;
-              }}
-              onMouseMove={(e) => {
-                if (!isDraggingRecommended || !recommendedScrollRef.current) return;
-                const delta = e.pageX - dragStartXRef.current;
-                recommendedScrollRef.current.scrollLeft = dragStartScrollRef.current - delta;
-              }}
-              onMouseUp={() => setIsDraggingRecommended(false)}
-              onMouseLeave={() => setIsDraggingRecommended(false)}
-              style={{ background: "var(--surface)", borderRadius: 16, padding: "16px 12px", display: "flex", flexDirection: "column", gap: 12 }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span
-                onClick={() => recommendedScrollRef.current?.scrollBy({ left: -300, behavior: "smooth" })}
-                style={{ fontSize: 64, color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, userSelect: "none", lineHeight: 1 }}
-              >
-                ‹
-              </span>
-              <div
-                ref={recommendedScrollRef}
-                onScroll={(e) => {
-                  const el = e.currentTarget;
-                  const max = el.scrollWidth - el.clientWidth;
-                  setRecommendedProgress(max > 0 ? el.scrollLeft / max : 0);
-                }}
-                className="recommended-scroll"
-                style={{ display: "flex", gap: 12, overflowX: "auto", scrollBehavior: isDraggingRecommended ? "auto" : "smooth", cursor: isDraggingRecommended ? "grabbing" : "grab", WebkitOverflowScrolling: "touch" }}
-              >
-                {recommendedProducts.map((p) => {
-                  const badge = getRecommendedBadge(p);
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => { if (!isDraggingRecommended) router.push(`/product/${p.id}`); }}
-                      className="recommended-card"
-                      style={{ cursor: "pointer", border: "none", borderRadius: 12, overflow: "hidden", background: "var(--bg)" }}
-                    >
-                      <div style={{ position: "relative", aspectRatio: "3/4", background: "var(--surface)", marginBottom: 8 }}>
-                        <AutoSlideImage images={p.images} alt={localized(p.title_ru, p.title_tj)} onClick={() => { if (!isDraggingRecommended) router.push(`/product/${p.id}`); }} />
-                        {badge && (
-                          <span style={{ position: "absolute", top: 8,
-                      filter: "var(--card-action-shadow)", left: 8, fontSize: 10, fontWeight: 500, background: badge.color, color: "#fff", padding: "3px 8px", borderRadius: 4 }}>
-                            {badge.text}
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: 12, color: "var(--text)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 8px" }}>
-                        {localized(p.title_ru, p.title_tj)}
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", padding: "0 8px 8px" }}>{p.price} смн</div>
-                    </div>
-                  );
-                })}
-              </div>
-              <span
-                onClick={() => recommendedScrollRef.current?.scrollBy({ left: 300, behavior: "smooth" })}
-                style={{ fontSize: 64, color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, userSelect: "none", lineHeight: 1 }}
-              >
-                ›
-              </span>
-              </div>
-              <div style={{ height: 3, borderRadius: 2, background: "var(--line)", overflow: "hidden" }}>
-                <div
-                  className="carousel-progress-fill"
-                  style={{
-                    height: "100%",
-                    width: `${Math.max(8, Math.round(recommendedProgress * 100))}%`,
-                    borderRadius: 2,
-                    transition: "width 0.2s ease",
-                  }}
-                />
-              </div>
+          <div className="rec-row">
+            <button className="rec-arrow rec-arrow--left" aria-label="←" onClick={() => recommendedScrollRef.current?.scrollBy({ left: -(recommendedScrollRef.current.clientWidth * 0.75) })}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M15 4 L7 12 L15 20" /></svg>
+            </button>
+            <div ref={recommendedScrollRef} className="rec-scroll">
+              {recommendedProducts.map((p) => (
+                <div key={p.id} className="rec-item">{renderCard(p, "rec")}</div>
+              ))}
             </div>
-          )}
-        </div>
+            <button className="rec-arrow rec-arrow--right" aria-label="→" onClick={() => recommendedScrollRef.current?.scrollBy({ left: recommendedScrollRef.current.clientWidth * 0.75 })}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M9 4 L17 12 L9 20" /></svg>
+            </button>
+          </div>
+        </section>
       )}
 
-      <div style={{ padding: "8px 40px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-          <h2 className="product-title" style={{ fontSize: 22 }}>{t.allCategories}</h2>
-          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-            {lang === "ru" ? "Показано" : "Нишон дода шуд"} {Math.min(visibleCount, products.length)} {lang === "ru" ? "из" : "аз"} {products.length}
-          </span>
-        </div>
+      <div className="sec-head">
+        <span className="coll-rule" />
+        <h2 className="sec-title">{t.allCategories}</h2>
+        <span className="sec-count">
+          {lang === "ru" ? "Показано" : "Нишон дода шуд"} {Math.min(visibleCount, products.length)} {lang === "ru" ? "из" : "аз"} {products.length}
+        </span>
         <SortDropdown
           value={sortOption}
           onChange={setSortOption}
@@ -909,113 +926,7 @@ function HomeInner() {
           }).slice(0, visibleCount).map((p, idx) => (
             <Fragment key={p.id}>
             
-            <div key={p.id} className="pc">
-              {(() => {
-                const inStock = p.variants.filter((v) => v.stock > 0);
-                const out = inStock.length === 0;
-                const badge = out
-                  ? (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")
-                  : isDiscountActive(p) && p.discount_percent
-                  ? `−${p.discount_percent}%`
-                  : p.is_new
-                  ? (lang === "ru" ? "Новинка" : "Нав")
-                  : p.is_featured
-                  ? (lang === "ru" ? "Хорошая цена" : "Нархи хуб")
-                  : null;
-                const cat = p.category ? categories.find((c) => c.id === p.category!.id) : null;
-                const catName = cat ? (lang === "tj" && cat.name_tj ? cat.name_tj : cat.name) : p.category?.name || "";
-                const eyebrow = p.is_brand ? (catName ? `${lang === "ru" ? "Бренд" : "Бренд"} · ${catName}` : (lang === "ru" ? "Бренд" : "Бренд")) : catName;
-                const addVariant = (v: Variant) => {
-                  cart.addItem({
-                    variantId: v.id,
-                    productId: p.id,
-                    title: localized(p.title_ru, p.title_tj),
-                    catalogNumber: p.catalog_number,
-                    price: p.price,
-                    size: v.size,
-                    color: v.color,
-                  }).then((res) => {
-                    setToastType(res.ok ? "success" : "error");
-                    setToastMessage(res.ok ? (lang === "ru" ? "Добавлено в корзину" : "Ба сабад илова шуд") : (res.error || (lang === "ru" ? "Не удалось добавить" : "Илова нашуд")));
-                    setTimeout(() => setToastMessage(null), 3000);
-                  });
-                };
-                return (
-                  <>
-                    <div className="pc-media" onClick={() => router.push(`/product/${p.id}`)}>
-                      <CardMedia images={p.images} alt={localized(p.title_ru, p.title_tj)} />
-                      {badge && <span className="pc-badge">{badge}</span>}
-                      {quickAddProductId === p.id && (
-                        <div className="pc-quick" onClick={(e) => e.stopPropagation()}>
-                          {!quickAddSize ? (
-                            <>
-                              <div className="pc-quick-label">{lang === "ru" ? "Выберите размер" : "Андозаро интихоб кунед"}</div>
-                              <div className="pc-quick-row">
-                                {Array.from(new Set(inStock.map((v) => v.size))).map((sz) => (
-                                  <span key={sz} className="pc-size" onClick={() => setQuickAddSize(sz)}>{sz}</span>
-                                ))}
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="pc-quick-label">{lang === "ru" ? "Выберите цвет" : "Рангро интихоб кунед"}</div>
-                              <div className="pc-quick-row">
-                                {inStock.filter((v) => v.size === quickAddSize).map((v) => (
-                                  <span
-                                    key={v.id}
-                                    title={v.color}
-                                    className="pc-color"
-                                    style={{ background: filterOptions.colors.find((c) => c.name === v.color)?.hex || "#999999" }}
-                                    onClick={() => { addVariant(v); setQuickAddProductId(null); }}
-                                  />
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="pc-actions">
-                      <button
-                        className={`pc-icon${favoriteIds.has(p.id) ? " is-on" : ""}`}
-                        aria-label={lang === "ru" ? "В избранное" : "Ба интихобҳо"}
-                        onClick={() => {
-                          toggleFavorite(p.id);
-                          setTimeout(() => window.dispatchEvent(new Event("oina:favorites-changed")), 700);
-                        }}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M12 20.5 C12 20.5 3.5 14.6 3.5 8.9 C3.5 6 5.7 4 8.3 4 C10 4 11.3 4.9 12 6 C12.7 4.9 14 4 15.7 4 C18.3 4 20.5 6 20.5 8.9 C20.5 14.6 12 20.5 12 20.5 Z" strokeLinejoin="round" /></svg>
-                      </button>
-                      <button
-                        className="pc-icon"
-                        disabled={out}
-                        aria-label={lang === "ru" ? "В корзину" : "Ба сабад"}
-                        onClick={() => {
-                          if (out) return;
-                          if (inStock.length === 1) { addVariant(inStock[0]); return; }
-                          setQuickAddSize("");
-                          setQuickAddProductId(quickAddProductId === p.id ? null : p.id);
-                        }}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M5 8.5 H19 L18 21 H6 Z" strokeLinejoin="round" /><path d="M8.5 8.5 V7 C8.5 4.8 10 3.3 12 3.3 C14 3.3 15.5 4.8 15.5 7 V8.5" /></svg>
-                      </button>
-                    </div>
-
-                    <div className="pc-info" onClick={() => router.push(`/product/${p.id}`)}>
-                      {eyebrow && <div className="pc-eyebrow">{eyebrow}</div>}
-                      <div className="pc-title" title={localized(p.title_ru, p.title_tj)}>{localized(p.title_ru, p.title_tj)}</div>
-                      <div className="pc-price">
-                        {p.price} смн
-                        {isDiscountActive(p) && (
-                          <s>{Math.round(p.original_price ?? (p.price / (1 - (p.discount_percent as number) / 100)))} смн</s>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
+            {renderCard(p, "grid")}
             {idx === Math.min(24, products.length) - 1 && dualSlides.length > 0 && (
               <div style={{ gridColumn: "1 / -1" }}>
                 <DualSlider slides={dualSlides} router={router} lang={lang} />
@@ -1326,20 +1237,33 @@ function SkeletonCard() {
   );
 }
 function CardMedia({ images, alt }: { images: { url: string; media_type?: string }[]; alt: string }) {
-  const first = images[0];
-  const second = images.slice(1).find((img) => img.media_type !== "video");
-  if (!first) return null;
+  const [active, setActive] = useState(0);
+  const [hover, setHover] = useState(false);
+
+  useEffect(() => {
+    if (!hover || images.length <= 1) return;
+    const timer = setInterval(() => setActive((i) => (i + 1) % images.length), 1600);
+    return () => clearInterval(timer);
+  }, [hover, images.length]);
+
+  if (images.length === 0) return null;
+
   return (
-    <>
-      {first.media_type === "video" ? (
-        <video src={first.url} autoPlay muted loop playsInline />
-      ) : (
-        <Image src={first.url} alt={alt} fill sizes="(max-width: 640px) 50vw, (max-width: 900px) 33vw, 25vw" />
-      )}
-      {second && (
-        <Image className="pc-img2" src={second.url} alt={alt} fill sizes="(max-width: 640px) 50vw, (max-width: 900px) 33vw, 25vw" />
-      )}
-    </>
+    <div
+      className="pc-slides"
+      onMouseEnter={() => { setHover(true); if (images.length > 1) setActive(1); }}
+      onMouseLeave={() => { setHover(false); setActive(0); }}
+    >
+      {images.map((img, i) => (
+        <div key={img.url + i} className={`pc-slide${i === active ? " is-active" : ""}`}>
+          {img.media_type === "video" ? (
+            <video src={img.url} muted loop playsInline autoPlay={i === active} />
+          ) : (
+            <img src={img.url} alt={alt} loading={i === 0 ? "eager" : "lazy"} decoding="async" draggable={false} />
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 
