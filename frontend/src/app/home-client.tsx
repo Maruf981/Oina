@@ -1654,6 +1654,7 @@ function CollectionBar({ selectedCategoryId, router }: { selectedCategoryId: num
   const { lang } = useLang();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLElement>(null);
+  const subRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const onOpen = () => {
@@ -1663,6 +1664,18 @@ function CollectionBar({ selectedCategoryId, router }: { selectedCategoryId: num
     window.addEventListener("oina:open-categories", onOpen);
     return () => window.removeEventListener("oina:open-categories", onOpen);
   }, []);
+
+  useEffect(() => {
+    const el = subRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  });
 
   if (!open && !selectedCategoryId) return null;
 
@@ -1688,7 +1701,7 @@ function CollectionBar({ selectedCategoryId, router }: { selectedCategoryId: num
       </div>
 
       <nav className="coll-bar">
-        <span className={`coll-item${!selectedCategoryId ? " is-active" : ""}`} onClick={() => go(null)}>
+        <span className={`coll-item${!selectedCategoryId ? " is-active" : ""}`} onClick={() => { setOpen(false); go(null); }}>
           {lang === "ru" ? "Все" : "Ҳама"}
         </span>
         {parents.map((p) => (
@@ -1699,7 +1712,7 @@ function CollectionBar({ selectedCategoryId, router }: { selectedCategoryId: num
       </nav>
 
       {children.length > 0 && (
-        <nav className="coll-bar coll-bar--sub">
+        <nav ref={subRef} className="coll-bar coll-bar--sub">
           {children.map((c) => (
             <span key={c.id} className={`coll-item${selectedCategoryId === c.id ? " is-active" : ""}`} onClick={() => go(c.id)}>
               {name(c)}
