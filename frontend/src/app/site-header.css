@@ -187,3 +187,7 @@
   .oh-search-row { gap: 1rem; }
 }
 
+
+/* тёмная тема: хедер темнее фона страницы */
+[data-theme="dark"] .oh:not(.oh--clear) { background: #2A221D; --oh-line: #44382F; }
+[data-theme="dark"] .oh-search { background: #2A221D; }
