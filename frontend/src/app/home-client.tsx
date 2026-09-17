@@ -953,210 +953,128 @@ function HomeInner() {
       </div>
 
       {authOpen && (
-        <div
-          onClick={handleCloseAuth}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            zIndex: 200,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "var(--bg)",
-              border: "none",
-              padding: 32,
-              width: 340,
-              maxWidth: "90vw",
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <span className="product-title" style={{ fontSize: 20 }}>
+        <div className="au-bg" onClick={handleCloseAuth}>
+          <div className="au" onClick={(e) => e.stopPropagation()}>
+            <button className="au-close oh-action" onClick={handleCloseAuth}>{lang === "ru" ? "Закрыть" : "Пӯшидан"} ×</button>
+
+            <div className="au-head">
+              <span className="coll-rule" />
+              <div className="ck-eyebrow">{lang === "ru" ? "Личный кабинет" : "Утоқи шахсӣ"}</div>
+              <h2 className="au-title">
                 {authMode === "login" ? (lang === "ru" ? "Вход" : "Даромадан") : authMode === "register" ? (lang === "ru" ? "Регистрация" : "Бақайдгирӣ") : (lang === "ru" ? "Восстановление пароля" : "Барқарор кардани парол")}
-              </span>
-              <span onClick={handleCloseAuth} style={{ cursor: "pointer", fontSize: 20, color: "var(--text-muted)" }}>×</span>
+              </h2>
+              <p className="au-lead">
+                {authMode === "reset"
+                  ? (lang === "ru" ? "Мы поможем вернуть доступ к вашему аккаунту." : "Мо ба барқарор кардани дастрасӣ кӯмак мекунем.")
+                  : (lang === "ru" ? "Авторизуйтесь, чтобы управлять своими данными, заказами и избранным." : "Барои идора кардани маълумот, фармоишҳо ва интихобҳо ворид шавед.")}
+              </p>
+              {authMode !== "reset" && (
+                <nav className="au-tabs">
+                  <span className={`coll-item${authMode === "login" ? " is-active" : ""}`} onClick={() => { setAuthMode("login"); setAuthError(""); }}>
+                    {lang === "ru" ? "Вход" : "Даромадан"}
+                  </span>
+                  <span className={`coll-item${authMode === "register" ? " is-active" : ""}`} onClick={() => { setAuthMode("register"); setAuthError(""); }}>
+                    {lang === "ru" ? "Регистрация" : "Бақайдгирӣ"}
+                  </span>
+                </nav>
+              )}
             </div>
 
-            <form onSubmit={(e) => e.preventDefault()} autoComplete="off" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-            {authMode === "reset" ? (
-              <>
-                {resetStep === "phone" ? (
-                  <>
-                    <input
-                      key="reset-phone-input"
-                      autoComplete="off"
-                      placeholder={lang === "ru" ? "Телефон" : "Телефон"}
-                      value={authPhone}
-                      onChange={(e) => { setAuthPhone(e.target.value); setAuthError(""); }}
-                      style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
-                    />
-                    <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
-                      {lang === "ru"
-                        ? "Напишите нашему боту @Oina_help_bot команду /resetpass и введите этот же номер телефона — бот пришлёт код."
-                        : "Ба боти мо @Oina_help_bot фармони /resetpass нависед ва ҳамин рақами телефонро ворид кунед — бот рамзро мефиристад."}
-                    </p>
-                    <button
-                      onClick={() => setResetStep("code")}
-                      style={{ padding: "14px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
-                    >
-                      {lang === "ru" ? "У меня есть код" : "Ман рамз дорам"}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                      {lang === "ru" ? "Телефон: " : "Телефон: "}{authPhone}
-                    </p>
-                    <input
-                      key="reset-code-input"
-                      autoComplete="off"
-                      name="oina-reset-otp-code"
-                      inputMode="numeric"
-                      placeholder={lang === "ru" ? "6-значный код из Telegram" : "Рамзи 6-рақамӣ аз Telegram"}
-                      value={resetCode}
-                      onChange={(e) => setResetCode(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleResetVerify()}
-                      style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
-                    />
-                    <input
-                      type="password"
-                      autoComplete="new-password"
-                      placeholder={lang === "ru" ? "Новый пароль" : "Пароли нав"}
-                      value={resetNewPassword}
-                      onChange={(e) => setResetNewPassword(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleResetVerify()}
-                      style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
-                    />
-                    {authError && <span style={{ color: "#E24B4A", fontSize: 13, lineHeight: 1.4, whiteSpace: "normal", wordBreak: "break-word" }}>{authError}</span>}
-                    {resetSuccess && <span style={{ color: "#4CAF50", fontSize: 13 }}>{resetSuccess}</span>}
-                    <button
-                      onClick={handleResetVerify}
-                      style={{ padding: "14px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
-                    >
-                      {lang === "ru" ? "Сменить пароль" : "Иваз кардани парол"}
-                    </button>
-                  </>
-                )}
-                <span
-                  onClick={() => { setAuthMode("login"); setResetStep("phone"); setAuthError(""); setResetSuccess(""); }}
-                  style={{ textAlign: "center", cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}
-                >
-                  {lang === "ru" ? "← Назад ко входу" : "← Ба воридшавӣ"}
-                </span>
-              </>
-            ) : (
-              <>
-                {authMode === "register" && (
-                  <input
-                    placeholder={lang === "ru" ? "Имя" : "Ном"}
-                    value={authName}
-                    onChange={(e) => setAuthName(e.target.value)}
-                    style={{ padding: 12, background: "var(--surface)", border: "none", color: "var(--text)", fontSize: 14 }}
-                  />
-                )}
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-                    {lang === "ru" ? "Номер телефона" : "Раќами телефон"}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "stretch", background: "var(--surface)", borderRadius: 8, overflow: "hidden" }}>
-                    <span style={{ display: "flex", alignItems: "center", padding: "0 12px", fontSize: 14, color: "var(--text-muted)", borderRight: "1px solid var(--line)" }}>
-                      +992
-                    </span>
-                    <input
-                      placeholder="900796328"
-                      value={authPhone}
-                      onChange={(e) => setAuthPhone(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
-                      style={{ flex: 1, padding: 12, background: "transparent", border: "none", color: "var(--text)", fontSize: 14, outline: "none" }}
-                    />
-                  </div>
-                  {authPhone && !isValidPhone(authPhone) && (
-                    <div style={{ fontSize: 12, color: "#E24B4A", marginTop: 5 }}>
-                      {lang === "ru" ? "Нужно 9 цифр, например 900796328" : "9 рақам лозим аст, мисол 900796328"}
-                    </div>
+            <form onSubmit={(e) => e.preventDefault()} autoComplete="off" className="au-form">
+              {authMode === "reset" ? (
+                <>
+                  {resetStep === "phone" ? (
+                    <>
+                      <label className="ck-field">
+                        <span className="ck-field-label">{lang === "ru" ? "Телефон" : "Телефон"}</span>
+                        <input key="reset-phone-input" autoComplete="off" value={authPhone} onChange={(e) => { setAuthPhone(e.target.value); setAuthError(""); }} />
+                      </label>
+                      <p className="ck-note">
+                        {lang === "ru"
+                          ? "Напишите нашему боту @Oina_help_bot команду /resetpass и введите этот же номер телефона — бот пришлёт код."
+                          : "Ба боти мо @Oina_help_bot фармони /resetpass нависед ва ҳамин рақами телефонро ворид кунед — бот рамзро мефиристад."}
+                      </p>
+                      <button className="ck-btn" onClick={() => setResetStep("code")}>{lang === "ru" ? "У меня есть код" : "Ман рамз дорам"}</button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="ck-note">{lang === "ru" ? "Телефон: " : "Телефон: "}{authPhone}</p>
+                      <label className="ck-field">
+                        <span className="ck-field-label">{lang === "ru" ? "Код из Telegram" : "Рамз аз Telegram"}</span>
+                        <input key="reset-code-input" autoComplete="off" name="oina-reset-otp-code" inputMode="numeric" placeholder="000000"
+                          value={resetCode} onChange={(e) => setResetCode(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleResetVerify()} />
+                      </label>
+                      <label className="ck-field">
+                        <span className="ck-field-label">{lang === "ru" ? "Новый пароль" : "Пароли нав"}</span>
+                        <input type="password" autoComplete="new-password" value={resetNewPassword}
+                          onChange={(e) => setResetNewPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleResetVerify()} />
+                      </label>
+                      {authError && <span className="ck-error au-msg">{authError}</span>}
+                      {resetSuccess && <span className="au-msg au-ok">{resetSuccess}</span>}
+                      <button className="ck-btn" onClick={handleResetVerify}>{lang === "ru" ? "Сменить пароль" : "Иваз кардани парол"}</button>
+                    </>
                   )}
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-                    {lang === "ru" ? "Пароль" : "Парол"}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", background: "var(--surface)", borderRadius: 8 }}>
-                    <input
-                      type={showAuthPassword ? "text" : "password"}
-                      autoComplete={authMode === "login" ? "current-password" : "new-password"}
-                      placeholder={lang === "ru" ? "Введите пароль" : "Паролро ворид кунед"}
-                      value={authPassword}
-                      onChange={(e) => setAuthPassword(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
-                      style={{ flex: 1, padding: 12, background: "transparent", border: "none", color: "var(--text)", fontSize: 14, outline: "none" }}
-                    />
-                    <span
-                      onClick={() => setShowAuthPassword((v) => !v)}
-                      style={{ cursor: "pointer", padding: "0 12px", display: "flex", alignItems: "center" }}
-                      title={showAuthPassword ? "Скрыть" : "Показать"}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5">
-                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
-                        <circle cx="12" cy="12" r="2.6" />
-                        {showAuthPassword && <line x1="4" y1="20" x2="20" y2="4" />}
-                      </svg>
-                    </span>
-                  </div>
-                </div>
-
-                {authError && <span style={{ color: "#E24B4A", fontSize: 13, lineHeight: 1.4, whiteSpace: "normal", wordBreak: "break-word" }}>{authError}</span>}
-
-                <button
-                  onClick={handleAuthSubmit}
-                  style={{
-                    height: 50,
-                    background: "var(--accent-btn-bg)",
-                    color: "var(--accent-btn-text)",
-                    border: "none",
-                    borderRadius: 8,
-                    fontFamily: "var(--font-label)",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    cursor: "pointer",
-                  }}
-                >
-                  {authMode === "login" ? (lang === "ru" ? "Войти" : "Даромадан") : (lang === "ru" ? "Зарегистрироваться" : "Бақайд гирифтан")}
-                </button>
-
-                {authMode === "login" && (
-                  <span
-                    onClick={() => { setAuthMode("reset"); setAuthError(""); }}
-                    style={{ textAlign: "center", cursor: "pointer", fontSize: 12, color: "var(--text-muted)", textDecoration: "underline" }}
-                  >
-                    {lang === "ru" ? "Забыли пароль?" : "Паролро фаромӯш кардед?"}
+                  <span className="ck-link ck-link--muted au-center" onClick={() => { setAuthMode("login"); setResetStep("phone"); setAuthError(""); setResetSuccess(""); }}>
+                    {lang === "ru" ? "← Назад ко входу" : "← Ба воридшавӣ"}
                   </span>
-                )}
+                </>
+              ) : (
+                <>
+                  {authMode === "register" && (
+                    <label className="ck-field">
+                      <span className="ck-field-label">{lang === "ru" ? "Имя" : "Ном"}</span>
+                      <input value={authName} onChange={(e) => setAuthName(e.target.value)} />
+                    </label>
+                  )}
 
-                <span
-                  onClick={() => {
-                    setAuthMode(authMode === "login" ? "register" : "login");
-                    setAuthError("");
-                  }}
-                  style={{ textAlign: "center", cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}
-                >
-                  {authMode === "login"
-                    ? (lang === "ru" ? "Нет аккаунта? Зарегистрироваться" : "Ҳисоб надоред? Бақайд гиред")
-                    : (lang === "ru" ? "Уже есть аккаунт? Войти" : "Ҳисоб доред? Ворид шавед")}
-                </span>
-              </>
-            )}
-          </form>
+                  <label className={`ck-field${authPhone && !isValidPhone(authPhone) ? " has-error" : ""}`}>
+                    <span className="ck-field-label">{lang === "ru" ? "Номер телефона" : "Рақами телефон"}</span>
+                    <span className="au-input-row">
+                      <span className="au-prefix">+992</span>
+                      <input placeholder="900796328" value={authPhone} onChange={(e) => setAuthPhone(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()} />
+                    </span>
+                    {authPhone && !isValidPhone(authPhone) && (
+                      <span className="ck-error">{lang === "ru" ? "Нужно 9 цифр, например 900796328" : "9 рақам лозим аст, мисол 900796328"}</span>
+                    )}
+                  </label>
+
+                  <label className="ck-field">
+                    <span className="ck-field-label">{lang === "ru" ? "Пароль" : "Парол"}</span>
+                    <span className="au-input-row">
+                      <input
+                        type={showAuthPassword ? "text" : "password"}
+                        autoComplete={authMode === "login" ? "current-password" : "new-password"}
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
+                      />
+                      <span className="au-eye" onClick={(e) => { e.preventDefault(); setShowAuthPassword((v) => !v); }}>
+                        {showAuthPassword ? (lang === "ru" ? "Скрыть" : "Пинҳон") : (lang === "ru" ? "Показать" : "Нишон")}
+                      </span>
+                    </span>
+                  </label>
+
+                  {authMode === "login" && (
+                    <span className="ck-link ck-link--muted au-forgot" onClick={() => { setAuthMode("reset"); setAuthError(""); }}>
+                      {lang === "ru" ? "Забыли пароль?" : "Паролро фаромӯш кардед?"}
+                    </span>
+                  )}
+
+                  {authError && <span className="ck-error au-msg">{authError}</span>}
+
+                  <button className="ck-btn" onClick={handleAuthSubmit}>
+                    {authMode === "login" ? (lang === "ru" ? "Войти" : "Даромадан") : (lang === "ru" ? "Зарегистрироваться" : "Бақайд гирифтан")}
+                  </button>
+
+                  <p className="ck-note ck-note--center au-switch">
+                    {authMode === "login" ? (lang === "ru" ? "Нет аккаунта? " : "Ҳисоб надоред? ") : (lang === "ru" ? "Уже есть аккаунт? " : "Ҳисоб доред? ")}
+                    <span className="ck-link" onClick={() => { setAuthMode(authMode === "login" ? "register" : "login"); setAuthError(""); }}>
+                      {authMode === "login" ? (lang === "ru" ? "Зарегистрироваться" : "Бақайд гиред") : (lang === "ru" ? "Войти" : "Ворид шавед")}
+                    </span>
+                  </p>
+                </>
+              )}
+            </form>
           </div>
         </div>
       )}
