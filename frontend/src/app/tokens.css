@@ -1,18 +1,21 @@
 :root {
-  /* Color */
-  --bg: #121316;
-  --surface: #18181B;
-  --line: #2A2A2E;
-  --text: #F2F0EA;
-  --text-muted: #8C8A85;
-  --accent: #B08D57;
-  --accent-hover: #C9A96A;
-  --menu-panel-bg: #0E2B33;
+  /* Color — светлая (кремовая) по умолчанию */
+  --bg: #F6F2EC;
+  --surface: #FBF8F3;
+  --line: #E2DBD0;
+  --text: #1E1B18;
+  --text-muted: #8A8278;
+  --accent: #1E1B18;
+  --accent-hover: #5A5249;
+  --menu-panel-bg: #F6F2EC;
+  --on-media: #FFFFFF;
+  --on-media-line: rgba(255, 255, 255, 0.35);
 
   /* Type */
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-label: 'Space Grotesk', sans-serif;
-  --font-body: 'Space Grotesk', sans-serif;
+  --font-display: 'Cormorant Garamond', 'Times New Roman', serif;
+  --font-label: 'Jost', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Jost', 'Helvetica Neue', Arial, sans-serif;
+  --tracking-label: 0.18em;
 
   /* Spacing scale */
   --space-1: 4px;
@@ -24,56 +27,58 @@
 
   /* Border */
   --border-hairline: 1px solid var(--line);
-  --radius: 2px;
+  --radius: 0px;
 }
 
 [data-theme="light"] {
-  --bg: #F5F3EE;
-  --surface: #FFFFFF;
-  --line: #D8D4C8;
-  --text: #17171A;
-  --text-muted: #6B6960;
-  --accent: #96703F;
-  --accent-hover: #7A5A32;
-  --menu-panel-bg: #E8E4D9;
+  --bg: #F6F2EC;
+  --surface: #FBF8F3;
+  --line: #E2DBD0;
+  --text: #1E1B18;
+  --text-muted: #8A8278;
+  --accent: #1E1B18;
+  --accent-hover: #5A5249;
+  --menu-panel-bg: #F6F2EC;
 }
 
 [data-theme="dark"] {
-  --bg: #121316;
-  --surface: #18181B;
-  --line: #2A2A2E;
-  --text: #F2F0EA;
-  --text-muted: #8C8A85;
-  --accent: #B08D57;
-  --accent-hover: #C9A96A;
-  --menu-panel-bg: #0E2B33;
+  --bg: #141210;
+  --surface: #1B1916;
+  --line: #2E2A25;
+  --text: #EFE9E0;
+  --text-muted: #948B80;
+  --accent: #EFE9E0;
+  --accent-hover: #C8BFB2;
+  --menu-panel-bg: #141210;
 }
-
 
 body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
 }
 
 .catalog-label {
   font-family: var(--font-label);
-  font-size: 12px;
-  letter-spacing: 0.05em;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--text-muted);
-  border-top: var(--border-hairline);
   padding-top: var(--space-2);
 }
 
 .price {
   font-family: var(--font-label);
-  color: var(--accent);
-  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 h1, h2, h3, .product-title {
   font-family: var(--font-display);
   font-weight: 400;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
