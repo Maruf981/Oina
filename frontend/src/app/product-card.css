@@ -263,3 +263,7 @@
   .rv-scroll { gap: .75rem; }
   .rv { flex-basis: 80%; padding: 1.1rem; }
 }
+
+/* тёмная тема: белый текст бейджей и рейтинга (фон не меняется) */
+[data-theme="dark"] .pc-badge,
+[data-theme="dark"] .pc-rating { color: #FFFFFF; }
