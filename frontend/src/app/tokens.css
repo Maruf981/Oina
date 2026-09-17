@@ -44,11 +44,11 @@
 [data-theme="dark"] {
   --bg: #8D8F8E;
   --surface: #979998;
-  --line: #7A7C7B;
-  --text: #111111;
-  --text-muted: #3F4140;
-  --accent: #111111;
-  --accent-hover: #3A3A3A;
+  --line: #A6A8A7;
+  --text: #FFFFFF;
+  --text-muted: #E4E5E4;
+  --accent: #FFFFFF;
+  --accent-hover: #E0E0E0;
   --menu-panel-bg: #8D8F8E;
 }
 
