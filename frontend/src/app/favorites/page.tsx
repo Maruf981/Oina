@@ -1,14 +1,17 @@
 "use client";
 
+import "../hero.css";
+import "../product-card.css";
+import "../cart/cart.css";
+import "./favorites.css";
 import { useEffect, useState } from "react";
-import { BackButton } from "../back-button";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../auth-context";
 import { SiteHeader } from "../site-header";
 import { useTheme } from "../theme-context";
 import { useLang } from "../lang-context";
 
-type ProductImage = { url: string };
+type ProductImage = { url: string; media_type?: string };
 type ProductVariant = { id: number; size: string; color: string; stock: number };
 type Product = {
   id: number;
@@ -119,6 +122,7 @@ export default function FavoritesPage() {
       ids = ids.filter((id) => id !== productId);
       localStorage.setItem("guest_favorites", JSON.stringify(ids));
       setFavorites((prev) => prev.filter((f) => f.product.id !== productId));
+      window.dispatchEvent(new Event("oina:favorites-changed"));
       return;
     }
     await fetch(`${API_URL}/favorites/${productId}`, {
@@ -126,129 +130,89 @@ export default function FavoritesPage() {
       headers: { Authorization: `Bearer ${auth.token}` },
     });
     setFavorites((prev) => prev.filter((f) => f.product.id !== productId));
+    window.dispatchEvent(new Event("oina:favorites-changed"));
   };
 
-  if (loading) {
-    return (
-      <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", padding: 40 }}>
-        Загрузка...
-      </div>
-    );
-  }
+  const tr = (ru: string, tj: string) => (lang === "ru" ? ru : tj);
+  const isVid = (img: { url: string; media_type?: string }) => img.media_type === "video" || /\/video\/upload\/|\.(mp4|webm|mov)(\?|$)/i.test(img.url);
 
   return (
-    <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
+    <div data-theme={theme} className="fv-root">
       <SiteHeader />
-      <div className="favorites-container" style={{ maxWidth: 900, margin: "0 auto", padding: 40, paddingTop: 140, paddingBottom: "calc(88px + env(safe-area-inset-bottom))" }}>
-        <BackButton href="/" />
-
-        <h1 className="product-title" style={{ fontSize: 28, margin: "24px 0 30px" }}>
-          {lang === "ru" ? "Избранное" : "Интихобҳо"}
-        </h1>
-
-        {favorites.length === 0 && (
-          <p style={{ color: "var(--text-muted)" }}>
-            {lang === "ru" ? "Список избранного пуст" : "Айни ҳол интихоб нест"}
-          </p>
-        )}
-
-        <div
-          className="favorites-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            gap: 20,
-          }}
-        >
-          {favorites.map(({ product: p }) => (
-            <div key={p.id} style={{ background: "var(--bg)", padding: "var(--card-pad)", borderRadius: 12, border: "1px solid var(--line)", overflow: "hidden" }}>
-              <div
-                style={{
-                  position: "relative",
-                  aspectRatio: "var(--card-aspect)",
-                  background: "var(--surface)",
-                  overflow: "hidden",
-                  margin: "calc(var(--card-pad) * -1) calc(var(--card-pad) * -1) 8px",
-                }}
-              >
-                <div
-                  onClick={() => router.push(`/product/${p.id}`)}
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    cursor: "pointer",
-                    backgroundImage: p.images[0] ? `url(${p.images[0].url})` : "none",
-                    backgroundSize: "contain",
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "center",
-                  }}
-                />
-                {getRecommendedBadge(p) && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 8,
-                      left: 8,
-                      background: getRecommendedBadge(p)!.color,
-                      color: "#fff",
-                      fontFamily: "var(--font-label)",
-                      fontSize: 11,
-                      fontWeight: 500,
-                      letterSpacing: "0.02em",
-                      padding: "4px 8px",
-                      borderRadius: 6,
-                      pointerEvents: "none",
-                      zIndex: 2,
-                    }}
-                  >
-                    {getRecommendedBadge(p)!.text}
-                  </div>
-                )}
-
-                <div
-                  onClick={() => removeFavorite(p.id)}
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 4,
-                    width: 30,
-                    height: 30,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <svg width="19" height="19" viewBox="0 0 24 24" style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.35))" }}>
-                    <path
-                      d="M12 21 C12 21 3 14.5 3 8.6 C3 5.5 5.4 3.3 8.2 3.3 C10 3.3 11.3 4.2 12 5.4 C12.7 4.2 14 3.3 15.8 3.3 C18.6 3.3 21 5.5 21 8.6 C21 14.5 12 21 12 21 Z"
-                      fill="var(--accent)"
-                      stroke="var(--accent)"
-                      strokeWidth="1.4"
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              <div
-                onClick={() => router.push(`/product/${p.id}`)}
-                className="product-title"
-                style={{ fontSize: 15, marginBottom: 4, cursor: "pointer" }}
-              >
-                {p.title_ru}
-              </div>
-
-              <span style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                {isDiscountActive(p) && (
-                  <span style={{ textDecoration: "line-through", color: "var(--text-muted)", fontSize: 12 }}>
-                    {Math.round(p.original_price ?? (p.price / (1 - (p.discount_percent as number) / 100)))} смн
-                  </span>
-                )}
-                <span className="price" style={{ color: "#4CAF50" }}>{p.price} смн</span>
-              </span>
-            </div>
-          ))}
+      <div className="fv">
+        <div className="sec-head fv-head">
+          <span className="coll-rule" />
+          <div className="ck-eyebrow">{tr("Ваш список", "Рӯйхати шумо")}</div>
+          <h1 className="sec-title fv-title">{tr("Избранное", "Интихобҳо")}</h1>
+          {!loading && favorites.length > 0 && (
+            <span className="sec-count">
+              {favorites.length} {tr("товаров", "мол")}
+            </span>
+          )}
         </div>
+
+        {loading ? (
+          <div className="pc-grid">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="pc"><div className="pc-media fv-skeleton" /></div>
+            ))}
+          </div>
+        ) : favorites.length === 0 ? (
+          <div className="ck-empty">
+            <p>{tr("В избранном пока ничего нет", "Айни ҳол интихоб нест")}</p>
+            <p className="fv-empty-note">{tr("Нажмите ♡ на карточке товара, чтобы сохранить его здесь.", "Барои нигоҳ доштан ♡-ро пахш кунед.")}</p>
+            <button className="ck-btn ck-btn--outline" onClick={() => router.push("/")}>{tr("Перейти в каталог", "Ба каталог")}</button>
+          </div>
+        ) : (
+          <div className="pc-grid">
+            {favorites.map(({ product: p }) => {
+              const photo = p.images.find((img) => !isVid(img)) || p.images[0];
+              const out = p.variants.every((v) => v.stock <= 0);
+              const badge = out
+                ? tr("Нет в наличии", "Мавҷуд нест")
+                : isDiscountActive(p) && p.discount_percent
+                ? `−${p.discount_percent}%`
+                : p.is_new
+                ? tr("Новинка", "Нав")
+                : p.is_featured
+                ? tr("Хорошая цена", "Нархи хуб")
+                : null;
+              const title = lang === "tj" && p.title_tj ? p.title_tj : p.title_ru;
+              return (
+                <div key={p.id} className="pc">
+                  <div className="pc-media" onClick={() => router.push(`/product/${p.id}`)}>
+                    {photo && (
+                      <div className="pc-slides">
+                        <div className="pc-slide is-active">
+                          {isVid(photo) ? <video src={photo.url} muted loop autoPlay playsInline /> : <img src={photo.url} alt={title} loading="lazy" />}
+                        </div>
+                      </div>
+                    )}
+                    {badge && <span className="pc-badge">{badge}</span>}
+                  </div>
+
+                  <div className="pc-actions">
+                    <button className="pc-icon is-on" aria-label={tr("Убрать из избранного", "Аз интихобҳо нест кардан")} title={tr("Убрать из избранного", "Аз интихобҳо нест кардан")} onClick={() => removeFavorite(p.id)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M12 20.5 C12 20.5 3.5 14.6 3.5 8.9 C3.5 6 5.7 4 8.3 4 C10 4 11.3 4.9 12 6 C12.7 4.9 14 4 15.7 4 C18.3 4 20.5 6 20.5 8.9 C20.5 14.6 12 20.5 12 20.5 Z" strokeLinejoin="round" /></svg>
+                    </button>
+                    <button className="pc-icon" disabled={out} aria-label={tr("Выбрать размер", "Андоза интихоб кунед")} title={tr("Выбрать размер", "Андоза интихоб кунед")} onClick={() => router.push(`/product/${p.id}`)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M5 8.5 H19 L18 21 H6 Z" strokeLinejoin="round" /><path d="M8.5 8.5 V7 C8.5 4.8 10 3.3 12 3.3 C14 3.3 15.5 4.8 15.5 7 V8.5" /></svg>
+                    </button>
+                  </div>
+
+                  <div className="pc-info" onClick={() => router.push(`/product/${p.id}`)}>
+                    {p.catalog_number && <div className="pc-eyebrow">{tr("Арт.", "Арт.")} {p.catalog_number}</div>}
+                    <div className="pc-title" title={title}>{title}</div>
+                    <div className="pc-price">
+                      {p.price} смн
+                      {isDiscountActive(p) && <s>{Math.round(p.original_price ?? (p.price / (1 - (p.discount_percent as number) / 100)))} смн</s>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
