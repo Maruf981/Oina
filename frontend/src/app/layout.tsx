@@ -13,6 +13,7 @@ import { CityProvider } from "./city-context";
 import { ThemeSync } from "./theme-sync";
 import { BottomNav } from "./bottom-nav";
 import { SupportWidget } from "./support-widget";
+import { BagDrawerHost } from "./bag-drawer";
 import { SiteFooter } from "./site-footer";
 import Script from "next/script";
 
@@ -69,6 +70,7 @@ export default function RootLayout({
                 <SiteFooter />
                 <BottomNav />
                 <SupportWidget />
+                <BagDrawerHost />
                 </CategoriesProvider>
               </CartProvider>
             </AuthProvider>

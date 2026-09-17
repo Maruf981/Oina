@@ -158,6 +158,10 @@ export function BottomNav() {
                   router.push("/?login=1");
                   return;
                 }
+                if (tab.key === "cart") {
+                  window.dispatchEvent(new CustomEvent("oina:open-bag", { detail: "cart" }));
+                  return;
+                }
                 router.push(tab.path);
               }}
               style={{

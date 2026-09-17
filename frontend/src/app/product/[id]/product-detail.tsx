@@ -601,7 +601,7 @@ export default function ProductDetailClient() {
               onClick={async () => {
                 if (!canAddToCart) { handleAddToCart(); return; }
                 await handleAddToCart();
-                router.push("/cart");
+                window.dispatchEvent(new CustomEvent("oina:open-bag", { detail: "form" }));
               }}
             >
               {tr("Оформить заказ", "Фармоиш додан")}

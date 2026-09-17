@@ -46,8 +46,6 @@ export function SiteHeader() {
   const [mobileExpanded, setMobileExpanded] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [bagOpen, setBagOpen] = useState(false);
-  const [bagImages, setBagImages] = useState<Record<number, string>>({});
 
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -99,32 +97,8 @@ export function SiteHeader() {
   useEffect(() => {
     setMenuOpen(false);
     setSearchOpen(false);
-    setBagOpen(false);
   }, [pathname, searchParams]);
 
-  // корзина-панель: открытие по событию и подгрузка фото
-  useEffect(() => {
-    const open = () => setBagOpen(true);
-    window.addEventListener("oina:open-bag", open);
-    return () => window.removeEventListener("oina:open-bag", open);
-  }, []);
-
-  useEffect(() => {
-    if (!bagOpen) return;
-    const ids = Array.from(new Set(cart.items.map((i) => i.productId)));
-    if (ids.length === 0) return;
-    fetch(`${API_URL}/products/?ids=${ids.join(",")}`)
-      .then((res) => res.json())
-      .then((data: { id: number; images?: { url: string; media_type?: string }[] }[]) => {
-        const map: Record<number, string> = {};
-        data.forEach((pr) => {
-          const thumb = pr.images?.find((img) => img.media_type !== "video");
-          if (thumb) map[pr.id] = thumb.url;
-        });
-        setBagImages(map);
-      })
-      .catch(() => {});
-  }, [bagOpen, cart.items]);
 
   // счётчик избранного: гость — localStorage, вошедший — API
   useEffect(() => {
@@ -160,15 +134,15 @@ export function SiteHeader() {
   }, []);
 
   useEffect(() => {
-    const lock = searchOpen || menuOpen || filtersOpen || bagOpen;
+    const lock = searchOpen || menuOpen || filtersOpen;
     document.body.style.overflow = lock ? "hidden" : "";
     if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50);
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setSearchOpen(false); setMenuOpen(false); setFiltersOpen(false); setBagOpen(false); }
+      if (e.key === "Escape") { setSearchOpen(false); setMenuOpen(false); setFiltersOpen(false); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [searchOpen, menuOpen, filtersOpen, bagOpen]);
+  }, [searchOpen, menuOpen, filtersOpen]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -272,7 +246,7 @@ export function SiteHeader() {
               </span>
             </span>
 
-            <span className="oh-action" onClick={() => setBagOpen(true)} title={tr("Корзина", "Сабад")}>
+            <span className="oh-action" onClick={() => window.dispatchEvent(new CustomEvent("oina:open-bag", { detail: "cart" }))} title={tr("Корзина", "Сабад")}>
               <span className="oh-txt">{tr("Корзина", "Сабад")} <span className="oh-count">({cart.totalCount})</span></span>
               <span className="oh-ico">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M5 8.5 H19 L18 21 H6 Z" strokeLinejoin="round" /><path d="M8.5 8.5 V7 C8.5 4.8 10 3.3 12 3.3 C14 3.3 15.5 4.8 15.5 7 V8.5" /></svg>
@@ -381,71 +355,6 @@ export function SiteHeader() {
               <label><input type="checkbox" checked={filterOnSale} onChange={(e) => goToCatalog({ on_sale_only: e.target.checked ? "true" : null })} />{tr("Только со скидкой", "Танҳо бо тахфиф")}</label>
               <span className="oh-underline" onClick={resetFilters}>{tr("Сбросить", "Тоза кардан")}</span>
             </div>
-          </div>
-        </div>
-      )}
-
-      {bagOpen && (
-        <div className="oh-drawer-backdrop" onClick={() => setBagOpen(false)}>
-          <div className="oh-drawer oh-drawer--right bag" onClick={(e) => e.stopPropagation()}>
-            <div className="bag-head">
-              <span className="oh-label">{tr("Ваша корзина", "Сабади шумо")} <span className="bag-count">({cart.totalCount})</span></span>
-              <span className="oh-action" onClick={() => setBagOpen(false)}>{tr("Закрыть", "Пӯшидан")} ×</span>
-            </div>
-            <div className="bag-note">{tr("Доставка за 24 часа по Душанбе", "Расонидан дар 24 соат дар Душанбе")}</div>
-
-            <div className="bag-list">
-              {cart.items.length === 0 ? (
-                <div className="bag-empty">
-                  <p>{tr("В корзине пока пусто", "Сабад холӣ аст")}</p>
-                  <span className="bag-link" onClick={() => { setBagOpen(false); router.push("/"); }}>{tr("Перейти в каталог", "Ба каталог")}</span>
-                </div>
-              ) : (
-                cart.items.map((item) => (
-                  <div key={item.variantId} className="bag-item">
-                    <div className="bag-img" onClick={() => { setBagOpen(false); router.push(`/product/${item.productId}`); }}>
-                      {bagImages[item.productId] && <img src={bagImages[item.productId]} alt={item.title} />}
-                    </div>
-                    <div className="bag-info">
-                      <div className="bag-row">
-                        <div>
-                          <div className="bag-meta">{item.size} · {item.color}</div>
-                          <div className="bag-title" onClick={() => { setBagOpen(false); router.push(`/product/${item.productId}`); }}>{item.title}</div>
-                        </div>
-                        <div className="bag-price">{item.price * item.qty} смн</div>
-                      </div>
-                      <div className="bag-row bag-row--controls">
-                        <div className="bag-qty">
-                          <button onClick={() => cart.updateQty(item.variantId, item.qty - 1)}>−</button>
-                          <span>{item.qty}</span>
-                          <button onClick={() => cart.updateQty(item.variantId, item.qty + 1)}>+</button>
-                        </div>
-                        <span className="bag-remove" onClick={() => cart.removeItem(item.variantId)}>{tr("Удалить", "Нест кардан")}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {cart.items.length > 0 && (
-              <div className="bag-foot">
-                <div className="bag-total">
-                  <div>
-                    <div className="bag-total-title">{tr("Итого", "Ҳамагӣ")}</div>
-                    <div className="bag-total-note">{tr("Стоимость доставки уточнится при оформлении", "Нархи расонидан ҳангоми фармоиш муайян мешавад")}</div>
-                  </div>
-                  <div className="bag-total-sum">{cart.totalPrice} смн</div>
-                </div>
-                <button className="bag-checkout" onClick={() => { setBagOpen(false); router.push("/cart?checkout=1"); }}>
-                  {tr("Оформить заказ", "Фармоиш додан")}
-                </button>
-                <div className="bag-links">
-                  <span className="bag-link" onClick={() => { setBagOpen(false); router.push("/cart"); }}>{tr("Вся корзина", "Тамоми сабад")}</span>
-                  <span className="bag-link bag-link--muted" onClick={() => cart.clearCart()}>{tr("Очистить корзину", "Холӣ кардан")}</span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
