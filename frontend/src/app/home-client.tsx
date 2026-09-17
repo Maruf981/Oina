@@ -775,6 +775,7 @@ function HomeInner() {
                 <span className="pc-stars-row pc-stars-base">{[0, 1, 2, 3, 4].map((i) => <span key={i}><svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 6.1 6.7.7-5 4.5 1.4 6.6L12 17.3l-5.9 3.4 1.4-6.6-5-4.5 6.7-.7z" /></svg></span>)}</span>
                 <span className="pc-stars-row pc-stars-fill" style={{ width: `${(Math.max(0, Math.min(5, p.avg_rating)) / 5) * 100}%` }}>{[0, 1, 2, 3, 4].map((i) => <span key={i}><svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 6.1 6.7.7-5 4.5 1.4 6.6L12 17.3l-5.9 3.4 1.4-6.6-5-4.5 6.7-.7z" /></svg></span>)}</span>
               </span>
+              <span className="pc-rating-num">{p.avg_rating.toFixed(1)} <span className="pc-rating-count">({p.review_count})</span></span>
             </span>
           ) : null}
           {quickOpen && (

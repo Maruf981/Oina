@@ -193,3 +193,20 @@
 .pc-stars-fill svg path { fill: currentColor; stroke: none; }
 .rec-item .pc-rating { padding: .25rem .35rem; }
 .rec-item .pc-stars-row > span, .rec-item .pc-stars-row svg { width: 7px; height: 7px; }
+
+/* --- рейтинг: без фона, с отступом, с цифрами --- */
+.pc-rating {
+  top: .45rem; right: .5rem; padding: 0;
+  background: none !important;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  display: inline-flex; align-items: center; gap: .3rem; line-height: 1;
+  color: rgba(30, 27, 24, .65);
+}
+.pc:hover .pc-rating { color: #1e1b18; }
+.pc-rating-num {
+  font-family: var(--font-label); font-size: .625rem; font-weight: 500;
+  letter-spacing: .04em;
+}
+.pc-rating-count { opacity: .7; }
+.rec-item .pc-rating { top: .3rem; right: .3rem; padding: 0; gap: .2rem; }
+.rec-item .pc-rating-num { font-size: .5rem; }
