@@ -74,31 +74,6 @@
   margin: 0;
 }
 
-.hero-cats {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 3rem;
-}
-.hero-cat {
-  font-family: var(--font-label);
-  font-size: .6875rem;
-  font-weight: 500;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  padding: 1.15rem 2rem;
-  border: 1px solid rgba(255,255,255,.85);
-  color: #fff;
-  cursor: pointer;
-  transition: background .3s ease, color .3s ease;
-}
-.hero-cat:hover {
-  background: #F6F2EC;
-  border-color: #F6F2EC;
-  color: #1e1b18;
-}
-
 @media (max-width: 900px) {
   .hero-title { font-size: 3.75rem; }
 }
@@ -107,4 +82,68 @@
   .hero-eyebrow { font-size: .625rem; margin-bottom: 1.1rem; }
   .hero-cats { gap: .5rem; margin-top: 2rem; }
   .hero-cat { padding: .85rem 1.1rem; font-size: .625rem; letter-spacing: .14em; }
+}
+
+/* кнопка на hero — как DISCOVER THE SEASON */
+.hero-btn {
+  margin-top: 3rem;
+  padding: 1.2rem 2.6rem;
+  background: #F6F2EC;
+  color: #1e1b18;
+  border: 1px solid #F6F2EC;
+  font-family: var(--font-label);
+  font-size: .6875rem;
+  font-weight: 500;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background .3s ease, color .3s ease;
+}
+.hero-btn:hover { background: transparent; color: #fff; }
+
+/* ===== блок категорий под hero ===== */
+.coll {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg);
+  color: var(--text);
+  scroll-margin-top: var(--header-h, 84px);
+  margin-bottom: 2rem;
+  animation: collIn .5s ease;
+}
+.coll-head { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 3.5rem 2rem 2.5rem; }
+.coll-rule { width: 2.5rem; height: 1px; background: var(--line); margin-bottom: 1.25rem; }
+.coll-eyebrow {
+  font-family: var(--font-label); font-size: .625rem; font-weight: 500;
+  letter-spacing: var(--tracking-label, .18em); text-transform: uppercase; color: var(--text-muted);
+}
+.coll-title { font-family: var(--font-display); font-weight: 300; font-size: 3.5rem; line-height: 1.1; margin: .75rem 0 0; }
+.coll-sub { margin-top: .6rem; font-size: .8125rem; color: var(--text-muted); }
+.coll-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 2.25rem;
+  padding: 1.1rem 3.5rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.coll-bar--sub { border-top: 0; padding-top: .9rem; padding-bottom: .9rem; }
+.coll-item {
+  font-family: var(--font-label); font-size: .6875rem; font-weight: 500;
+  letter-spacing: var(--tracking-label, .18em); text-transform: uppercase;
+  color: var(--text-muted); cursor: pointer; position: relative; padding: 4px 0;
+}
+.coll-bar--sub .coll-item { font-size: .625rem; }
+.coll-item:hover, .coll-item.is-active { color: var(--text); }
+.coll-item.is-active::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor; }
+@keyframes collIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%); } }
+
+@media (max-width: 900px) {
+  .coll-bar { padding-left: 1rem; padding-right: 1rem; gap: .6rem 1.5rem; }
+  .coll-title { font-size: 2.5rem; }
+}
+@media (max-width: 640px) {
+  .coll-bar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .coll-bar::-webkit-scrollbar { display: none; }
+  .coll-item { white-space: nowrap; }
 }

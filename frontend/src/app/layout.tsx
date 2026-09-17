@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { Cormorant_Garamond, Jost } from "next/font/google";
+
+const fontDisplay = Cormorant_Garamond({ subsets: ["latin", "cyrillic", "cyrillic-ext"], weight: ["300", "400", "500"], style: ["normal", "italic"], variable: "--font-cormorant", display: "swap" });
+const fontBody = Jost({ subsets: ["latin", "cyrillic"], weight: ["300", "400", "500"], variable: "--font-jost", display: "swap" });
 import { CartProvider } from "./cart-context";
 import { CategoriesProvider } from "./categories-context";
 import { AuthProvider } from "./auth-context";
@@ -49,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" suppressHydrationWarning>
+    <html lang="ru" suppressHydrationWarning className={`${fontDisplay.variable} ${fontBody.variable}`}>
       <head>
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
       </head>

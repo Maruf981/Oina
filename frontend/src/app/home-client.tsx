@@ -735,7 +735,8 @@ function HomeInner() {
 
 
 
-      <HeroSlider banners={banners} router={router} />
+      <HeroSlider banners={banners} />
+      <CollectionBar selectedCategoryId={selectedCategoryId} router={router} />
 
       {recommendedProducts.length > 0 && (
         <div className="recommended-wrapper" style={{ padding: "24px 40px" }}>
@@ -1602,8 +1603,7 @@ export default function HomeClient() {
   );
 }
 
-function HeroSlider({ banners, router }: { banners: Banner[]; router: any }) {
-  const { categories } = useCategories();
+function HeroSlider({ banners }: { banners: Banner[] }) {
   const { lang } = useLang();
   const [index, setIndex] = useState(0);
   const slides = banners.filter((b) => b.image_url);
@@ -1618,7 +1618,6 @@ function HeroSlider({ banners, router }: { banners: Banner[]; router: any }) {
 
   const current = index % slides.length;
   const isVideo = (url: string) => /\/video\/upload\/|\.(mp4|webm|mov)(\?|$)/i.test(url);
-  const parents = categories.filter((c) => !c.parent_id);
 
   return (
     <section className="hero-full">
@@ -1642,17 +1641,72 @@ function HeroSlider({ banners, router }: { banners: Banner[]; router: any }) {
             </div>
           ))}
         </div>
+        <button className="hero-btn" onClick={() => window.dispatchEvent(new Event("oina:open-categories"))}>
+          {lang === "ru" ? "Категории" : "Категорияҳо"}
+        </button>
+      </div>
+    </section>
+  );
+}
 
-        {parents.length > 0 && (
-          <nav className="hero-cats">
-            {parents.map((p) => (
-              <span key={p.id} className="hero-cat" onClick={() => router.push(`/?category_id=${p.id}`)}>
-                {lang === "tj" && p.name_tj ? p.name_tj : p.name}
-              </span>
-            ))}
-          </nav>
+function CollectionBar({ selectedCategoryId, router }: { selectedCategoryId: number | null; router: any }) {
+  const { categories } = useCategories();
+  const { lang } = useLang();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const onOpen = () => {
+      setOpen(true);
+      setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    };
+    window.addEventListener("oina:open-categories", onOpen);
+    return () => window.removeEventListener("oina:open-categories", onOpen);
+  }, []);
+
+  if (!open && !selectedCategoryId) return null;
+
+  const name = (c: { name: string; name_tj?: string | null }) => (lang === "tj" && c.name_tj ? c.name_tj : c.name);
+  const parents = categories.filter((c) => !c.parent_id);
+  const selected = categories.find((c) => c.id === selectedCategoryId) || null;
+  const activeParentId = selected ? (selected.parent_id ?? selected.id) : null;
+  const activeParent = categories.find((c) => c.id === activeParentId) || null;
+  const children = activeParentId ? categories.filter((c) => c.parent_id === activeParentId) : [];
+  const go = (id: number | null) => router.push(id ? `/?category_id=${id}` : "/", { scroll: false });
+
+  return (
+    <section ref={ref} className="coll">
+      <div className="coll-head">
+        <span className="coll-rule" />
+        <div className="coll-eyebrow">{lang === "ru" ? "Коллекция" : "Коллексия"}</div>
+        <h2 className="coll-title">
+          {selected ? name(selected) : lang === "ru" ? "Все товары" : "Ҳамаи молҳо"}
+        </h2>
+        {activeParent && selected && selected.id !== activeParent.id && (
+          <div className="coll-sub">{name(activeParent)}</div>
         )}
       </div>
+
+      <nav className="coll-bar">
+        <span className={`coll-item${!selectedCategoryId ? " is-active" : ""}`} onClick={() => go(null)}>
+          {lang === "ru" ? "Все" : "Ҳама"}
+        </span>
+        {parents.map((p) => (
+          <span key={p.id} className={`coll-item${activeParentId === p.id ? " is-active" : ""}`} onClick={() => go(p.id)}>
+            {name(p)}
+          </span>
+        ))}
+      </nav>
+
+      {children.length > 0 && (
+        <nav className="coll-bar coll-bar--sub">
+          {children.map((c) => (
+            <span key={c.id} className={`coll-item${selectedCategoryId === c.id ? " is-active" : ""}`} onClick={() => go(c.id)}>
+              {name(c)}
+            </span>
+          ))}
+        </nav>
+      )}
     </section>
   );
 }
