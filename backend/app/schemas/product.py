@@ -12,6 +12,7 @@ class CategoryBrief(BaseModel):
     id: int
     name: str
     slug: str
+    is_archived: bool = False
 
     class Config:
         from_attributes = True

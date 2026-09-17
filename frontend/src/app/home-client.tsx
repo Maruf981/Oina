@@ -744,7 +744,7 @@ function HomeInner() {
       ? (lang === "ru" ? "Хорошая цена" : "Нархи хуб")
       : null;
     const cat = p.category ? categories.find((c) => c.id === p.category!.id) : null;
-    const catName = cat ? (lang === "tj" && cat.name_tj ? cat.name_tj : cat.name) : p.category?.name || "";
+    const catName = cat ? (lang === "tj" && cat.name_tj ? cat.name_tj : cat.name) : "";
     const eyebrow = p.is_brand ? (catName ? `Бренд · ${catName}` : "Бренд") : catName;
     const quickKey = `${ctx}-${p.id}`;
     const quickOpen = quickAddProductId === p.id && quickAddCtx === ctx;

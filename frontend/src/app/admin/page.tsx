@@ -605,7 +605,7 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
           />
         )}
       </div>
-      <div className="product-title" style={{ fontSize: 15, marginBottom: 4 }}>{p.title_ru}</div>
+      <div className="product-title" style={{ fontSize: 15, marginBottom: 4 }}>{p.title_ru}{p.category?.is_archived && <span style={{ marginLeft: 8, fontSize: 11, color: "#E24B4A" }}>{t.category}: {t.categoryArchivedLabel}</span>}</div>
       <div className="catalog-label" style={{ border: "none", padding: 0, display: "flex", justifyContent: "space-between", marginBottom: showCheckbox ? 10 : 0 }}>
         <span>{t.catalogNumber} {p.catalog_number}</span>
         <span className="price">{p.price} смн</span>
@@ -703,7 +703,7 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
                     backgroundPosition: "center",
                   }}
                 />
-                <div className="product-title" style={{ fontSize: 15, marginBottom: 4 }}>{p.title_ru}</div>
+                <div className="product-title" style={{ fontSize: 15, marginBottom: 4 }}>{p.title_ru}{p.category?.is_archived && <span style={{ marginLeft: 8, fontSize: 11, color: "#E24B4A" }}>{t.category}: {t.categoryArchivedLabel}</span>}</div>
                 <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 10 }}>
                   {t.catalogNumber} {p.catalog_number}
                 </div>

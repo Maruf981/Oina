@@ -24,7 +24,7 @@ def get_all(
     ids: list[int] | None = None,
     limit: int | None = None,
 ) -> list[Product]:
-    query = db.query(Product).filter(Product.is_active == True, Product.is_archived == False)
+    query = db.query(Product).filter(Product.is_active == True, Product.is_archived == False, ~Product.category.has(is_archived=True))
     if ids is not None:
         query = query.filter(Product.id.in_(ids))
     if recommended_only:
@@ -130,7 +130,7 @@ def get_filter_options(db: Session, category_id: int | None = None) -> dict:
     query = (
         db.query(ProductVariant.size, ProductVariant.color)
         .join(Product, Product.id == ProductVariant.product_id)
-        .filter(Product.is_active == True, Product.is_archived == False)
+        .filter(Product.is_active == True, Product.is_archived == False, ~Product.category.has(is_archived=True))
         .distinct()
     )
     if category_id is not None:
