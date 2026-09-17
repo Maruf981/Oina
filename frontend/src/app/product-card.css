@@ -143,3 +143,32 @@
   .rec-arrow { display: none; }
   .sec-head { padding: 2.5rem 1rem 1.5rem; }
 }
+
+/* --- лента рекомендаций: карточки на 50% меньше --- */
+.rec-scroll { gap: 1rem; }
+.rec-item { flex-basis: calc((100% - 7rem) / 8); }
+.rec-item .pc-title { font-size: 1rem; margin-top: .25rem; }
+.rec-item .pc-eyebrow { font-size: .5rem; letter-spacing: .14em; }
+.rec-item .pc-price { font-size: .6875rem; margin-top: .25rem; }
+.rec-item .pc-price s { margin-left: .35rem; }
+.rec-item .pc-actions { padding-top: .45rem; }
+.rec-item .pc-icon svg { width: 16px; height: 16px; }
+.rec-item .pc-badge { font-size: .5rem; padding: .25rem .4rem; letter-spacing: .12em; }
+.rec-item .pc-info { padding-top: .35rem; }
+.rec-item .pc-quick { left: .3rem; right: .3rem; bottom: .3rem; padding: .5rem; }
+.rec-item .pc-size { min-width: 1.6rem; padding: .2rem .3rem; font-size: .625rem; }
+.rec-item .pc-color { width: 1rem; height: 1rem; }
+.rec-arrow { top: 35%; width: 2rem; height: 2rem; }
+
+@media (max-width: 1100px) {
+  .rec-item { flex-basis: calc((100% - 5rem) / 6); }
+}
+@media (max-width: 900px) {
+  .rec-item { flex-basis: calc((100% - 4rem) / 5); }
+}
+@media (max-width: 640px) {
+  .rec-scroll { gap: .5rem; }
+  .rec-item { flex-basis: calc((100% - 1rem) / 3); }
+  .rec-item .pc-title { font-size: .875rem; }
+  .rec-item .pc-icon svg { width: 14px; height: 14px; }
+}
