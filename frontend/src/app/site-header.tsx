@@ -43,7 +43,6 @@ export function SiteHeader() {
 
   const [overHero, setOverHero] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [openMega, setOpenMega] = useState<number | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -97,7 +96,6 @@ export function SiteHeader() {
   useEffect(() => {
     setMenuOpen(false);
     setSearchOpen(false);
-    setOpenMega(null);
   }, [pathname, searchParams]);
 
   useEffect(() => {
@@ -189,20 +187,11 @@ export function SiteHeader() {
 
   const parents = categories.filter((c) => !c.parent_id);
   const catName = (c: { name: string; name_tj?: string | null }) => (lang === "tj" && c.name_tj ? c.name_tj : c.name);
-  const clear = overHero && !searchOpen && openMega === null && !menuOpen;
+  const clear = overHero && !searchOpen && !menuOpen;
 
   return (
     <>
       <header ref={headerRef} className={`oh${clear ? " oh--clear" : ""}`}>
-        <div className="oh-top">
-          <span className="oh-top-side" />
-          <span className="oh-top-center">
-            {tr("Бесплатная доставка по Душанбе за 24 часа", "Расонидани ройгон дар Душанбе дар 24 соат")}
-          </span>
-          <span className="oh-top-side oh-top-right" onClick={() => router.push("/delivery")}>
-            {tr("Доставка и возврат", "Расонидан ва баргардонӣ")}
-          </span>
-        </div>
 
         <div className="oh-main">
           <button className="oh-burger" onClick={() => setMenuOpen(true)} aria-label={tr("Меню", "Меню")}>
@@ -213,40 +202,6 @@ export function SiteHeader() {
             <span className={`oh-link${pathname === "/" && !selectedCategoryId ? " is-active" : ""}`} onClick={() => router.push("/")}>
               {tr("Главная", "Асосӣ")}
             </span>
-            {parents.map((parent) => {
-              const children = categories.filter((c) => c.parent_id === parent.id);
-              return (
-                <div
-                  key={parent.id}
-                  className="oh-nav-item"
-                  onMouseEnter={() => setOpenMega(parent.id)}
-                  onMouseLeave={() => setOpenMega(null)}
-                >
-                  <span
-                    className={`oh-link${selectedCategoryId === parent.id ? " is-active" : ""}`}
-                    onClick={() => { goToCatalog({ category_id: String(parent.id) }); setOpenMega(null); }}
-                  >
-                    {catName(parent)}
-                  </span>
-                  {openMega === parent.id && children.length > 0 && (
-                    <div className="oh-mega">
-                      <span className="oh-mega-all" onClick={() => { goToCatalog({ category_id: String(parent.id) }); setOpenMega(null); }}>
-                        {tr("Все товары", "Ҳамаи молҳо")}
-                      </span>
-                      {children.map((child) => (
-                        <span
-                          key={child.id}
-                          className={`oh-mega-link${selectedCategoryId === child.id ? " is-active" : ""}`}
-                          onClick={() => { goToCatalog({ category_id: String(child.id) }); setOpenMega(null); }}
-                        >
-                          {catName(child)}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </nav>
 
           <img className="oh-logo" src="/logo.png" alt="Oina.tj" onClick={() => router.push("/")} />
