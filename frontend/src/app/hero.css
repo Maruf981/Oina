@@ -1,0 +1,110 @@
+/* ===== Hero: полноэкранные слайды под прозрачным хедером ===== */
+.hero-full {
+  position: relative;
+  width: 100vw;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100vh;
+  height: 100svh;
+  min-height: 34rem;
+  margin-top: calc(-1 * var(--header-h, 84px));
+  overflow: hidden;
+  background: #1e1b18;
+  color: #fff;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+.hero-slide.is-active { opacity: 1; }
+.hero-slide img,
+.hero-slide video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hero-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(20,18,16,.35) 0%, rgba(20,18,16,.15) 35%, rgba(20,18,16,.35) 100%);
+  pointer-events: none;
+}
+
+.hero-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--header-h, 84px) 2rem 2rem;
+}
+
+.hero-texts { display: grid; }
+.hero-text {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 1.2s ease, transform 1.2s ease;
+}
+.hero-text.is-active { opacity: 1; transform: none; }
+
+.hero-eyebrow {
+  font-family: var(--font-label);
+  font-size: .6875rem;
+  font-weight: 500;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  margin-bottom: 1.75rem;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 6rem;
+  line-height: 1.02;
+  letter-spacing: -.01em;
+  color: #fff;
+  margin: 0;
+}
+
+.hero-cats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 3rem;
+}
+.hero-cat {
+  font-family: var(--font-label);
+  font-size: .6875rem;
+  font-weight: 500;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  padding: 1.15rem 2rem;
+  border: 1px solid rgba(255,255,255,.85);
+  color: #fff;
+  cursor: pointer;
+  transition: background .3s ease, color .3s ease;
+}
+.hero-cat:hover {
+  background: #F6F2EC;
+  border-color: #F6F2EC;
+  color: #1e1b18;
+}
+
+@media (max-width: 900px) {
+  .hero-title { font-size: 3.75rem; }
+}
+@media (max-width: 640px) {
+  .hero-title { font-size: 2.75rem; }
+  .hero-eyebrow { font-size: .625rem; margin-bottom: 1.1rem; }
+  .hero-cats { gap: .5rem; margin-top: 2rem; }
+  .hero-cat { padding: .85rem 1.1rem; font-size: .625rem; letter-spacing: .14em; }
+}

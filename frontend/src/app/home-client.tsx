@@ -7,6 +7,7 @@ import { translations, Lang } from "./translations";
 import { useCart } from "./cart-context";
 import { useCategories } from "./categories-context";
 import { SiteHeader } from "./site-header";
+import "./hero.css";
 import { CATEGORY_ICONS } from "./category-icons";
 import { useAuth } from "./auth-context";
 import { useTheme } from "./theme-context";
@@ -734,7 +735,7 @@ function HomeInner() {
 
 
 
-      <BannerSlider banners={banners} router={router} />
+      <HeroSlider banners={banners} router={router} />
 
       {recommendedProducts.length > 0 && (
         <div className="recommended-wrapper" style={{ padding: "24px 40px" }}>
@@ -1601,100 +1602,57 @@ export default function HomeClient() {
   );
 }
 
-function BannerSlider({ banners, router }: { banners: Banner[]; router: any }) {
+function HeroSlider({ banners, router }: { banners: Banner[]; router: any }) {
+  const { categories } = useCategories();
+  const { lang } = useLang();
   const [index, setIndex] = useState(0);
-  const active = banners.filter((b) => b.image_url);
+  const slides = banners.filter((b) => b.image_url);
 
   useEffect(() => {
-    if (active.length <= 1) return;
-    const timer = setInterval(() => {
-      setIndex((i) => (i + 1) % active.length);
-    }, 5000);
+    if (slides.length <= 1) return;
+    const timer = setInterval(() => setIndex((i) => (i + 1) % slides.length), 10000);
     return () => clearInterval(timer);
-  }, [active.length]);
+  }, [slides.length]);
 
-  if (active.length === 0) return null;
+  if (slides.length === 0) return null;
 
-  const current = active[index % active.length];
+  const current = index % slides.length;
+  const isVideo = (url: string) => /\/video\/upload\/|\.(mp4|webm|mov)(\?|$)/i.test(url);
+  const parents = categories.filter((c) => !c.parent_id);
 
   return (
-    <div className="banner-wrapper" style={{ padding: "24px 40px 0" }}>
-    <div className="banner-slider" style={{ position: "relative", width: "100%", overflow: "hidden", borderRadius: 0 }}>
-      <img src={current.image_url || ""} alt="" aria-hidden="true" style={{ display: "block", width: "100%", height: "auto", visibility: "hidden" }} />
-      {active.map((b, i) => (
-        <div
-          key={b.id}
-          className="banner-slide-bg"
-          onClick={() => router.push(`/?category=${b.category_id}`)}
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: `url(${b.image_url})`,
-            backgroundSize: "contain", backgroundRepeat: "no-repeat",
-            backgroundPosition: "top center",
-            cursor: "pointer",
-            opacity: i === index % active.length ? 1 : 0,
-            pointerEvents: i === index % active.length ? "auto" : "none",
-            transition: "opacity 0.6s ease",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.05) 50%)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-end",
-              padding: "32px 40px",
-            }}
-          >
-            <h2 className="product-title" style={{ color: b.text_color || "#fff", fontSize: 32, margin: 0 }}>{b.title}</h2>
-            {b.subtitle && <p style={{ color: b.text_color || "#fff", opacity: 0.85, fontSize: 15, marginTop: 8 }}>{b.subtitle}</p>}
-          </div>
+    <section className="hero-full">
+      {slides.map((b, i) => (
+        <div key={b.id} className={`hero-slide${i === current ? " is-active" : ""}`} aria-hidden={i !== current}>
+          {isVideo(b.image_url!) ? (
+            <video src={b.image_url!} autoPlay muted loop playsInline preload="auto" />
+          ) : (
+            <img src={b.image_url!} alt="" />
+          )}
         </div>
       ))}
-      {active.length > 1 && (
-        <>
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              setIndex((i) => (i - 1 + active.length) % active.length);
-            }}
-            style={{ position: "absolute", top: "50%", left: 16, transform: "translateY(-50%)", fontSize: 64, color: "#fff", cursor: "pointer", userSelect: "none", zIndex: 2, textShadow: "0 1px 4px rgba(0,0,0,0.5)", lineHeight: 1 }}
-          >
-            ‹
-          </span>
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              setIndex((i) => (i + 1) % active.length);
-            }}
-            style={{ position: "absolute", top: "50%", right: 16, transform: "translateY(-50%)", fontSize: 64, color: "#fff", cursor: "pointer", userSelect: "none", zIndex: 2, textShadow: "0 1px 4px rgba(0,0,0,0.5)", lineHeight: 1 }}
-          >
-            ›
-          </span>
-        <div style={{ position: "absolute", bottom: 16, right: 40, display: "flex", gap: 8, zIndex: 2 }}>
-          {active.map((_, i) => (
-            <span
-              key={i}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIndex(i);
-              }}
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: i === index % active.length ? "#fff" : "rgba(255,255,255,0.4)",
-                cursor: "pointer",
-              }}
-            />
+      <div className="hero-shade" />
+
+      <div className="hero-content">
+        <div className="hero-texts">
+          {slides.map((b, i) => (
+            <div key={b.id} className={`hero-text${i === current ? " is-active" : ""}`}>
+              {b.subtitle && <div className="hero-eyebrow">{b.subtitle}</div>}
+              <h1 className="hero-title">{b.title}</h1>
+            </div>
           ))}
         </div>
-        </>
-      )}
-    </div>
-    </div>
+
+        {parents.length > 0 && (
+          <nav className="hero-cats">
+            {parents.map((p) => (
+              <span key={p.id} className="hero-cat" onClick={() => router.push(`/?category_id=${p.id}`)}>
+                {lang === "tj" && p.name_tj ? p.name_tj : p.name}
+              </span>
+            ))}
+          </nav>
+        )}
+      </div>
+    </section>
   );
 }
