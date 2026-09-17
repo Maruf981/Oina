@@ -42,14 +42,14 @@
 }
 
 [data-theme="dark"] {
-  --bg: #141210;
-  --surface: #1B1916;
-  --line: #2E2A25;
-  --text: #EFE9E0;
-  --text-muted: #948B80;
-  --accent: #EFE9E0;
-  --accent-hover: #C8BFB2;
-  --menu-panel-bg: #141210;
+  --bg: #8D8F8E;
+  --surface: #979998;
+  --line: #7A7C7B;
+  --text: #111111;
+  --text-muted: #3F4140;
+  --accent: #111111;
+  --accent-hover: #3A3A3A;
+  --menu-panel-bg: #8D8F8E;
 }
 
 body {
@@ -81,4 +81,15 @@ h1, h2, h3, .product-title {
   font-family: var(--font-display);
   font-weight: 400;
   letter-spacing: 0;
+}
+
+/* тёмная тема: зерно поверх всей страницы, как у EGO */
+html[data-theme="dark"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: .55;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27220%27 height=%27220%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.85%27 numOctaves=%273%27 stitchTiles=%27stitch%27/%3E%3CfeColorMatrix values=%270 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.18 0%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E");
 }
