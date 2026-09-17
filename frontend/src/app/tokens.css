@@ -42,14 +42,14 @@
 }
 
 [data-theme="dark"] {
-  --bg: #8D8F8E;
-  --surface: #979998;
-  --line: #A6A8A7;
+  --bg: #3A302A;
+  --surface: #43382F;
+  --line: #57493F;
   --text: #FFFFFF;
-  --text-muted: #E4E5E4;
+  --text-muted: #D4C8BB;
   --accent: #FFFFFF;
-  --accent-hover: #E0E0E0;
-  --menu-panel-bg: #8D8F8E;
+  --accent-hover: #E8DFD4;
+  --menu-panel-bg: #3A302A;
 }
 
 body {
