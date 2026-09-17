@@ -769,6 +769,14 @@ function HomeInner() {
         <div className="pc-media" onClick={() => router.push(`/product/${p.id}`)}>
           <CardMedia images={p.images} alt={localized(p.title_ru, p.title_tj)} />
           {badge && <span className="pc-badge">{badge}</span>}
+          {p.avg_rating && p.review_count > 0 ? (
+            <span className="pc-rating" title={`${p.avg_rating.toFixed(1)} / 5 · ${p.review_count}`}>
+              <span className="pc-stars">
+                <span className="pc-stars-row pc-stars-base">{[0, 1, 2, 3, 4].map((i) => <span key={i}><svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 6.1 6.7.7-5 4.5 1.4 6.6L12 17.3l-5.9 3.4 1.4-6.6-5-4.5 6.7-.7z" /></svg></span>)}</span>
+                <span className="pc-stars-row pc-stars-fill" style={{ width: `${(Math.max(0, Math.min(5, p.avg_rating)) / 5) * 100}%` }}>{[0, 1, 2, 3, 4].map((i) => <span key={i}><svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 6.1 6.7.7-5 4.5 1.4 6.6L12 17.3l-5.9 3.4 1.4-6.6-5-4.5 6.7-.7z" /></svg></span>)}</span>
+              </span>
+            </span>
+          ) : null}
           {quickOpen && (
             <div className="pc-quick" onClick={(e) => e.stopPropagation()}>
               {!quickAddSize ? (

@@ -172,3 +172,24 @@
   .rec-item .pc-title { font-size: .875rem; }
   .rec-item .pc-icon svg { width: 14px; height: 14px; }
 }
+
+/* --- рейтинг: правый верхний угол фото --- */
+.pc-rating {
+  position: absolute; top: 0; right: 0; z-index: 2;
+  padding: .4rem .5rem; line-height: 0;
+  color: rgba(30, 27, 24, .6);
+  background: rgba(255, 255, 255, .35);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  pointer-events: none;
+  transition: background .35s ease, color .35s ease;
+}
+.pc:hover .pc-rating { background: #1e1b18; color: #F6F2EC; }
+.pc-stars { position: relative; display: inline-block; }
+.pc-stars-row { display: flex; gap: 1px; }
+.pc-stars-row > span { display: block; flex-shrink: 0; width: 10px; height: 10px; }
+.pc-stars-row svg { width: 10px; height: 10px; display: block; }
+.pc-stars-base svg path { fill: none; stroke: currentColor; stroke-width: 1.6; }
+.pc-stars-fill { position: absolute; top: 0; left: 0; bottom: 0; overflow: hidden; }
+.pc-stars-fill svg path { fill: currentColor; stroke: none; }
+.rec-item .pc-rating { padding: .25rem .35rem; }
+.rec-item .pc-stars-row > span, .rec-item .pc-stars-row svg { width: 7px; height: 7px; }
