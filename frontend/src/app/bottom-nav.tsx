@@ -196,8 +196,11 @@ export function BottomNav() {
               <span
                 style={{
                   fontFamily: "var(--font-label)",
-                  fontSize: 10,
-                  letterSpacing: "0.02em",
+                  fontSize: 9.5,
+                  fontWeight: 500,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  lineHeight: 1,
                   color: active ? "#ffffff" : "rgba(255, 255, 255, 0.7)",
                 }}
               >
