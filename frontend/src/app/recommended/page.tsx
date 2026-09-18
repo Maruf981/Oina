@@ -5,7 +5,6 @@ import "../hero.css";
 import "../product-card.css";
 import "../cart/cart.css";
 import "../favorites/favorites.css";
-import "./recommended.css";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SiteHeader } from "../site-header";
@@ -30,7 +29,7 @@ type Product = {
   images: ProductImage[];
   variants: ProductVariant[];
 };
-type Kind = "out" | "sale" | "new" | "good";
+type Kind = "out" | "sale" | "brand" | "new" | "good";
 type Filter = "all" | Kind | "brand";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -46,6 +45,7 @@ function isDiscountActive(p: Product) {
 function getKind(p: Product): Kind | null {
   if (p.variants.every((v) => v.stock <= 0)) return "out";
   if (isDiscountActive(p) && p.discount_percent) return "sale";
+  if (p.is_brand) return "brand";
   if (p.is_new) return "new";
   if (p.is_featured) return "good";
   return null;
@@ -66,6 +66,7 @@ export default function RecommendedPage() {
     const k = getKind(p);
     if (k === "out") return tr("Нет в наличии", "Мавҷуд нест");
     if (k === "sale") return `−${p.discount_percent}%`;
+    if (k === "brand") return tr("Бренд", "Бренд");
     if (k === "new") return tr("Новинка", "Нав");
     if (k === "good") return tr("Хорошая цена", "Нархи хуб");
     return null;
@@ -101,7 +102,7 @@ export default function RecommendedPage() {
     <div data-theme={theme} className="fv-root">
       <SiteHeader />
       <div className="fv">
-        <div className="sec-head fv-head rc-head">
+        <div className="sec-head fv-head">
           <span className="coll-rule" />
           <div className="ck-eyebrow">{tr("Особые предложения", "Пешниҳодҳои махсус")}</div>
           <h1 className="sec-title fv-title">{tr("Рекомендации", "Тавсияҳо")}</h1>
@@ -110,14 +111,13 @@ export default function RecommendedPage() {
               {tr("Показано", "Нишон дода шуд")} {items.length} {tr("из", "аз")} {badged.length}
             </span>
           )}
-        </div>
-
-        <div className="rc-filter">
-          {tabs.map((t) => (
-            <button key={t.key} className={`rc-tab${filter === t.key ? " is-active" : ""}`} onClick={() => setFilter(t.key)}>
-              {t.label}
-            </button>
-          ))}
+          <nav className="sec-sort">
+            {tabs.map((t) => (
+              <span key={t.key} className={`coll-item${filter === t.key ? " is-active" : ""}`} onClick={() => setFilter(t.key)}>
+                {t.label}
+              </span>
+            ))}
+          </nav>
         </div>
 
         {loading ? (
