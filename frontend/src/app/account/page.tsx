@@ -86,6 +86,7 @@ export default function AccountPage() {
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [showAllOrders, setShowAllOrders] = useState(false);
 
 
   useEffect(() => {
@@ -294,7 +295,7 @@ export default function AccountPage() {
                 <button className="ck-btn ck-btn--outline" onClick={() => router.push("/")}>{tr("Перейти в каталог", "Ба каталог")}</button>
               </div>
             ) : (
-              orders.map((order) => (
+              <>{(showAllOrders ? orders : orders.slice(0, 2)).map((order) => (
                 <div key={order.id} className="ac-order">
                   <div className="ac-order-top">
                     <div>
@@ -323,7 +324,13 @@ export default function AccountPage() {
                     </div>
                   )}
                 </div>
-              ))
+              ))}
+              {orders.length > 2 && (
+                <button className="ck-btn ck-btn--outline" style={{ marginTop: 16, width: "100%" }} onClick={() => setShowAllOrders((v) => !v)}>
+                  {showAllOrders ? tr("Скрыть ▲", "Пӯшидан ▲") : tr(`Показать все заказы (${orders.length}) ▼`, `Ҳамаи фармоишҳо (${orders.length}) ▼`)}
+                </button>
+              )}
+              </>
             )}
           </div>
         )}
