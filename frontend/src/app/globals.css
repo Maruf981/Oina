@@ -5,8 +5,33 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+button, nav, img, svg, label, select, [role="button"],
+.pc-media, .pc-actions, .pc-quick, .pc-size, .pc-color, .pc-icon,
+.coll-item, .sec-link, .rec-arrow, .pc-info, .oh-action, .au-close {
   -webkit-user-select: none;
   user-select: none;
+}
+
+::selection {
+  background: var(--accent-gold);
+  color: var(--accent-btn-text);
+}
+
+html { touch-action: manipulation; }
+
+@media (hover: none), (pointer: coarse) {
+  * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  input, textarea, [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
 }
 
 input, textarea, [contenteditable="true"] {

@@ -939,6 +939,11 @@ function HomeInner() {
             {renderCard(p, "grid")}
             {idx === Math.min(24, products.length) - 1 && dualSlides.length > 0 && (
               <div style={{ gridColumn: "1 / -1" }}>
+                <div className="sec-head" style={{ paddingBottom: "1rem" }}>
+                  <span className="coll-rule" />
+                  <h2 className="sec-title">{lang === "ru" ? "Стиль в деталях" : "Услуб дар ҷузъиёт"}</h2>
+                  <span className="sec-link" onClick={() => document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{lang === "ru" ? "Смотреть коллекцию →" : "Дидани коллексия →"}</span>
+                </div>
                 <DualSlider slides={dualSlides} router={router} lang={lang} />
               </div>
             )}
