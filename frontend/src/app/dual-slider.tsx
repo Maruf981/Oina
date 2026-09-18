@@ -30,7 +30,6 @@ const imgOf = (s: DualSlide, side: Side) =>
 
 export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; router: any; lang: string }) {
   const items = slides.filter((s) => s.left_image_url || s.center_image_url || s.right_image_url);
-  const count = items.length;
   const fallback = lang === "ru" ? "Смотреть" : "Дидан";
 
   const [index, setIndex] = useState(0);
@@ -55,6 +54,14 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
   const touchRef = useRef<{ x: number; y: number } | null>(null);
   const prevSide = useRef<Side | null>(null);
   indexRef.current = index;
+
+  // Мобиле: каждое фото — отдельная квадратная страница свайпа
+  const pages = isMobile
+    ? items.flatMap((s) => SIDES.filter((side) => imgOf(s, side)).map((side) => ({ s, side })))
+    : [];
+  const count = isMobile ? pages.length : items.length;
+
+  useEffect(() => { setIndex(0); }, [isMobile]);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 760px)");
@@ -122,7 +129,7 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
 
   if (count === 0) return null;
 
-  const current = items[Math.min(index, count - 1)];
+  const current = isMobile ? pages[Math.min(index, count - 1)].s : items[Math.min(index, count - 1)];
   const pick = (ru?: string | null, tj?: string | null) => (lang === "ru" ? ru || tj : tj || ru) || null;
   const labels: Record<Side, string> = {
     left: pick(current.left_label_ru, current.left_label_tj) || current.button_text || fallback,
@@ -202,7 +209,7 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
       style={{
         position: "relative",
         width: "100%",
-        height: isMobile ? 640 : DESKTOP_H,
+        ...(isMobile ? { aspectRatio: "1 / 1" } : { height: DESKTOP_H }),
         overflow: "hidden",
         background: "var(--surface)",
         cursor: isMobile ? "auto" : "none",
@@ -220,7 +227,21 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
           transition: "transform 0.85s cubic-bezier(0.77,0,0.175,1)",
         }}
       >
-        {items.map((s, i) => (
+        {isMobile ? pages.map((p) => (
+          <div
+            key={`${p.s.id}-${p.side}`}
+            onClick={() => { if (p.s.category_id) router.push(`/?category=${p.s.category_id}`); }}
+            style={{
+              flex: "0 0 100%",
+              width: "100%",
+              height: "100%",
+              backgroundColor: "var(--header-bg)",
+              backgroundImage: `url(${imgOf(p.s, p.side)})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+        )) : items.map((s, i) => (
           <div
             key={s.id}
             onClick={() => { if (s.category_id) router.push(`/?category=${s.category_id}`); }}
@@ -266,7 +287,7 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
 
       {count > 1 && (
         <div style={{ position: "absolute", bottom: 16, right: isMobile ? 20 : 40, display: "flex", gap: 8, zIndex: 5 }}>
-          {items.map((_, i) => (
+          {Array.from({ length: count }).map((_, i) => (
             <span
               key={i}
               onClick={(e) => { e.stopPropagation(); goTo(i); }}

@@ -114,7 +114,7 @@ export function DualSlidesSection({ api, authFetch, categories }: any) {
   return (
     <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid var(--line)" }}>
       <h3 className="product-title" style={{ fontSize: 18, marginBottom: 6 }}>Двойные слайды</h3>
-      <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>Показываются на главной после первых 24 товаров. 3 фото, вертикальные 800×1200.</p>
+      <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>Показываются на главной после первых 24 товаров. 3 фото, квадрат 1200×1200.</p>
 
       {!creating ? (
         <button
