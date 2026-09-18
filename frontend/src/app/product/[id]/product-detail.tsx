@@ -395,7 +395,9 @@ export default function ProductDetailClient() {
     : stockForNote <= 5
     ? tr(`Осталось ${stockForNote} шт`, `${stockForNote} дона монд`)
     : tr("В наличии", "Мавҷуд ҳаст");
-  const orderedImages = product.images;
+  const orderedImages = selectedColor
+    ? [...product.images.filter((i) => i.color === selectedColor), ...product.images.filter((i) => i.color !== selectedColor)]
+    : product.images;
   const hasMaterial = !!(product.material_ru || product.season_ru || product.pattern_ru || product.country_of_origin_ru || product.care_instructions_ru);
   const specRows: { label: string; value: string }[] = [
     { label: tr("Материал", "Матоъ"), value: product.material_ru ? localized(product.material_ru, product.material_tj) : "" },
