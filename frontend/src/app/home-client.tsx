@@ -1,4 +1,5 @@
 "use client";
+import { cld } from "../lib/cld";
 import { DualSlider, type DualSlide } from "./dual-slider";
 
 import { Fragment, useEffect, useState, useRef, Suspense } from "react";
@@ -1108,7 +1109,7 @@ function HomeInner() {
             {homepageReviews.map((r) => (
               <div key={r.id} className="rv" onClick={() => router.push(`/product/${r.product_id}`)}>
                 <div className="rv-top">
-                  {r.product_image && <div className="rv-img" style={{ backgroundImage: `url(${r.product_image})` }} />}
+                  {r.product_image && <div className="rv-img" style={{ backgroundImage: `url(${cld(r.product_image, 300)})` }} />}
                   <div className="rv-meta">
                     <div className="rv-product">{localized(r.product_title_ru, r.product_title_tj)}</div>
                     <div className="rv-stars">
@@ -1162,7 +1163,7 @@ function CardMedia({ images, alt }: { images: { url: string; media_type?: string
           {img.media_type === "video" ? (
             <video src={img.url} muted loop playsInline autoPlay={i === active} />
           ) : (
-            <img src={img.url} alt={alt} loading={i === 0 ? "eager" : "lazy"} decoding="async" draggable={false} />
+            <img src={cld(img.url, 800)} alt={alt} loading={i === 0 ? "eager" : "lazy"} decoding="async" draggable={false} />
           )}
         </div>
       ))}
@@ -1268,7 +1269,7 @@ function HeroSlider({ banners }: { banners: Banner[] }) {
           {isVideo(b.image_url!) ? (
             <video src={b.image_url!} autoPlay muted loop playsInline preload="auto" />
           ) : (
-            <img src={b.image_url!} alt="" />
+            <img src={cld(b.image_url!, 2000)} alt="" />
           )}
         </div>
       ))}

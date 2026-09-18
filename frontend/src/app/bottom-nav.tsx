@@ -1,5 +1,6 @@
 "use client";
 
+import { cld } from "../lib/cld";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "./auth-context";
@@ -182,7 +183,7 @@ export function BottomNav() {
                       width: 21,
                       height: 21,
                       borderRadius: "50%",
-                      backgroundImage: `url(${auth.customer.avatar_url})`,
+                      backgroundImage: `url(${cld(auth.customer.avatar_url, 96)})`,
                       backgroundSize: "cover",
                       backgroundPosition: "center",
                       border: active ? "1.5px solid var(--accent)" : "1px solid var(--line)",

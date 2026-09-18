@@ -1,5 +1,6 @@
 "use client";
 
+import { cld } from "../../../lib/cld";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useCart } from "../../cart-context";
@@ -436,7 +437,7 @@ export default function ProductDetailClient() {
                         {isV(first) ? (
                           <video src={first.url} muted loop autoPlay playsInline />
                         ) : (
-                          <img src={first.url} alt={localized(p.title_ru, p.title_tj)} loading="lazy" />
+                          <img src={cld(first.url, 800)} alt={localized(p.title_ru, p.title_tj)} loading="lazy" />
                         )}
                       </div></div>
                     );
@@ -480,7 +481,7 @@ export default function ProductDetailClient() {
                     </button>
                   </>
                 ) : (
-                  <img src={img.url} alt={localized(product.title_ru, product.title_tj)} loading={idx < 2 ? "eager" : "lazy"} onClick={() => setLightbox(idx)} />
+                  <img src={cld(img.url, 1600)} alt={localized(product.title_ru, product.title_tj)} loading={idx < 2 ? "eager" : "lazy"} onClick={() => setLightbox(idx)} />
                 )}
               </div>
             ))}
@@ -500,7 +501,7 @@ export default function ProductDetailClient() {
               {isVid(orderedImages[lightbox]) ? (
                 <video className="pd-lb-media" src={orderedImages[lightbox].url} controls autoPlay playsInline onClick={(e) => e.stopPropagation()} />
               ) : (
-                <img className="pd-lb-media" src={orderedImages[lightbox].url} alt={localized(product.title_ru, product.title_tj)} onClick={(e) => e.stopPropagation()} />
+                <img className="pd-lb-media" src={cld(orderedImages[lightbox].url, 2400)} alt={localized(product.title_ru, product.title_tj)} onClick={(e) => e.stopPropagation()} />
               )}
               <button className="pd-lb-close" onClick={() => setLightbox(null)} aria-label="close">×</button>
               {orderedImages.length > 1 && (

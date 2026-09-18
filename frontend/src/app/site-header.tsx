@@ -1,4 +1,5 @@
 "use client";
+import { cld } from "../lib/cld";
 import "./site-header.css";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -309,7 +310,7 @@ function SiteHeaderInner() {
                       className="oh-suggest"
                       onClick={() => { saveToHistory(searchQuery); setSearchOpen(false); router.push(`/product/${p.id}`); }}
                     >
-                      {thumb ? <img src={thumb.url} alt={p.title_ru} /> : <span className="oh-suggest-noimg" />}
+                      {thumb ? <img src={cld(thumb.url, 200)} alt={p.title_ru} /> : <span className="oh-suggest-noimg" />}
                       <span className="oh-suggest-title">{lang === "ru" ? p.title_ru : p.title_tj || p.title_ru}</span>
                       <span className="oh-suggest-price">{p.price} с.</span>
                     </div>

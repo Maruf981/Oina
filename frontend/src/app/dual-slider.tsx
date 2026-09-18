@@ -1,5 +1,6 @@
 "use client";
 
+import { cld } from "../lib/cld";
 import { useEffect, useRef, useState } from "react";
 
 export type DualSlide = {
@@ -236,7 +237,7 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
               width: "100%",
               height: "100%",
               backgroundColor: "var(--header-bg)",
-              backgroundImage: `url(${imgOf(p.s, p.side)})`,
+              backgroundImage: `url(${cld(imgOf(p.s, p.side), 1400)})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}

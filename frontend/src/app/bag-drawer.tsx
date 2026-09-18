@@ -1,5 +1,6 @@
 "use client";
 
+import { cld } from "../lib/cld";
 import "./cart/cart.css";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -216,7 +217,7 @@ export function BagDrawerHost() {
               cart.items.map((item) => (
                 <div key={item.variantId} className="bag-item">
                   <div className="bag-img" onClick={() => go(`/product/${item.productId}`)}>
-                    {images[item.productId] && <img src={images[item.productId]} alt={item.title} />}
+                    {images[item.productId] && <img src={cld(images[item.productId], 300)} alt={item.title} />}
                   </div>
                   <div className="bag-info">
                     <div className="bag-row">
@@ -275,7 +276,7 @@ export function BagDrawerHost() {
               <div className="ck-label ck-label--gap">{tr("Ваш заказ", "Фармоиши шумо")} ({cart.totalCount})</div>
               {cart.items.map((item) => (
                 <div key={item.variantId} className="ck-sum-item">
-                  <div className="ck-sum-img">{images[item.productId] && <img src={images[item.productId]} alt={item.title} />}</div>
+                  <div className="ck-sum-img">{images[item.productId] && <img src={cld(images[item.productId], 300)} alt={item.title} />}</div>
                   <div className="ck-sum-info">
                     <div className="ck-meta">{item.size} · {item.color} · ×{item.qty}</div>
                     <div className="ck-sum-title">{item.title}</div>
