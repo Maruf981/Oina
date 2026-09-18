@@ -1099,7 +1099,7 @@ function HomeInner() {
         </div>
       )}
       {homepageReviews.length > 0 && (
-        <section className="pc-wrap sec">
+        <section className="pc-wrap sec sec--reviews">
           <div className="sec-head">
             <span className="coll-rule" />
             <h2 className="sec-title">{lang === "ru" ? "Отзывы покупателей" : "Назари мизоҷон"}</h2>
