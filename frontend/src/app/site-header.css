@@ -13,7 +13,7 @@
   color: var(--on-media, #fff);
   --oh-line: var(--on-media-line, rgba(255,255,255,.35));
 }
-.oh--clear .oh-logo { filter: brightness(0) invert(1); }
+.oh--clear .oh-logo { filter: drop-shadow(0 1px 8px rgba(0,0,0,.35)); }
 
 .oh-top {
   display: grid;
@@ -76,7 +76,7 @@
 .oh-mega-link { font-size: .875rem; cursor: pointer; }
 .oh-mega-link:hover, .oh-mega-link.is-active { color: var(--text-muted); }
 
-.oh-logo { height: 2.75rem; width: auto; cursor: pointer; justify-self: center; transition: filter .35s ease; }
+.oh-logo { transform: scale(1.6); transform-origin: center; height: 2.75rem; width: auto; cursor: pointer; justify-self: center; transition: filter .35s ease; }
 
 .oh-actions { justify-self: end; display: flex; align-items: center; gap: 1.75rem; }
 .oh-action {
@@ -362,3 +362,5 @@
 @media (max-width: 640px) {
   .oh-hide-mobile { display: none !important; }
 }
+
+.oh-logo.oh-logo--drawer { transform: none; }
