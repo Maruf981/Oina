@@ -188,8 +188,8 @@ async def upload_dual_slide_image(
     db: Session = Depends(get_db),
     _: bool = Depends(get_current_admin),
 ):
-    if side not in ("left", "right"):
-        raise HTTPException(status_code=400, detail="side must be left or right")
+    if side not in ("left", "center", "right"):
+        raise HTTPException(status_code=400, detail="side must be left, center or right")
     slide = db.query(DualSlide).filter(DualSlide.id == slide_id).first()
     if not slide:
         raise HTTPException(status_code=404, detail="Slide not found")

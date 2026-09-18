@@ -5,19 +5,31 @@ import { useEffect, useRef, useState } from "react";
 export type DualSlide = {
   id: number;
   left_image_url: string | null;
+  center_image_url?: string | null;
   right_image_url: string | null;
   title: string;
   subtitle: string | null;
   button_text: string | null;
   text_color: string;
   category_id: number | null;
+  left_label_ru?: string | null;
+  left_label_tj?: string | null;
+  center_label_ru?: string | null;
+  center_label_tj?: string | null;
+  right_label_ru?: string | null;
+  right_label_tj?: string | null;
 };
 
-type Side = "left" | "right";
+type Side = "left" | "center" | "right";
+const SIDES: Side[] = ["left", "center", "right"];
 const BALL = 112;
+const DESKTOP_H = "min(460px, calc(100svh - 150px))";
+
+const imgOf = (s: DualSlide, side: Side) =>
+  side === "left" ? s.left_image_url : side === "center" ? s.center_image_url ?? null : s.right_image_url;
 
 export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; router: any; lang: string }) {
-  const items = slides.filter((s) => s.left_image_url || s.right_image_url);
+  const items = slides.filter((s) => s.left_image_url || s.center_image_url || s.right_image_url);
   const count = items.length;
   const fallback = lang === "ru" ? "Смотреть" : "Дидан";
 
@@ -27,10 +39,16 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
   const [ball, setBall] = useState<{ side: Side; x: number; y: number }>({ side: "left", x: 0, y: 0 });
 
   const rootRef = useRef<HTMLDivElement>(null);
-  const leftRef = useRef<HTMLDivElement>(null);
-  const rightRef = useRef<HTMLDivElement>(null);
-  const leftBallRef = useRef<HTMLDivElement>(null);
-  const rightBallRef = useRef<HTMLDivElement>(null);
+  const layerRefs = {
+    left: useRef<HTMLDivElement>(null),
+    center: useRef<HTMLDivElement>(null),
+    right: useRef<HTMLDivElement>(null),
+  };
+  const ballRefs = {
+    left: useRef<HTMLDivElement>(null),
+    center: useRef<HTMLDivElement>(null),
+    right: useRef<HTMLDivElement>(null),
+  };
   const indexRef = useRef(0);
   const lockRef = useRef(false);
   const wheelAcc = useRef(0);
@@ -51,10 +69,11 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
   }, [count]);
 
   // Удар о вертикальную линию и толчок назад
-  const push = (side: Side, strength = 1) => {
-    const el = side === "left" ? leftBallRef.current : rightBallRef.current;
+  const push = (side: Side, strength = 1, from?: Side | null) => {
+    const el = ballRefs[side].current;
     if (!el) return;
-    const toLine = (side === "left" ? 14 : -14) * strength;
+    const dir = side === "left" ? 1 : side === "right" ? -1 : from === "right" ? 1 : -1;
+    const toLine = 14 * dir * strength;
     el.animate(
       [
         { transform: `translateX(${toLine}px) scale(0.82, 1.1)` },
@@ -67,7 +86,7 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
 
   useEffect(() => {
     if (!hover) { prevSide.current = null; return; }
-    if (prevSide.current && prevSide.current !== ball.side) push(ball.side);
+    if (prevSide.current && prevSide.current !== ball.side) push(ball.side, 1, prevSide.current);
     prevSide.current = ball.side;
   }, [ball.side, hover]);
 
@@ -104,22 +123,21 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
   if (count === 0) return null;
 
   const current = items[Math.min(index, count - 1)];
+  const pick = (ru?: string | null, tj?: string | null) => (lang === "ru" ? ru || tj : tj || ru) || null;
   const labels: Record<Side, string> = {
-    left: current.button_text || fallback,
-    right: current.title || fallback,
+    left: pick(current.left_label_ru, current.left_label_tj) || current.button_text || fallback,
+    center: pick(current.center_label_ru, current.center_label_tj) || fallback,
+    right: pick(current.right_label_ru, current.right_label_tj) || current.title || fallback,
   };
 
   const ballLayer = (side: Side) => {
     const on = hover && ball.side === side;
     return (
-      <div
-        ref={side === "left" ? leftRef : rightRef}
-        style={{ flex: 1, position: "relative", overflow: "hidden" }}
-      >
+      <div ref={layerRefs[side]} style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         <div
           style={{
             position: "absolute",
-            left: ball.side === side ? ball.x : side === "left" ? "100%" : 0,
+            left: ball.side === side ? ball.x : side === "left" ? "100%" : side === "right" ? 0 : "50%",
             top: ball.y,
             width: BALL,
             height: BALL,
@@ -128,7 +146,7 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
           }}
         >
           <div
-            ref={side === "left" ? leftBallRef : rightBallRef}
+            ref={ballRefs[side]}
             style={{
               width: "100%",
               height: "100%",
@@ -161,10 +179,12 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
     <div
       ref={rootRef}
       onMouseMove={(e) => {
-        if (isMobile || !leftRef.current || !rightRef.current) return;
-        const rl = leftRef.current.getBoundingClientRect();
-        const side: Side = e.clientX < rl.right ? "left" : "right";
-        const r = side === "left" ? rl : rightRef.current.getBoundingClientRect();
+        const L = layerRefs.left.current, C = layerRefs.center.current, R = layerRefs.right.current;
+        if (isMobile || !L || !C || !R) return;
+        const rl = L.getBoundingClientRect();
+        const rc = C.getBoundingClientRect();
+        const side: Side = e.clientX < rl.right ? "left" : e.clientX < rc.right ? "center" : "right";
+        const r = side === "left" ? rl : side === "center" ? rc : R.getBoundingClientRect();
         setBall({ side, x: e.clientX - r.left, y: e.clientY - r.top });
         if (!hover) setHover(true);
       }}
@@ -182,7 +202,7 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
       style={{
         position: "relative",
         width: "100%",
-        height: isMobile ? 640 : 520,
+        height: isMobile ? 640 : DESKTOP_H,
         overflow: "hidden",
         background: "var(--surface)",
         cursor: isMobile ? "auto" : "none",
@@ -206,34 +226,30 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
             onClick={() => { if (s.category_id) router.push(`/?category=${s.category_id}`); }}
             style={{ flex: "0 0 100%", width: "100%", height: "100%", display: "flex", flexDirection: isMobile ? "column" : "row" }}
           >
-            <div style={{ flex: 1, overflow: "hidden" }}>
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  backgroundImage: s.left_image_url ? `url(${s.left_image_url})` : "none",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  transform: i === index && hover && ball.side === "left" ? "scale(1.04)" : "scale(1)",
-                  transition: "transform 0.9s ease-out",
-                }}
-              />
-            </div>
-            <div style={{ flexShrink: 0, background: "rgba(255,255,255,0.18)", ...(isMobile ? { height: 1 } : { width: 1 }) }} />
-            <div style={{ flex: 1, overflow: "hidden" }}>
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  backgroundColor: "var(--header-bg)",
-                  backgroundImage: s.right_image_url ? `url(${s.right_image_url})` : "none",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  transform: i === index && hover && ball.side === "right" ? "scale(1.04)" : "scale(1)",
-                  transition: "transform 0.9s ease-out",
-                }}
-              />
-            </div>
+            {SIDES.map((side, k) => {
+              const url = imgOf(s, side);
+              return (
+                <div key={side} style={{ display: "contents" }}>
+                  {k > 0 && (
+                    <div style={{ flexShrink: 0, background: "rgba(255,255,255,0.18)", ...(isMobile ? { height: 1 } : { width: 1 }) }} />
+                  )}
+                  <div style={{ flex: 1, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: side === "left" ? undefined : "var(--header-bg)",
+                        backgroundImage: url ? `url(${url})` : "none",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        transform: i === index && hover && ball.side === side ? "scale(1.04)" : "scale(1)",
+                        transition: "transform 0.9s ease-out",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
@@ -241,6 +257,8 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
       {!isMobile && (
         <div style={{ position: "absolute", inset: 0, display: "flex", pointerEvents: "none", zIndex: 4 }}>
           {ballLayer("left")}
+          <div style={{ width: 1, flexShrink: 0 }} />
+          {ballLayer("center")}
           <div style={{ width: 1, flexShrink: 0 }} />
           {ballLayer("right")}
         </div>
