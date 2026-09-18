@@ -21,7 +21,6 @@ export function Footer({ lang }: { lang: Lang }) {
       <div className="ft-top">
         <div className="ft-brand">
           <img className="ft-logo" src="/logo.png" alt="Oina.tj" onClick={() => router.push("/")} />
-          <div className="ft-word">OINA</div>
           <p className="ft-about">{t.footerAbout}</p>
         </div>
         <div className="ft-social-box">
