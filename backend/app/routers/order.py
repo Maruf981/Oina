@@ -144,10 +144,25 @@ def return_item_by_customer(
     if not order or order.customer.phone != data.phone:
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
     if order.status == "delivered":
-        raise HTTPException(
-            status_code=400,
-            detail="Возврат недоступен — товар уже принят. Для обмена размера/цвета в течение 24 часов (48 часов для отдалённых районов) воспользуйтесь пунктом «Обмен» в боте.",
+        from datetime import datetime, timedelta
+        if order.is_dushanbe:
+            raise HTTPException(status_code=400, detail="В Душанбе товар проверяется при получении — после принятия возврат не производится. Для обмена размера/цвета (24 часа) воспользуйтесь пунктом «Обмен».")
+        if not order.delivered_at or datetime.utcnow() > order.delivered_at + timedelta(hours=24):
+            raise HTTPException(status_code=400, detail="Срок возврата истёк (24 часа после получения). Обратитесь в поддержку.")
+        if not (data.reason or "").strip():
+            raise HTTPException(status_code=400, detail="Укажите причину возврата: брак, повреждение, не тот товар или несоответствие описанию.")
+        item = next((i for i in order.items if i.id == item_id), None)
+        if not item:
+            raise HTTPException(status_code=404, detail="Позиция не найдена")
+        text = (
+            f"↩️ <b>Заявка на возврат (регион) — Заказ №{order_id}</b>\n"
+            f"Клиент: {order.customer.name or 'Без имени'} ({data.phone})\n"
+            f"Позиция №{item_id}, кол-во {data.quantity or 'всё'}\n"
+            f"Причина: {data.reason}\n"
+            f"⚠️ Деньги вернуть только после проверки товара курьером."
         )
+        background_tasks.add_task(send_admin_notification, text)
+        return item
     result = order_repo.return_order_item(db, order_id, item_id, quantity=data.quantity)
     text = f"↩️ Возврат товара клиентом через бота: Заказ №{order_id}, позиция №{item_id}, кол-во {data.quantity or 'всё'}"
     background_tasks.add_task(send_admin_notification, text)

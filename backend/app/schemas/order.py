@@ -42,6 +42,7 @@ class OrderItemOut(BaseModel):
 class ReturnItemRequest(BaseModel):
     phone: str
     quantity: int | None = None
+    reason: str | None = None
 
 
 
