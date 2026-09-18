@@ -598,11 +598,11 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
           </div>
         )}
         {p.is_brand && (
-          <img
-            src="/badge-brand.png"
-            alt="Бренд"
-            style={{ position: "absolute", top: -33, left: "50%", transform: "translateX(-50%)", width: 101, height: 101, objectFit: "contain", pointerEvents: "none" }}
-          />
+          <div
+            style={{ position: "absolute", top: 6, right: 6, background: "#8C6A3F", color: "#fff", fontFamily: "var(--font-label)", fontSize: 10, fontWeight: 500, padding: "3px 7px", borderRadius: 5, pointerEvents: "none", zIndex: 2 }}
+          >
+            Бренд
+          </div>
         )}
       </div>
       <div className="product-title" style={{ fontSize: 15, marginBottom: 4 }}>{p.title_ru}{p.category?.is_archived && <span style={{ marginLeft: 8, fontSize: 11, color: "#E24B4A" }}>{t.category}: {t.categoryArchivedLabel}</span>}</div>
