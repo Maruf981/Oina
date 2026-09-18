@@ -1288,6 +1288,10 @@ function HeroSlider({ banners }: { banners: Banner[] }) {
           {lang === "ru" ? "Категории" : "Категорияҳо"}
         </button>
       </div>
+      <div className="hero-foot">
+        <span>Dushanbe</span>
+        <span>Tajikistan</span>
+      </div>
     </section>
   );
 }

@@ -154,3 +154,33 @@
   .coll-bar::-webkit-scrollbar { display: none; }
   .coll-item { white-space: nowrap; }
 }
+
+/* Линия внизу hero (как у Sundra) */
+.hero-foot {
+  position: absolute;
+  left: 3.5rem;
+  right: 3.5rem;
+  bottom: 2.25rem;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1.4rem;
+  border-top: 1px solid rgba(255, 255, 255, .35);
+  color: #fff;
+  font-family: var(--font-label);
+  font-size: .6875rem;
+  font-weight: 500;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .hero-foot {
+    left: 1.25rem;
+    right: 1.25rem;
+    bottom: calc(max(22px, env(safe-area-inset-bottom)) + 70px);
+    padding-top: 1rem;
+    font-size: .625rem;
+  }
+}
