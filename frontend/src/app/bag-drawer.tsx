@@ -258,7 +258,7 @@ export function BagDrawerHost() {
               )}
 
               <div className="ck-label ck-label--gap">{tr("Адрес доставки", "Суроғаи расонидан")}</div>
-              {field(`${t.checkoutAddress} *`, deliveryAddress, setDeliveryAddress, attemptedSubmit && !deliveryAddress ? t.checkoutFillField : null)}
+              {field(`${tr("Улица, дом, квартира", "Кӯча, хона, ҳуҷра")} *`, deliveryAddress, setDeliveryAddress, attemptedSubmit && !deliveryAddress ? t.checkoutFillField : null)}
               {field(`${t.checkoutLandmark} *`, landmark, setLandmark, attemptedSubmit && !landmark ? t.checkoutFillField : null)}
               <label className="ck-field">
                 <span className="ck-field-label">{tr("Комментарий", "Шарҳ")}</span>
