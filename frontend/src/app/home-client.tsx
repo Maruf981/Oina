@@ -817,7 +817,7 @@ function HomeInner() {
             className={`pc-icon${favoriteIds.has(p.id) ? " is-on" : ""}`}
             aria-label={lang === "ru" ? "В избранное" : "Ба интихобҳо"}
             onClick={() => {
-              toggleFavorite(p.id);
+              const wasFav = favoriteIds.has(p.id); setToastType("success"); setToastMessage((wasFav ? (lang === "ru" ? "Удалено из избранного" : "Аз интихобҳо хориҷ шуд") : (lang === "ru" ? "Добавлено в избранное" : "Ба интихобҳо илова шуд"))); setTimeout(() => setToastMessage(null), 2000); toggleFavorite(p.id);
               setTimeout(() => window.dispatchEvent(new Event("oina:favorites-changed")), 700);
             }}
           >

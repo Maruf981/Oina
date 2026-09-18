@@ -522,7 +522,7 @@ export default function ProductDetailClient() {
               <div className="pd-tools">
                 <button
                   className={`pd-tool${isFavorite(product.id) ? " is-on" : ""}`}
-                  onClick={() => { toggleFavorite(product.id); setTimeout(() => window.dispatchEvent(new Event("oina:favorites-changed")), 700); }}
+                  onClick={() => { const wasFav = isFavorite(product.id); setToastType("success"); setToastMessage((wasFav ? (lang === "ru" ? "Удалено из избранного" : "Аз интихобҳо хориҷ шуд") : (lang === "ru" ? "Добавлено в избранное" : "Ба интихобҳо илова шуд"))); setTimeout(() => setToastMessage(null), 2000); toggleFavorite(product.id); setTimeout(() => window.dispatchEvent(new Event("oina:favorites-changed")), 700); }}
                   title={tr("В избранное", "Ба интихобҳо")}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M12 20.5 C12 20.5 3.5 14.6 3.5 8.9 C3.5 6 5.7 4 8.3 4 C10 4 11.3 4.9 12 6 C12.7 4.9 14 4 15.7 4 C18.3 4 20.5 6 20.5 8.9 C20.5 14.6 12 20.5 12 20.5 Z" strokeLinejoin="round" /></svg>
