@@ -109,6 +109,7 @@ export function BottomNav() {
   }, []);
 
   useEffect(() => {
+    const load = () => {
     if (!auth.token) {
       const saved = localStorage.getItem("guest_favorites");
       if (saved) {
@@ -127,7 +128,11 @@ export function BottomNav() {
       .then((res) => res.json())
       .then((data) => setFavoritesCount(Array.isArray(data) ? data.length : 0))
       .catch(() => setFavoritesCount(0));
-
+    };
+    load();
+    window.addEventListener("focus", load);
+    window.addEventListener("oina:favorites-changed", load);
+    return () => { window.removeEventListener("focus", load); window.removeEventListener("oina:favorites-changed", load); };
   }, [auth.token, pathname]);
 
   if (pathname.startsWith("/admin")) return null;

@@ -9,6 +9,7 @@ const GUEST_KEY = "guest_favorites";
 export function useFavorites() {
   const auth = useAuth();
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [favHydrated, setFavHydrated] = useState(false);
   const mergedRef = useRef(false);
 
   useEffect(() => {
@@ -20,13 +21,15 @@ export function useFavorites() {
         } catch {}
       }
     }
+  setFavHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!favHydrated) return;
     if (!auth.token) {
       localStorage.setItem(GUEST_KEY, JSON.stringify(Array.from(favoriteIds)));
     }
-  }, [favoriteIds, auth.token]);
+  }, [favoriteIds, auth.token, favHydrated]);
 
   useEffect(() => {
     const run = async () => {

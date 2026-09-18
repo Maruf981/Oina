@@ -357,3 +357,8 @@
   border: 1px solid var(--line); outline: 1px solid transparent; outline-offset: 3px; transition: outline-color .2s ease;
 }
 .flt .pd-color.is-active { outline-color: var(--text); }
+
+/* На телефоне избранное/корзина/профиль — в нижнем меню, в хедере только поиск */
+@media (max-width: 640px) {
+  .oh-hide-mobile { display: none !important; }
+}

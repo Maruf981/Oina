@@ -63,6 +63,7 @@ const serverIdMap = new Map<number, number>();
 export function CartProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
+  const [cartHydrated, setCartHydrated] = useState(false);
   const guestMergedRef = useRef(false);
 
   const authHeaders = () => ({ Authorization: `Bearer ${auth.token}` });
@@ -93,14 +94,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
       }
     }
+  setCartHydrated(true);
   }, []);
 
   // Persist guest cart to localStorage whenever items change while logged out
   useEffect(() => {
+    if (!cartHydrated) return;
     if (!auth.token) {
       localStorage.setItem("cart", JSON.stringify(items));
     }
-  }, [items, auth.token]);
+  }, [items, auth.token, cartHydrated]);
 
   // When auth.token appears (login), merge any local guest cart into server cart, then load server cart
   useEffect(() => {

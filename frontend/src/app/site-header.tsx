@@ -254,7 +254,7 @@ function SiteHeaderInner() {
               </span>
             </span>
 
-            <span className="oh-action" onClick={() => router.push("/favorites")} title={tr("Избранное", "Интихобҳо")}>
+            <span className="oh-action oh-hide-mobile" onClick={() => router.push("/favorites")} title={tr("Избранное", "Интихобҳо")}>
               <span className="oh-txt">{tr("Избранное", "Интихобҳо")} <span className="oh-count">({favoritesCount})</span></span>
               <span className="oh-ico">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M12 20.5 C12 20.5 3.5 14.6 3.5 8.9 C3.5 6 5.7 4 8.3 4 C10 4 11.3 4.9 12 6 C12.7 4.9 14 4 15.7 4 C18.3 4 20.5 6 20.5 8.9 C20.5 14.6 12 20.5 12 20.5 Z" strokeLinejoin="round" /></svg>
@@ -262,7 +262,7 @@ function SiteHeaderInner() {
               </span>
             </span>
 
-            <span className="oh-action" onClick={() => window.dispatchEvent(new CustomEvent("oina:open-bag", { detail: "cart" }))} title={tr("Корзина", "Сабад")}>
+            <span className="oh-action oh-hide-mobile" onClick={() => window.dispatchEvent(new CustomEvent("oina:open-bag", { detail: "cart" }))} title={tr("Корзина", "Сабад")}>
               <span className="oh-txt">{tr("Корзина", "Сабад")} <span className="oh-count">({cart.totalCount})</span></span>
               <span className="oh-ico">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M5 8.5 H19 L18 21 H6 Z" strokeLinejoin="round" /><path d="M8.5 8.5 V7 C8.5 4.8 10 3.3 12 3.3 C14 3.3 15.5 4.8 15.5 7 V8.5" /></svg>
@@ -270,7 +270,7 @@ function SiteHeaderInner() {
               </span>
             </span>
 
-            <span className="oh-action" onClick={() => router.push(auth.customer ? "/account" : "/?login=1")} title={auth.customer ? tr("Профиль", "Уток") : tr("Войти", "Даромадан")}>
+            <span className="oh-action oh-hide-mobile" onClick={() => router.push(auth.customer ? "/account" : "/?login=1")} title={auth.customer ? tr("Профиль", "Уток") : tr("Войти", "Даромадан")}>
               <span className="oh-txt oh-name">{auth.customer ? auth.customer.name || tr("Профиль", "Уток") : tr("Войти", "Даромадан")}</span>
               <span className="oh-ico">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="12" cy="8" r="4" /><path d="M4.5 21 C4.5 16.5 7.8 13.8 12 13.8 C16.2 13.8 19.5 16.5 19.5 21" strokeLinecap="round" /></svg>

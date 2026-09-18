@@ -403,6 +403,7 @@ function HomeInner() {
   const [resetNewPassword, setResetNewPassword] = useState("");
   const [resetSuccess, setResetSuccess] = useState("");
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [favHydrated, setFavHydrated] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [quickAddProductId, setQuickAddProductId] = useState<number | null>(null);
   const [quickAddSize, setQuickAddSize] = useState("");
@@ -423,13 +424,15 @@ function HomeInner() {
         }
       }
     }
+  setFavHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!favHydrated) return;
     if (!auth.token) {
       localStorage.setItem("guest_favorites", JSON.stringify(Array.from(favoriteIds)));
     }
-  }, [favoriteIds, auth.token]);
+  }, [favoriteIds, auth.token, favHydrated]);
 
   useEffect(() => {
     const run = async () => {
