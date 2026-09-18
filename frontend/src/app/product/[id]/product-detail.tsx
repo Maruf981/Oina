@@ -410,7 +410,7 @@ export default function ProductDetailClient() {
   ].filter((r) => r.value);
   const deliveryText = city === "dushanbe"
     ? tr("Доставка за 24 часа по Душанбе", "Дар давоми 24 соат дар Душанбе расонида мешавад")
-    : tr("Доставка в другие города — через доверенное лицо", "Ба шаҳрҳои дигар — тавассути шахси боэътимод");
+    : tr("В другие города — бесплатно через доверенное лицо, после полной предоплаты", "Ба шаҳрҳои дигар — ройгон тавассути шахси боэътимод, пас аз пардохти пурраи пешакӣ");
   const toggleAcc = (key: string) => setOpenAcc((cur) => (cur === key ? null : key));
   const isVid = (img: { media_type?: string }) => img.media_type === "video";
 
