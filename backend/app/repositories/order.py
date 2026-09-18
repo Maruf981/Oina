@@ -18,8 +18,17 @@ def get_or_create_customer(db: Session, name: str, phone: str) -> Customer:
     return customer
 
 
-def create_order(db: Session, data: OrderCreate) -> Order:
-    customer = get_or_create_customer(db, data.customer_name, data.customer_phone)
+def create_order(db: Session, data: OrderCreate, current: Customer | None = None) -> Order:
+    if data.payment_method not in ("qr", "card", "cod"):
+        raise HTTPException(status_code=400, detail="Неизвестный способ оплаты")
+    if data.payment_method == "cod":
+        if not data.is_dushanbe:
+            raise HTTPException(status_code=400, detail="Оплата при получении доступна только по Душанбе")
+        if not current:
+            raise HTTPException(status_code=401, detail="Оплата при получении доступна только авторизованным клиентам")
+        customer = current
+    else:
+        customer = get_or_create_customer(db, data.customer_name, data.customer_phone)
 
     total = 0.0
     order_items = []
@@ -37,10 +46,11 @@ def create_order(db: Session, data: OrderCreate) -> Order:
 
     order = Order(
         customer_id=customer.id,
-        status=OrderStatus.AWAITING_PAYMENT,
+        status=OrderStatus.NEW if data.payment_method == "cod" else OrderStatus.AWAITING_PAYMENT,
         payment_method=PaymentMethod(data.payment_method),
         delivery_address=data.delivery_address,
         comment=data.comment,
+        is_dushanbe=data.is_dushanbe,
         total=total,
     )
     db.add(order)

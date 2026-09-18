@@ -3,7 +3,7 @@ from app.core.telegram_notify import send_admin_notification, send_customer_noti
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_customer, get_current_admin
+from app.core.deps import get_current_customer, get_current_admin, get_current_customer_optional
 from app.models.customer import Customer
 from app.repositories import order as order_repo
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderItemOut, ReturnItemRequest, ExchangeRequest, ExchangeVariantRequest
@@ -38,8 +38,8 @@ def lookup_orders_by_phone(phone: str, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=OrderOut)
-def create_order(data: OrderCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    order = order_repo.create_order(db, data)
+def create_order(data: OrderCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current: Customer | None = Depends(get_current_customer_optional)):
+    order = order_repo.create_order(db, data, current)
     items_text = "\n".join(
         f"— {item.variant.product.title_ru} ({item.variant.color}, {item.variant.size}) x{item.quantity}"
         for item in order.items
@@ -49,6 +49,8 @@ def create_order(data: OrderCreate, background_tasks: BackgroundTasks, db: Sessi
         f"Клиент: {order.customer.name or 'Без имени'} ({order.customer.phone})\n"
         f"Сумма: {order.total} смн\n"
         f"Адрес: {order.delivery_address or '—'}\n"
+        f"Оплата: {'💵 При получении' if order.payment_method and order.payment_method.value == 'cod' else (order.payment_method.value.upper() if order.payment_method else '—')}\n"
+        f"Регион: {'Душанбе' if order.is_dushanbe else 'За пределы Душанбе (предоплата)'}\n"
         f"{items_text}"
     )
     background_tasks.add_task(send_admin_notification, text)

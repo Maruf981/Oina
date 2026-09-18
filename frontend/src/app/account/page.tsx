@@ -299,7 +299,7 @@ export default function AccountPage() {
                   <div className="ac-order-top">
                     <div>
                       <div className="ck-meta">
-                        {new Date(order.created_at).toLocaleDateString("ru-RU")} · {order.payment_method === "card" ? tr("Карта", "Корт") : "QR"}
+                        {new Date(order.created_at).toLocaleDateString("ru-RU")} · {order.payment_method === "card" ? tr("Карта", "Корт") : order.payment_method === "cod" ? tr("При получении", "Ҳангоми қабул") : "QR"}
                       </div>
                       <div className="ac-order-title">{tr("Заказ №", "Фармоиш №")} {order.id}</div>
                     </div>

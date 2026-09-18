@@ -38,7 +38,8 @@ export function BagDrawerHost() {
   const [landmark, setLandmark] = useState("");
   const [orderComment, setOrderComment] = useState("");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"qr" | "card">("qr");
+  const [paymentMethod, setPaymentMethod] = useState<"qr" | "card" | "cod">("qr");
+  const [isDushanbe, setIsDushanbe] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
   const [orderTotal, setOrderTotal] = useState(0);
@@ -140,13 +141,14 @@ export function BagDrawerHost() {
     try {
       const res = await fetch(`${API_URL}/orders/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(auth.token ? { Authorization: `Bearer ${auth.token}` } : {}) },
         body: JSON.stringify({
           customer_name: customerName,
           customer_phone: customerPhone,
           delivery_address: `${deliveryAddress}, Ориентир: ${landmark}`,
           comment: orderComment,
           payment_method: paymentMethod,
+          is_dushanbe: isDushanbe,
           items: cart.items.map((item) => ({ product_variant_id: item.variantId, quantity: item.qty })),
         }),
       });
@@ -158,7 +160,7 @@ export function BagDrawerHost() {
       setOrderTotal(cart.totalPrice);
       await cart.clearCart();
       setOrderNumber(order.id);
-      setStep("payment");
+      setStep(paymentMethod === "cod" ? "done" : "payment");
     } catch (err: any) {
       const msg = typeof err?.message === "string" ? err.message : "";
       setError(msg.includes("В наличии только") ? msg : tr("Ошибка оформления заказа. Попробуйте ещё раз.", "Хатогӣ ҳангоми фармоиш. Бори дигар кӯшиш кунед."));
@@ -263,8 +265,21 @@ export function BagDrawerHost() {
                 <textarea value={orderComment} onChange={(e) => setOrderComment(e.target.value)} placeholder={t.checkoutCommentPlaceholder} rows={2} />
               </label>
 
+              <div className="ck-label ck-label--gap">{tr("Город доставки", "Шаҳри расонидан")}</div>
+              <div className="ck-pay">
+                <button className={`ck-pay-opt${isDushanbe ? " is-active" : ""}`} onClick={() => setIsDushanbe(true)}>
+                  <span className="ck-radio" /><span>Душанбе</span>
+                </button>
+                <button className={`ck-pay-opt${!isDushanbe ? " is-active" : ""}`} onClick={() => { setIsDushanbe(false); if (paymentMethod === "cod") setPaymentMethod("qr"); }}>
+                  <span className="ck-radio" /><span>{tr("Другой город — полная предоплата, доставка бесплатно", "Шаҳри дигар — пардохти пурраи пешакӣ, расонидан ройгон")}</span>
+                </button>
+              </div>
+
               <div className="ck-label ck-label--gap">{t.checkoutPaymentMethod}</div>
               <div className="ck-pay">
+                <button className={`ck-pay-opt${paymentMethod === "cod" ? " is-active" : ""}`} onClick={() => auth.customer && isDushanbe && setPaymentMethod("cod")} disabled={!auth.customer || !isDushanbe}>
+                  <span className="ck-radio" /><span>{tr("При получении", "Ҳангоми қабул")}{!auth.customer ? <em> — {tr("войдите в аккаунт", "ворид шавед")}</em> : !isDushanbe ? <em> — {tr("только по Душанбе", "танҳо дар Душанбе")}</em> : null}</span>
+                </button>
                 <button className={`ck-pay-opt${paymentMethod === "qr" ? " is-active" : ""}`} onClick={() => setPaymentMethod("qr")}>
                   <span className="ck-radio" /><span>QR-код</span>
                 </button>

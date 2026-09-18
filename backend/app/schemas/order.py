@@ -14,6 +14,7 @@ class OrderCreate(BaseModel):
     delivery_address: str
     comment: str | None = None
     payment_method: str
+    is_dushanbe: bool = True
     items: list[OrderItemCreate]
 
 
@@ -76,6 +77,7 @@ class OrderOut(BaseModel):
     id: int
     status: str
     payment_method: str | None
+    is_dushanbe: bool = True
     delivery_address: str | None
     comment: str | None
     total: float

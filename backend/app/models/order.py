@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, Numeric, DateTime, func, Enum, String
+from sqlalchemy import ForeignKey, Numeric, DateTime, func, Enum, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -21,6 +21,7 @@ class OrderStatus(str, enum.Enum):
 class PaymentMethod(str, enum.Enum):
     CARD = "card"
     QR = "qr"
+    COD = "cod"
 
 
 class Order(Base):
@@ -32,6 +33,7 @@ class Order(Base):
     payment_method: Mapped[PaymentMethod | None] = mapped_column(Enum(PaymentMethod), nullable=True)
     delivery_address: Mapped[str | None] = mapped_column(String(300), nullable=True)
     comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    is_dushanbe: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     total: Mapped[float] = mapped_column(Numeric(10, 2))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
