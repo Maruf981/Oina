@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { SiteHeader } from "../site-header";
 import { useTheme } from "../theme-context";
 import { useLang } from "../lang-context";
+import { useAuth } from "../auth-context";
 
 type ProductImage = { url: string; media_type?: string };
 type ProductVariant = { id: number; size: string; color: string; stock: number };
@@ -58,6 +59,32 @@ export default function RecommendedPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
+  const auth = useAuth();
+  const [favIds, setFavIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (auth.token) {
+      fetch(`${API_URL}/favorites/`, { headers: { Authorization: `Bearer ${auth.token}` } })
+        .then((res) => res.json())
+        .then((favs: { product: { id: number } }[]) => setFavIds(new Set(favs.map((f) => f.product.id))))
+        .catch(() => {});
+    } else {
+      try { setFavIds(new Set(JSON.parse(localStorage.getItem("guest_favorites") || "[]"))); } catch {}
+    }
+  }, [auth.token]);
+
+  const toggleFav = async (id: number) => {
+    const isFav = favIds.has(id);
+    const next = new Set(favIds);
+    if (isFav) next.delete(id); else next.add(id);
+    setFavIds(next);
+    if (auth.token) {
+      await fetch(`${API_URL}/favorites/${id}`, { method: isFav ? "DELETE" : "POST", headers: { Authorization: `Bearer ${auth.token}` } }).catch(() => {});
+    } else {
+      try { localStorage.setItem("guest_favorites", JSON.stringify(Array.from(next))); } catch {}
+    }
+    window.dispatchEvent(new Event("oina:favorites-changed"));
+  };
 
   const tr = (ru: string, tj: string) => (lang === "ru" ? ru : tj);
   const isVid = (img: ProductImage) => img.media_type === "video" || /\/video\/upload\/|\.(mp4|webm|mov)(\?|$)/i.test(img.url);
@@ -77,7 +104,6 @@ export default function RecommendedPage() {
     { key: "new", label: tr("Новинки", "Навҳо") },
     { key: "sale", label: tr("Со скидкой", "Бо тахфиф") },
     { key: "good", label: tr("Хорошая цена", "Нархи хуб") },
-    { key: "out", label: tr("Нет в наличии", "Мавҷуд нест") },
     { key: "brand", label: tr("Бренды", "Брендҳо") },
   ];
 
@@ -92,10 +118,11 @@ export default function RecommendedPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const badged = products.filter((p) => getKind(p) !== null);
+  const inStock = products.filter((p) => p.variants.some((v) => v.stock > 0));
+  const badged = inStock.filter((p) => getKind(p) !== null);
   const items =
     filter === "all" ? badged
-    : filter === "brand" ? products.filter((p) => p.is_brand)
+    : filter === "brand" ? inStock.filter((p) => p.is_brand)
     : badged.filter((p) => getKind(p) === filter);
 
   return (
@@ -152,7 +179,9 @@ export default function RecommendedPage() {
                   </div>
 
                   <div className="pc-actions">
-                    <span />
+                    <button className={`pc-icon${favIds.has(p.id) ? " is-on" : ""}`} aria-label={tr("Избранное", "Интихобҳо")} title={tr("Избранное", "Интихобҳо")} onClick={() => toggleFav(p.id)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M12 20.5 C12 20.5 3.5 14.6 3.5 8.9 C3.5 6 5.7 4 8.3 4 C10 4 11.3 4.9 12 6 C12.7 4.9 14 4 15.7 4 C18.3 4 20.5 6 20.5 8.9 C20.5 14.6 12 20.5 12 20.5Z" strokeLinejoin="round" /></svg>
+                    </button>
                     <button className="pc-icon" disabled={out} aria-label={tr("Выбрать размер", "Андоза интихоб кунед")} title={tr("Выбрать размер", "Андоза интихоб кунед")} onClick={() => router.push(`/product/${p.id}`)}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M5 8.5 H19 L18 21 H6 Z" strokeLinejoin="round" /><path d="M8.5 8.5 V7 C8.5 4.8 10 3.3 12 3.3 C14 3.3 15.5 4.8 15.5 7 V8.5" /></svg>
                     </button>
