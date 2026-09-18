@@ -1,0 +1,7 @@
+/* Blur-reveal при прокрутке (как на Sundra). Классы снимаются после анимации. */
+.blr { opacity: 0; filter: blur(10px); transform: translateY(14px); }
+.blr.blr-in {
+  opacity: 1; filter: blur(0); transform: none;
+  transition: opacity .8s cubic-bezier(.22,.61,.36,1), filter .8s cubic-bezier(.22,.61,.36,1), transform .8s cubic-bezier(.22,.61,.36,1);
+}
+@media (prefers-reduced-motion: reduce) { .blr { opacity: 1; filter: none; transform: none; } }

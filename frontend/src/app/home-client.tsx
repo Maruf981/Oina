@@ -10,6 +10,8 @@ import { useCategories } from "./categories-context";
 import { SiteHeader } from "./site-header";
 import "./hero.css";
 import "./product-card.css";
+import "./blur-reveal.css";
+import { useBlurReveal } from "./use-blur-reveal";
 import { CATEGORY_ICONS } from "./category-icons";
 import { useAuth } from "./auth-context";
 import { useTheme } from "./theme-context";
@@ -277,6 +279,16 @@ function HomeInner() {
   const [openMegaMenu, setOpenMegaMenu] = useState<number | null>(null);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [dualSlides, setDualSlides] = useState<DualSlide[]>([]);
+  useBlurReveal();
+  // колонки сетки — как в product-card.css: ≤640 → 2, ≤900 → 3, иначе 4
+  const [gridCols, setGridCols] = useState(4);
+  useEffect(() => {
+    const calc = () =>
+      setGridCols(window.matchMedia("(max-width: 640px)").matches ? 2 : window.matchMedia("(max-width: 900px)").matches ? 3 : 4);
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
   useEffect(() => {
     fetch(`${API_URL}/dual-slides/`)
       .then((r) => (r.ok ? r.json() : []))
@@ -941,7 +953,7 @@ function HomeInner() {
             <Fragment key={p.id}>
             
             {renderCard(p, "grid")}
-            {idx === Math.min(24, products.length) - 1 && dualSlides.length > 0 && (
+            {idx === Math.min(gridCols * 4, products.length) - 1 && dualSlides.length > 0 && (
               <div style={{ gridColumn: "1 / -1" }}>
                 <div className="sec-head" style={{ paddingBottom: "1rem" }}>
                   <span className="coll-rule" />
