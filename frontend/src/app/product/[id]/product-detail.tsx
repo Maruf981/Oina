@@ -700,10 +700,6 @@ export default function ProductDetailClient() {
                 </div>
               )}
             </div>
-
-            <div className="pd-foot">
-              <p>{deliveryText}.</p>
-            </div>
           </div>
         </div>
 
