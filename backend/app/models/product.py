@@ -109,3 +109,8 @@ Product.sold_count = column_property(
     .correlate_except(OrderItem, Order, ProductVariant)
     .scalar_subquery()
 )
+
+from app.services.pricing import current_price as _current_price, is_discount_active as _is_discount_active  # noqa: E402
+
+Product.current_price = property(lambda self: _current_price(self))
+Product.discount_active = property(lambda self: _is_discount_active(self))

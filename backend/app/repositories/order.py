@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.customer import Customer
 from app.models.order import Order, OrderItem, OrderStatus, PaymentMethod
 from app.models.product import ProductVariant
+from app.services.pricing import current_price
 from app.repositories.stock_movement import record_movement, get_variant_locked
 from app.schemas.order import OrderCreate
 
@@ -40,7 +41,7 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
         if variant.stock < item.quantity:
             raise HTTPException(status_code=400, detail=f"Not enough stock for variant {variant.id}")
 
-        price = float(variant.product.price)
+        price = current_price(variant.product)
         total += price * item.quantity
         order_items.append((variant, item.quantity, price))
 
@@ -162,7 +163,7 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     )
 
     item.product_variant_id = new_variant_id
-    item.price_at_order = float(new_variant.product.price)
+    item.price_at_order = current_price(new_variant.product)
 
     order = item.order
     order.total = sum(float(i.price_at_order) * (i.quantity - i.returned_quantity) for i in order.items)

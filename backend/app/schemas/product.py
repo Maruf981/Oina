@@ -91,6 +91,8 @@ class ProductOut(ProductBase):
     avg_rating: float | None = None
     review_count: int = 0
     sold_count: int = 0
+    current_price: float = 0.0
+    discount_active: bool = False
 
     class Config:
         from_attributes = True

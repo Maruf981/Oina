@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.models.product import Product, ProductVariant
+from sqlalchemy import case
+from app.services.pricing import current_price_sql, discount_active_sql
 from app.schemas.product import ProductCreate
 from app.services.translate import translate_to_tj
 from app.repositories.stock_movement import record_movement, get_variant_locked
@@ -42,13 +44,7 @@ def get_all(
             )
         )
     if on_sale_only:
-        from datetime import date
-        today = date.today()
-        query = query.filter(
-            Product.discount_percent.isnot(None),
-            (Product.discount_from.is_(None)) | (Product.discount_from <= today),
-            (Product.discount_to.is_(None)) | (Product.discount_to >= today),
-        )
+        query = query.filter(discount_active_sql(Product))
     if category_id is not None:
         query = query.filter(Product.category_id == category_id)
     if search:
@@ -61,9 +57,9 @@ def get_all(
             )
         )
     if min_price is not None:
-        query = query.filter(Product.price >= min_price)
+        query = query.filter(current_price_sql(Product) >= min_price)
     if max_price is not None:
-        query = query.filter(Product.price <= max_price)
+        query = query.filter(current_price_sql(Product) <= max_price)
     if size:
         query = query.filter(
             Product.id.in_(
@@ -81,15 +77,15 @@ def get_all(
             )
         )
     if sort == "price_asc":
-        query = query.order_by(Product.price.asc())
+        query = query.order_by(current_price_sql(Product).asc())
     elif sort == "price_desc":
-        query = query.order_by(Product.price.desc())
+        query = query.order_by(current_price_sql(Product).desc())
     elif sort == "newest":
         query = query.order_by(Product.created_at.desc())
     elif sort == "rating":
         query = query.order_by(Product.avg_rating.desc().nullslast())
     elif sort == "discount":
-        query = query.order_by(Product.discount_percent.desc().nullslast())
+        query = query.order_by(case((discount_active_sql(Product), Product.discount_percent), else_=None).desc().nullslast())
     elif sort == "popularity":
         from sqlalchemy import func
         from app.models.order import Order, OrderItem, OrderStatus

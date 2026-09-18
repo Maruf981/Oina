@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from app.services.pricing import current_price, is_discount_active
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -21,8 +22,8 @@ def cloudinary_resize(url: str, transform: str) -> str:
 def build_caption_base(product: Product) -> list[str]:
     lines = [f"🛍️ {product.title_ru}"]
 
-    price_line = f"💰 Цена: {product.price} смн"
-    if product.discount_percent:
+    price_line = f"💰 Цена: {current_price(product):g} смн"
+    if is_discount_active(product):
         price_line += f" (скидка {product.discount_percent}%)"
     lines.append(price_line)
 
@@ -73,8 +74,8 @@ def get_social_preview(
     return {
         "product_id": product.id,
         "title": product.title_ru,
-        "price": float(product.price),
-        "discount_percent": product.discount_percent,
+        "price": current_price(product),
+        "discount_percent": product.discount_percent if is_discount_active(product) else None,
         "post_image_url": post_url,
         "story_image_url": story_url,
         "caption_instagram": build_caption_instagram(product),
