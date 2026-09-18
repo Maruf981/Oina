@@ -22,6 +22,7 @@ type Product = {
   price: number;
   is_featured: boolean;
   is_new: boolean;
+  is_brand?: boolean;
   discount_percent: number | null;
   original_price: number | null;
   discount_from: string | null;
@@ -173,6 +174,8 @@ export default function FavoritesPage() {
                 ? tr("Нет в наличии", "Мавҷуд нест")
                 : isDiscountActive(p) && p.discount_percent
                 ? `−${p.discount_percent}%`
+                : p.is_brand
+                ? "Бренд"
                 : p.is_new
                 ? tr("Новинка", "Нав")
                 : p.is_featured

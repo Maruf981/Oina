@@ -742,6 +742,8 @@ function HomeInner() {
       ? (lang === "ru" ? "Нет в наличии" : "Мавҷуд нест")
       : isDiscountActive(p) && p.discount_percent
       ? `−${p.discount_percent}%`
+      : p.is_brand
+      ? "Бренд"
       : p.is_new
       ? (lang === "ru" ? "Новинка" : "Нав")
       : p.is_featured
@@ -868,7 +870,7 @@ function HomeInner() {
           <div className="sec-head">
             <span className="coll-rule" />
             <h2 className="sec-title">{t.recommended}</h2>
-            <span className="sec-link" onClick={() => router.push("/?recommended=1")}>{t.seeAll}</span>
+            <span className="sec-link" onClick={() => router.push("/recommended")}>{t.seeAll}</span>
           </div>
           <div className="rec-row">
             <button className="rec-arrow rec-arrow--left" aria-label="←" onClick={() => recommendedScrollRef.current?.scrollBy({ left: -(recommendedScrollRef.current.clientWidth * 0.75) })}>

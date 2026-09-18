@@ -43,7 +43,7 @@ export function Footer({ lang }: { lang: Lang }) {
         <div>
           <div className="ft-label">{tr("Покупки", "Харид")}</div>
           <span onClick={() => router.push("/")}>{tr("Все товары", "Ҳамаи молҳо")}</span>
-          <span onClick={() => router.push("/?recommended=1")}>{tr("Рекомендации", "Тавсияҳо")}</span>
+          <span onClick={() => router.push("/recommended")}>{tr("Рекомендации", "Тавсияҳо")}</span>
           <span onClick={() => router.push("/favorites")}>{tr("Избранное", "Интихобҳо")}</span>
           <span onClick={() => router.push("/cart")}>{tr("Корзина", "Сабад")}</span>
         </div>

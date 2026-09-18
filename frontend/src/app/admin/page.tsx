@@ -456,6 +456,7 @@ export default function AdminPage() {
 
 function getAdminBadge(p: Product): { text: string; color: string } | null {
   if (p.discount_percent) return { text: `-${p.discount_percent}%`, color: "#D64545" };
+  if (p.is_brand) return { text: "Бренд", color: "#8C6A3F" };
   if (p.is_new) return { text: "Новинка", color: "#3E8E5A" };
   if (p.is_featured) return { text: "Хорошая цена", color: "#3B6EA8" };
   return null;
@@ -595,13 +596,6 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
             style={{ position: "absolute", top: 6, left: 6, background: getAdminBadge(p)!.color, color: "#fff", fontFamily: "var(--font-label)", fontSize: 10, fontWeight: 500, padding: "3px 7px", borderRadius: 5, pointerEvents: "none", zIndex: 2 }}
           >
             {getAdminBadge(p)!.text}
-          </div>
-        )}
-        {p.is_brand && (
-          <div
-            style={{ position: "absolute", top: 6, right: 6, background: "#8C6A3F", color: "#fff", fontFamily: "var(--font-label)", fontSize: 10, fontWeight: 500, padding: "3px 7px", borderRadius: 5, pointerEvents: "none", zIndex: 2 }}
-          >
-            Бренд
           </div>
         )}
       </div>
