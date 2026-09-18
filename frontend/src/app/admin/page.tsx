@@ -236,7 +236,7 @@ const COLOR_OPTIONS = [
   "Малиновый", "Лимонный", "Молочный", "Кремовый",
 ];
 const LETTER_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL", "6XL"];
-const NUMERIC_SIZES = Array.from({ length: 50 - 15 + 1 }, (_, i) => String(15 + i));
+const NUMERIC_SIZES = Array.from({ length: 60 - 15 + 1 }, (_, i) => String(15 + i));
 
 const getColorHex = (name: string): string => {
   const key = name.trim().toLowerCase();
