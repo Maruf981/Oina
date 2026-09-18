@@ -169,6 +169,7 @@ export default function ProductDetailClient() {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState(0);
+  useEffect(() => { document.querySelector(".pd-gallery")?.scrollTo({ left: 0, behavior: "auto" }); }, [selectedColor]);
   const [lightbox, setLightbox] = useState<number | null>(null);
   useEffect(() => {
     if (lightbox === null) return;

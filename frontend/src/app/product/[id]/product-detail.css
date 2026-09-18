@@ -164,3 +164,12 @@
 .pd-lb-next { right: .5rem; }
 .pd-lb-count { position: absolute; bottom: 1.25rem; left: 50%; transform: translateX(-50%); color: #fff; font-size: .8rem; letter-spacing: .15em; opacity: .8; }
 @media (max-width: 640px) { .pd-lb-nav { display: none; } }
+
+/* Mobile: horizontal swipe gallery (Sundra style) */
+@media (max-width: 900px) {
+  .pd-gallery { display: flex; gap: .5rem; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .pd-gallery::-webkit-scrollbar { display: none; }
+  .pd-shot { flex: 0 0 86%; scroll-snap-align: start; }
+  .pd-shot--main { grid-column: auto; }
+  .pd-shot img, .pd-shot video { aspect-ratio: 3 / 4; object-fit: cover; height: auto; }
+}
