@@ -18,6 +18,7 @@ type Suggestion = {
   title_ru: string;
   title_tj?: string | null;
   price: number;
+  current_price?: number;
   images?: { url: string; media_type?: string }[];
 };
 
@@ -312,7 +313,7 @@ function SiteHeaderInner() {
                     >
                       {thumb ? <img src={cld(thumb.url, 200)} alt={p.title_ru} /> : <span className="oh-suggest-noimg" />}
                       <span className="oh-suggest-title">{lang === "ru" ? p.title_ru : p.title_tj || p.title_ru}</span>
-                      <span className="oh-suggest-price">{p.price} с.</span>
+                      <span className="oh-suggest-price">{p.current_price ?? p.price} с.</span>
                     </div>
                   );
                 })

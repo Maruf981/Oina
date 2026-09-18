@@ -186,7 +186,7 @@ async def search_products(query: str = "", color: str = "", size: str = "") -> l
         simplified.append({
             "title": p.get("title_ru"),
             "catalog_number": p.get("catalog_number"),
-            "price": p.get("price"),
+            "price": p.get("current_price", p.get("price")),
             "available_variants": available,
         })
     return simplified
@@ -209,7 +209,7 @@ async def fetch_products_by_category(category_id: int) -> list:
         simplified.append({
             "title": p.get("title_ru"),
             "catalog_number": p.get("catalog_number"),
-            "price": p.get("price"),
+            "price": p.get("current_price", p.get("price")),
         })
     return simplified
 

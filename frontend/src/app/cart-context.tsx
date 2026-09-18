@@ -27,6 +27,7 @@ type ServerCartItem = {
       title_tj: string | null;
       catalog_number: string | null;
       price: number;
+      current_price?: number;
     };
   };
 };
@@ -50,7 +51,7 @@ function serverItemToCartItem(s: ServerCartItem): CartItem {
     productId: s.variant.product.id,
     title: s.variant.product.title_ru,
     catalogNumber: s.variant.product.catalog_number || "",
-    price: s.variant.product.price,
+    price: s.variant.product.current_price ?? s.variant.product.price,
     size: s.variant.size,
     color: s.variant.color,
     qty: s.quantity,
@@ -88,7 +89,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem("cart");
       if (saved) {
         try {
-          setItems(JSON.parse(saved));
+          const parsed: CartItem[] = JSON.parse(saved);
+          setItems(parsed);
+          const ids = Array.from(new Set(parsed.map((i) => i.productId))).join(",");
+          if (ids) {
+            fetch(`${API_URL}/products/?ids=${ids}`)
+              .then((r) => (r.ok ? r.json() : []))
+              .then((prods: { id: number; price: number; current_price?: number }[]) => {
+                const map = new Map(prods.map((pr) => [pr.id, pr.current_price ?? pr.price]));
+                setItems((prev) => prev.map((i) => (map.has(i.productId) ? { ...i, price: map.get(i.productId)! } : i)));
+              })
+              .catch(() => {});
+          }
         } catch {
           // ignore corrupt data
         }

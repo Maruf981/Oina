@@ -27,6 +27,8 @@ type Product = {
   original_price: number | null;
   discount_from: string | null;
   discount_to: string | null;
+  current_price: number;
+  discount_active: boolean;
   images: ProductImage[];
   variants: ProductVariant[];
 };
@@ -34,12 +36,8 @@ type FavoriteEntry = { id: number; product: Product };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-function isDiscountActive(p: Product) {
-  if (!p.discount_percent) return false;
-  const now = new Date();
-  if (p.discount_from && new Date(p.discount_from) > now) return false;
-  if (p.discount_to && new Date(p.discount_to) < now) return false;
-  return true;
+function isDiscountActive(p: Product): boolean {
+  return !!p.discount_active;
 }
 
 function getRecommendedBadge(p: Product): { text: string; color: string } | null {
@@ -208,8 +206,8 @@ export default function FavoritesPage() {
                     {p.catalog_number && <div className="pc-eyebrow">{tr("Арт.", "Арт.")} {p.catalog_number}</div>}
                     <div className="pc-title" title={title}>{title}</div>
                     <div className="pc-price">
-                      {p.price} смн
-                      {isDiscountActive(p) && <s>{Math.round(p.original_price ?? (p.price / (1 - (p.discount_percent as number) / 100)))} смн</s>}
+                      {p.current_price} смн
+                      {isDiscountActive(p) && <s>{p.price} смн</s>}
                     </div>
                   </div>
                 </div>

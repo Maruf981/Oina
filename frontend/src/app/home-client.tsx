@@ -214,16 +214,14 @@ type Product = {
   original_price: number | null;
   discount_from: string | null;
   discount_to: string | null;
+  current_price: number;
+  discount_active: boolean;
   variants: Variant[];
   images: ProductImage[];
 };
 
 function isDiscountActive(p: Product): boolean {
-  if (!p.discount_percent) return false;
-  const now = new Date();
-  if (p.discount_from && new Date(p.discount_from) > now) return false;
-  if (p.discount_to && new Date(p.discount_to) < now) return false;
-  return true;
+  return !!p.discount_active;
 }
 
 function getRecommendedBadge(p: Product): { text: string; color: string } | null {
@@ -760,7 +758,7 @@ function HomeInner() {
         productId: p.id,
         title: localized(p.title_ru, p.title_tj),
         catalogNumber: p.catalog_number,
-        price: p.price,
+        price: p.current_price,
         size: v.size,
         color: v.color,
       }).then((res) => {
@@ -846,9 +844,9 @@ function HomeInner() {
           {eyebrow && <div className="pc-eyebrow">{eyebrow}</div>}
           <div className="pc-title" title={localized(p.title_ru, p.title_tj)}>{localized(p.title_ru, p.title_tj)}</div>
           <div className="pc-price">
-            {p.price} смн
+            {p.current_price} смн
             {isDiscountActive(p) && (
-              <s>{Math.round(p.original_price ?? (p.price / (1 - (p.discount_percent as number) / 100)))} смн</s>
+              <s>{p.price} смн</s>
             )}
           </div>
         </div>

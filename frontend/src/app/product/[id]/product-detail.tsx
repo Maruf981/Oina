@@ -42,6 +42,7 @@ type ProductBrief = {
   title_tj: string | null;
   catalog_number: string;
   price: number;
+  current_price?: number;
   images: { url: string }[];
 };
 
@@ -55,6 +56,8 @@ type Product = {
   discount_percent: number | null;
   discount_from: string | null;
   discount_to: string | null;
+  current_price: number;
+  discount_active: boolean;
   original_price: number | null;
   material_ru: string | null;
   material_tj: string | null;
@@ -130,11 +133,7 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 function isDiscountActive(p: Product): boolean {
-  if (!p.discount_percent) return false;
-  const now = new Date();
-  if (p.discount_from && new Date(p.discount_from) > now) return false;
-  if (p.discount_to && new Date(p.discount_to) < now) return false;
-  return true;
+  return !!p.discount_active;
 }
 
 const getColorHex = (name: string): string => {
@@ -371,7 +370,7 @@ export default function ProductDetailClient() {
         productId: product.id,
         title: localized(product.title_ru, product.title_tj),
         catalogNumber: product.catalog_number,
-        price: product.price,
+        price: product.current_price,
         size: currentVariant.size,
         color: currentVariant.color,
       },
@@ -445,7 +444,7 @@ export default function ProductDetailClient() {
                 </div>
                 <div className="pc-info">
                   <div className="pc-title">{localized(p.title_ru, p.title_tj)}</div>
-                  <div className="pc-price">{p.price} смн</div>
+                  <div className="pc-price">{p.current_price ?? p.price} смн</div>
                 </div>
               </div>
             </div>
@@ -546,10 +545,10 @@ export default function ProductDetailClient() {
             <h1 className="pd-title">{localized(product.title_ru, product.title_tj)}</h1>
 
             <div className="pd-price">
-              <span>{product.price} смн</span>
+              <span>{product.current_price} смн</span>
               {isDiscountActive(product) && (
                 <>
-                  <s>{Math.round(product.original_price ?? (product.price / (1 - (product.discount_percent as number) / 100)))} смн</s>
+                  <s>{product.price} смн</s>
                   <em>−{product.discount_percent}%</em>
                 </>
               )}

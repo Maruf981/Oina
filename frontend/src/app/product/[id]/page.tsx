@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const title = `${product.title_ru} — Oina.tj`;
     const description =
       product.description_ru?.slice(0, 160) ||
-      `Купить ${product.title_ru} в интернет-магазине Oina.tj. Артикул ${product.catalog_number}. Цена ${product.price} смн.`;
+      `Купить ${product.title_ru} в интернет-магазине Oina.tj. Артикул ${product.catalog_number}. Цена ${product.current_price ?? product.price} смн.`;
     const imageUrl = product.images?.[0]?.url;
 
     return {

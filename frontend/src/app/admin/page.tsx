@@ -160,6 +160,7 @@ type Product = {
   discount_percent: number | null;
   original_price: number | null;
   cost_price: number | null;
+  discount_active?: boolean;
   supplier_id: number | null;
 };
 
@@ -455,7 +456,7 @@ export default function AdminPage() {
 }
 
 function getAdminBadge(p: Product): { text: string; color: string } | null {
-  if (p.discount_percent) return { text: `-${p.discount_percent}%`, color: "#D64545" };
+  if (p.discount_percent) return p.discount_active ? { text: `-${p.discount_percent}%`, color: "#D64545" } : { text: `-${p.discount_percent}% · не активна`, color: "#888780" };
   if (p.is_brand) return { text: "Бренд", color: "#8C6A3F" };
   if (p.is_new) return { text: "Новинка", color: "#3E8E5A" };
   if (p.is_featured) return { text: "Хорошая цена", color: "#3B6EA8" };
@@ -795,16 +796,6 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
   const [dragOverImageIndex, setDragOverImageIndex] = useState<number | null>(null);
 
   const updateField = (key: string, value: any) => setForm({ ...form, [key]: value });
-  const updateDiscountField = (key: string, value: string) => {
-    const next: any = { ...form, [key]: value };
-    const orig = key === "original_price" ? value : form.original_price;
-    const pct = key === "discount_percent" ? value : form.discount_percent;
-    if (orig !== "" && pct !== "") {
-      const computed = Math.round(Number(orig) * (1 - Number(pct) / 100));
-      if (!isNaN(computed)) next.price = String(computed);
-    }
-    setForm(next);
-  };
 
   const [activeColors, setActiveColors] = useState<string[]>(
     Array.from(new Set((product?.variants ?? []).map((v: any) => v.color)))
@@ -849,6 +840,17 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
       alert("Укажите закупочную цену больше 0");
       return;
     }
+    if (form.badgeType === "discount") {
+      const pct = Number(form.discount_percent);
+      if (!Number.isInteger(pct) || pct < 1 || pct > 99) {
+        alert("Скидка: укажите целый процент от 1 до 99");
+        return;
+      }
+      if (form.discount_from && form.discount_to && form.discount_from > form.discount_to) {
+        alert("Скидка: дата «по» раньше даты «с»");
+        return;
+      }
+    }
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
@@ -866,7 +868,7 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
         discount_percent: badgeType === "discount" && form.discount_percent !== "" ? Number(form.discount_percent) : null,
         discount_from: badgeType === "discount" && form.discount_from !== "" ? form.discount_from : null,
         discount_to: badgeType === "discount" && form.discount_to !== "" ? form.discount_to : null,
-        original_price: badgeType === "discount" && form.original_price !== "" ? Number(form.original_price) : null,
+        original_price: null,
         is_active: product ? product.is_active : false,
         variants,
         size_guide:
@@ -1111,19 +1113,12 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
         </label>
 
         {form.badgeType === "discount" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14 }}>
-            <input
-              type="number"
-              placeholder="Цена до скидки"
-              value={form.original_price}
-              onChange={(e) => updateDiscountField("original_price", e.target.value)}
-              style={inputStyle}
-            />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <input
               type="number"
               placeholder="Скидка, %"
               value={form.discount_percent}
-              onChange={(e) => updateDiscountField("discount_percent", e.target.value)}
+              onChange={(e) => updateField("discount_percent", e.target.value)}
               style={inputStyle}
             />
             <div>
