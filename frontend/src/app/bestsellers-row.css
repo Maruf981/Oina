@@ -96,3 +96,30 @@
   .bs-head { min-height: 0; }
   .bs-head::after { position: static; margin-top: 1.5rem; }
 }
+
+/* Фон-полоса от верхней линии до нижней */
+.bs { position: relative; --bs-band: #EAE0D2; }
+[data-theme="dark"] .bs, .dark .bs { --bs-band: #26231F; }
+.bs > * { position: relative; z-index: 1; }
+.bs > .bs-bg {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  top: 3.5rem;
+  height: calc((74cqw - 5rem) / 2.6 * 4 / 3);
+  background: var(--bs-band);
+  pointer-events: none;
+}
+@media (max-width: 768px) {
+  .bs > .bs-bg { top: 0; height: 100%; }
+}
+
+/* Отступ текстов от левого края полосы */
+.bs { --bs-inset: clamp(1.25rem, 2.5vw, 2.5rem); }
+.bs-head > .bs-title,
+.bs-head > .bs-sub { padding-left: var(--bs-inset); }
+.bs-head > .bs-all { margin-left: var(--bs-inset); }
+@media (max-width: 768px) {
+  .bs { --bs-inset: 1rem; }
+}

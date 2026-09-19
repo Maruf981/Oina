@@ -71,6 +71,7 @@ export function BestsellersRow<T extends { id: number | string }>({ items, lang,
   const ru = lang === "ru";
   return (
     <section className="bs" style={{ gridColumn: "1 / -1" }}>
+      <div className="bs-bg" aria-hidden="true" />
       <div className="bs-head">
         <h2 className="sec-title bs-title">{ru ? "Хиты продаж" : "Хитҳои фурӯш"}</h2>
         <p className="bs-sub">{ru ? "Самые популярные вещи сезона" : "Маъмултарин либосҳои мавсим"}</p>
