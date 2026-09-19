@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from app.models.customer import Customer
 from app.models.order import Order, OrderItem, OrderStatus, PaymentMethod
 from app.models.product import ProductVariant
-from app.services.pricing import current_price
+from app.services.pricing import current_price, price_with_promo
+from app.repositories.promo_code import get_valid_promo
 from app.repositories.stock_movement import record_movement, get_variant_locked
 from app.schemas.order import OrderCreate
 
@@ -31,19 +32,34 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
     else:
         customer = get_or_create_customer(db, data.customer_name, data.customer_phone)
 
+    if data.promo_code:
+        if not current:
+            raise HTTPException(status_code=401, detail="Промокод доступен только авторизованным клиентам")
+        customer = current
+
+    variant_ids = [i.product_variant_id for i in data.items]
+    if not variant_ids or len(variant_ids) != len(set(variant_ids)):
+        raise HTTPException(status_code=400, detail="Некорректный состав заказа")
+
     total = 0.0
     order_items = []
 
     for item in data.items:
+        if item.quantity < 1:
+            raise HTTPException(status_code=400, detail="Некорректное количество")
         variant = get_variant_locked(db, item.product_variant_id)
         if not variant:
             raise HTTPException(status_code=404, detail=f"Variant {item.product_variant_id} not found")
         if variant.stock < item.quantity:
             raise HTTPException(status_code=400, detail=f"Not enough stock for variant {variant.id}")
 
-        price = current_price(variant.product)
-        total += price * item.quantity
-        order_items.append((variant, item.quantity, price))
+        order_items.append((variant, item.quantity))
+
+    subtotal = sum(current_price(v.product) * q for v, q in order_items)
+    promo = get_valid_promo(db, data.promo_code, customer.id, subtotal, lock=True) if data.promo_code else None
+    promo_percent = promo.percent if promo else None
+    order_items = [(v, q, price_with_promo(v.product, promo_percent)) for v, q in order_items]
+    total = sum(price * q for _, q, price in order_items)
 
     order = Order(
         customer_id=customer.id,
@@ -53,6 +69,9 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
         comment=data.comment,
         is_dushanbe=data.is_dushanbe,
         total=total,
+        promo_code_id=promo.id if promo else None,
+        promo_code=promo.code if promo else None,
+        promo_percent=promo_percent,
     )
     db.add(order)
     db.flush()
@@ -163,7 +182,7 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     )
 
     item.product_variant_id = new_variant_id
-    item.price_at_order = current_price(new_variant.product)
+    item.price_at_order = price_with_promo(new_variant.product, item.order.promo_percent)
 
     order = item.order
     order.total = sum(float(i.price_at_order) * (i.quantity - i.returned_quantity) for i in order.items)

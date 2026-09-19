@@ -38,6 +38,9 @@ class Order(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     courier_id: Mapped[int | None] = mapped_column(ForeignKey("employees.id"), nullable=True)
+    promo_code_id: Mapped[int | None] = mapped_column(ForeignKey("promo_codes.id"), nullable=True)
+    promo_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    promo_percent: Mapped[int | None] = mapped_column(nullable=True)
     customer: Mapped["Customer"] = relationship(back_populates="orders")
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")
 

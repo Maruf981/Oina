@@ -16,6 +16,7 @@ class OrderCreate(BaseModel):
     payment_method: str
     is_dushanbe: bool = True
     items: list[OrderItemCreate]
+    promo_code: str | None = None
 
 
 class VariantBrief(BaseModel):
@@ -82,6 +83,8 @@ class OrderOut(BaseModel):
     delivery_address: str | None
     comment: str | None
     total: float
+    promo_code: str | None = None
+    promo_percent: int | None = None
     created_at: datetime
     items: list[OrderItemOut]
     customer: CustomerBrief

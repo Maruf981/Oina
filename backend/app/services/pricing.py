@@ -48,3 +48,16 @@ def current_price_sql(Product, today: date | None = None):
         (discount_active_sql(Product, today), func.round(Product.price * (100 - Product.discount_percent) / 100)),
         else_=Product.price,
     )
+
+
+def apply_percent(price, percent: int) -> float:
+    base = Decimal(str(price))
+    return float((base * (100 - percent) / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+def price_with_promo(p, promo_percent: int | None, today: date | None = None) -> float:
+    """Скидки не суммируются: берётся большая из скидки товара и промокода."""
+    price = current_price(p, today)
+    if not promo_percent:
+        return price
+    return min(price, apply_percent(p.price, promo_percent))
