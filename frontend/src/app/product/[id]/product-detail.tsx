@@ -408,7 +408,7 @@ export default function ProductDetailClient() {
     { label: tr("Уход", "Нигоҳубин"), value: product.care_instructions_ru ? localized(product.care_instructions_ru, product.care_instructions_tj) : "" },
   ].filter((r) => r.value);
   const deliveryText = city === "dushanbe"
-    ? tr("Доставка за 24 часа по Душанбе", "Дар давоми 24 соат дар Душанбе расонида мешавад")
+    ? tr("Доставка за 24 часа", "Дар давоми 24 соат расонида мешавад")
     : tr("В другие города — бесплатно через доверенное лицо, после полной предоплаты", "Ба шаҳрҳои дигар — ройгон тавассути шахси боэътимод, пас аз пардохти пурраи пешакӣ");
   const toggleAcc = (key: string) => setOpenAcc((cur) => (cur === key ? null : key));
   const isVid = (img: { media_type?: string }) => img.media_type === "video";

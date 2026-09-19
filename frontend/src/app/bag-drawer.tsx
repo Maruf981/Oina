@@ -404,7 +404,7 @@ export function BagDrawerHost() {
             <div className="bag-total">
               <div>
                 <div className="bag-total-title">{tr("Итого", "Ҳамагӣ")}</div>
-                <div className="bag-total-note">{tr("Доставка за 24 часа по Душанбе", "Расонидан дар 24 соат дар Душанбе")}</div>
+                <div className="bag-total-note">{tr("Доставка за 24 часа", "Расонидан дар 24 соат")}</div>
               </div>
               <div className="bag-total-sum">{cart.totalPrice} смн</div>
             </div>
