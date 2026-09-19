@@ -132,3 +132,14 @@
   .ck-qty { grid-area: qty; justify-self: start; }
   .ck-item-sum { grid-area: sum; }
 }
+
+/* Промокод */
+.ck-promo { display: flex; gap: .6rem; align-items: flex-end; }
+.ck-promo .ck-field { flex: 1; margin-bottom: 0; }
+.ck-promo .ck-promo-msg { flex: 1; margin: 0; color: var(--text); }
+.ck-promo-btn { padding: .6rem 1rem; background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 0; font-size: .625rem; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.ck-promo-btn:hover, .ck-promo-btn:active, .ck-promo-btn:focus-visible { border-color: var(--text); }
+.ck-promo-btn:disabled { opacity: .5; cursor: default; }
+.ck-promo-msg { font-size: .75rem; margin-top: .6rem; color: var(--text-muted); }
+.ck-promo-msg.is-error { color: #E24B4A; }
+.bag-total-old { text-decoration: line-through; color: var(--text-muted); font-size: .8em; margin-right: .5rem; }

@@ -1,5 +1,6 @@
 "use client";
 import { DualSlidesSection } from "./dual-slides-section";
+import { PromoCodesSection } from "./promo-codes-section";
 
 import { useEffect, useState, useRef } from "react";
 
@@ -59,6 +60,7 @@ const labels = {
     hireDate: "Дата приёма",
     notes: "Заметки",
     banners: "Баннеры",
+    promos: "Промокоды",
     addBanner: "Добавить баннер",
     subtitle: "Подзаголовок",
     product: "Товар",
@@ -119,6 +121,7 @@ const labels = {
     hireDate: "Санаи қабул",
     notes: "Ёддошт",
     banners: "Баннерҳо",
+    promos: "Промокодҳо",
     addBanner: "Иловаи баннер",
     subtitle: "Зерсарлавҳа",
     product: "Мол",
@@ -262,7 +265,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived" | "employees" | "banners" | "templates">(() => {
+  const [tab, setTab] = useState<"products" | "categories" | "orders" | "warehouse" | "finance" | "published" | "drafts" | "archived" | "employees" | "banners" | "templates" | "promos">(() => {
     if (typeof window === "undefined") return "products";
     return (localStorage.getItem("admin_tab") as any) || "products";
   });
@@ -396,7 +399,7 @@ export default function AdminPage() {
         </div>
       </nav>
       <div style={{ display: "flex", gap: 24, padding: "20px 16px", borderBottom: "1px solid var(--line)", overflowX: "auto", whiteSpace: "nowrap", WebkitOverflowScrolling: "touch" }}>
-        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts", "archived", "employees", "banners", "templates"] as const).map((tabName) => (
+        {(["products", "categories", "orders", "warehouse", "finance", "published", "drafts", "archived", "employees", "banners", "templates", "promos"] as const).map((tabName) => (
           <span
             key={tabName}
             onClick={() => setTab(tabName)}
@@ -450,6 +453,7 @@ export default function AdminPage() {
         {tab === "employees" && <EmployeesTab t={t} authFetch={authFetch} />}
         {tab === "banners" && <BannersTab t={t} authFetch={authFetch} products={products} categories={categories} />}
 {tab === "templates" && <TemplatesTab products={products} authFetch={authFetch} />}
+        {tab === "promos" && <PromoCodesSection api={API} authFetch={authFetch} />}
       </div>
     </div>
   );

@@ -44,6 +44,12 @@ export function BagDrawerHost() {
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
   const [orderTotal, setOrderTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<{ code: string; percent: number; discount: number; total: number; sig: string } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoChecking, setPromoChecking] = useState(false);
+  const cartSig = cart.items.map((i) => `${i.variantId}x${i.qty}`).join(",");
+  const activePromo = promo && promo.sig === cartSig && auth.customer ? promo : null;
 
   // открытие по событию
   useEffect(() => {
@@ -133,6 +139,31 @@ export function BagDrawerHost() {
     router.push(href);
   };
 
+  const applyPromo = async () => {
+    const code = promoInput.trim().toUpperCase();
+    if (!code || !auth.token) return;
+    setPromoChecking(true);
+    setPromoError(null);
+    try {
+      const res = await fetch(`${API_URL}/promo-codes/check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth.token}` },
+        body: JSON.stringify({ code, items: cart.items.map((item) => ({ product_variant_id: item.variantId, quantity: item.qty })) }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setPromo(null);
+        setPromoError(typeof data?.detail === "string" ? data.detail : tr("Промокод не найден", "Промокод ёфт нашуд"));
+        return;
+      }
+      setPromo({ ...data, sig: cartSig });
+    } catch {
+      setPromoError(tr("Не удалось проверить промокод", "Санҷиши промокод нашуд"));
+    } finally {
+      setPromoChecking(false);
+    }
+  };
+
   const handlePlaceOrder = async () => {
     setAttemptedSubmit(true);
     setError(null);
@@ -150,6 +181,7 @@ export function BagDrawerHost() {
           payment_method: paymentMethod,
           is_dushanbe: isDushanbe,
           items: cart.items.map((item) => ({ product_variant_id: item.variantId, quantity: item.qty })),
+          promo_code: activePromo ? activePromo.code : null,
         }),
       });
       if (!res.ok) {
@@ -157,13 +189,15 @@ export function BagDrawerHost() {
         throw new Error(err?.detail || "Order failed");
       }
       const order = await res.json();
-      setOrderTotal(cart.totalPrice);
+      setOrderTotal(Number(order.total));
       await cart.clearCart();
+      setPromo(null);
+      setPromoInput("");
       setOrderNumber(order.id);
       setStep(paymentMethod === "cod" ? "done" : "payment");
     } catch (err: any) {
       const msg = typeof err?.message === "string" ? err.message : "";
-      setError(msg.includes("В наличии только") ? msg : tr("Ошибка оформления заказа. Попробуйте ещё раз.", "Хатогӣ ҳангоми фармоиш. Бори дигар кӯшиш кунед."));
+      setError(msg.includes("В наличии только") || msg.toLowerCase().includes("промокод") ? msg : tr("Ошибка оформления заказа. Попробуйте ещё раз.", "Хатогӣ ҳангоми фармоиш. Бори дигар кӯшиш кунед."));
     } finally {
       setPlacing(false);
     }
@@ -299,6 +333,37 @@ export function BagDrawerHost() {
                   <div className="ck-sum-price">{item.price * item.qty} смн</div>
                 </div>
               ))}
+              <div className="ck-label ck-label--gap">{tr("Промокод", "Промокод")}</div>
+              {!auth.customer ? (
+                <p className="ck-note">{tr("Войдите в аккаунт, чтобы применить промокод", "Барои истифодаи промокод ба аккаунт ворид шавед")}</p>
+              ) : activePromo ? (
+                <div className="ck-promo">
+                  <div className="ck-promo-msg">
+                    {activePromo.discount > 0
+                      ? `${activePromo.code}: −${activePromo.percent}% · −${activePromo.discount} смн`
+                      : tr(`${activePromo.code}: скидка на товары уже больше промокода`, `${activePromo.code}: тахфифи мол аллакай зиёдтар аст`)}
+                  </div>
+                  <button type="button" className="ck-promo-btn" onClick={() => { setPromo(null); setPromoInput(""); }}>{tr("Убрать", "Бекор кардан")}</button>
+                </div>
+              ) : (
+                <>
+                  <div className="ck-promo">
+                    <label className="ck-field">
+                      <input
+                        value={promoInput}
+                        maxLength={32}
+                        placeholder={tr("Введите промокод", "Промокодро ворид кунед")}
+                        onChange={(e) => { setPromoInput(e.target.value); setPromoError(null); }}
+                        onKeyDown={(e) => { if (e.key === "Enter") applyPromo(); }}
+                      />
+                    </label>
+                    <button type="button" className="ck-promo-btn" onClick={applyPromo} disabled={promoChecking || !promoInput.trim()}>
+                      {promoChecking ? "…" : tr("Применить", "Татбиқ")}
+                    </button>
+                  </div>
+                  {promoError && <div className="ck-promo-msg is-error">{promoError}</div>}
+                </>
+              )}
               <p className="ck-note">{t.checkoutRequiredNote}</p>
             </div>
           )}
@@ -355,7 +420,10 @@ export function BagDrawerHost() {
           <div className="bag-foot">
             <div className="bag-total">
               <div className="bag-total-title">{tr("Итого", "Ҳамагӣ")}</div>
-              <div className="bag-total-sum">{cart.totalPrice} смн</div>
+              <div className="bag-total-sum">
+                {activePromo && activePromo.discount > 0 && <span className="bag-total-old">{cart.totalPrice} смн</span>}
+                {activePromo ? activePromo.total : cart.totalPrice} смн
+              </div>
             </div>
             {error && <div className="bd-error">{error}</div>}
             <button className="bag-checkout" onClick={handlePlaceOrder} disabled={placing || cart.items.length === 0}>
