@@ -874,7 +874,7 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
         discount_to: badgeType === "discount" && form.discount_to !== "" ? form.discount_to : null,
         original_price: null,
         is_active: product ? product.is_active : false,
-        variants,
+        variants: variants.map((v) => ({ ...v, expected_stock: product?.variants?.find((pv: any) => pv.size === v.size && pv.color === v.color)?.stock ?? null })),
         size_guide:
           allSizesForGuide.length > 0
             ? allSizesForGuide.map((size) => ({
@@ -1896,7 +1896,7 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
       if (supplierFilter !== "" && info?.supplierId !== supplierFilter) return;
 
       const revenue = item.price_at_order * effectiveQty;
-      const cost = (info?.costPrice ?? 0) * effectiveQty;
+      const cost = Number((item as any).cost_at_order ?? info?.costPrice ?? 0) * effectiveQty;
       totalRevenue += revenue;
       totalCost += cost;
 

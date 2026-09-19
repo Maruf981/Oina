@@ -1,3 +1,4 @@
+from app.schemas.order import OrderAdminOut
 from fastapi import APIRouter, Depends, BackgroundTasks
 from app.core.telegram_notify import send_admin_notification, send_customer_notification, send_admin_bot_message
 from sqlalchemy.orm import Session
@@ -57,8 +58,8 @@ def create_order(data: OrderCreate, background_tasks: BackgroundTasks, db: Sessi
     return order
 
 
-@router.get("/", response_model=list[OrderOut])
-def list_orders(db: Session = Depends(get_db)):
+@router.get("/", response_model=list[OrderAdminOut])
+def list_orders(db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     from app.models.order import Order
     return db.query(Order).order_by(Order.created_at.desc()).all()
 
@@ -69,7 +70,7 @@ def order_stats(db: Session = Depends(get_db), _: bool = Depends(get_current_adm
     from app.models.order import Order
 
     now = datetime.utcnow()
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = (now + timedelta(hours=5)).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=5)  # полночь по Душанбе
     week_start = now - timedelta(days=7)
     month_start = now - timedelta(days=30)
     excluded = ("cancelled", "returned")
@@ -214,7 +215,7 @@ def request_exchange(
 
 
 @router.get("/{order_id}", response_model=OrderOut)
-def get_order(order_id: int, db: Session = Depends(get_db)):
+def get_order(order_id: int, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     from app.models.order import Order
     from fastapi import HTTPException
     order = db.query(Order).filter(Order.id == order_id).first()

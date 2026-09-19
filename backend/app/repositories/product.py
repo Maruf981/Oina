@@ -6,6 +6,7 @@ from app.services.pricing import current_price_sql, discount_active_sql
 from app.schemas.product import ProductCreate
 from app.services.translate import translate_to_tj
 from app.repositories.stock_movement import record_movement, get_variant_locked
+from fastapi import HTTPException
 
 
 def get_all(
@@ -215,7 +216,10 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
         existing = existing_by_key.get(key)
         if existing:
             existing = get_variant_locked(db, existing.id)
-            delta = variant.stock - existing.stock
+            base_stock = variant.expected_stock if variant.expected_stock is not None else existing.stock
+            delta = variant.stock - base_stock
+            if existing.stock + delta < 0:
+                raise HTTPException(status_code=409, detail=f"Остаток {variant.size}/{variant.color} изменился (сейчас {existing.stock}). Обновите страницу.")
             if delta != 0:
                 record_movement(
                     db,
@@ -226,7 +230,7 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
                     supplier_id=product.supplier_id if delta > 0 else None,
                     note=f"Изменение остатка через форму товара" if delta > 0 else "Ручная корректировка остатка",
                 )
-            existing.stock = variant.stock
+            existing.stock = existing.stock + delta
         else:
             generated_sku = f"{product.catalog_number}-{next_idx}"
             next_idx += 1
@@ -309,7 +313,7 @@ def create(db: Session, data: ProductCreate) -> Product:
             continue
 
         for idx, variant in enumerate(variants_data, start=1):
-            variant_data = variant.model_dump(exclude={"sku"})
+            variant_data = variant.model_dump(exclude={"sku", "expected_stock"})
             generated_sku = f"{product.catalog_number}-{idx}"
             new_variant = ProductVariant(product_id=product.id, sku=generated_sku, **variant_data)
             db.add(new_variant)

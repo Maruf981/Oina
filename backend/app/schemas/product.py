@@ -26,6 +26,7 @@ class ProductVariantBase(BaseModel):
 
 
 class ProductVariantCreate(ProductVariantBase):
+    expected_stock: int | None = None  # остаток на момент открытия формы
     pass
 
 

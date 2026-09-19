@@ -91,3 +91,11 @@ class OrderOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class OrderItemAdminOut(OrderItemOut):
+    cost_at_order: float | None = None
+
+
+class OrderAdminOut(OrderOut):
+    items: list[OrderItemAdminOut]

@@ -82,6 +82,7 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
             product_variant_id=variant.id,
             quantity=quantity,
             price_at_order=price,
+            cost_at_order=variant.product.cost_price,
         ))
         variant.stock -= quantity
         record_movement(
@@ -90,6 +91,7 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
             movement_type="sale",
             quantity=-quantity,
             order_id=order.id,
+            cost_price_at_time=variant.product.cost_price,
         )
 
     db.commit()
@@ -109,6 +111,8 @@ def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | 
     remaining = item.quantity - item.returned_quantity
     if remaining <= 0:
         raise HTTPException(status_code=400, detail="Item already fully returned")
+    if item.order.status in (OrderStatus.CANCELLED, OrderStatus.RETURNED):
+        raise HTTPException(status_code=400, detail="Заказ отменён или возвращён — товар уже вернулся на склад")
 
     if quantity is None:
         quantity = remaining
@@ -149,6 +153,10 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     remaining = item.quantity - item.returned_quantity
     if remaining <= 0:
         raise HTTPException(status_code=400, detail="Эта позиция уже полностью возвращена — обменивать нечего")
+    if item.order.status in (OrderStatus.CANCELLED, OrderStatus.RETURNED):
+        raise HTTPException(status_code=400, detail="Заказ отменён или возвращён — обмен невозможен")
+    if new_variant_id == item.product_variant_id:
+        raise HTTPException(status_code=400, detail="Выбран тот же вариант товара")
 
     lock_ids = sorted(set([item.product_variant_id, new_variant_id]))
     locked = {vid: get_variant_locked(db, vid) for vid in lock_ids}
@@ -181,8 +189,23 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
         note=f"Обмен — заказ №{order_id}, позиция №{item_id}: выдан новый вариант",
     )
 
-    item.product_variant_id = new_variant_id
-    item.price_at_order = price_with_promo(new_variant.product, item.order.promo_percent)
+    order = item.order
+    same_product = new_variant.product_id == old_variant.product_id
+    # тот же товар (другой размер/цвет) — клиент уже заплатил, цену не меняем
+    new_price = item.price_at_order if same_product else price_with_promo(new_variant.product, order.promo_percent)
+    if item.returned_quantity > 0:
+        # вернувшиеся штуки остаются в истории на старом варианте, остаток — новой позицией
+        item.quantity = item.returned_quantity
+        item.is_returned = True
+        new_item = OrderItem(product_variant_id=new_variant_id, quantity=remaining,
+                             price_at_order=new_price, cost_at_order=new_variant.product.cost_price,
+                             returned_quantity=0, is_returned=False)
+        order.items.append(new_item)
+        item = new_item
+    else:
+        item.product_variant_id = new_variant_id
+        item.price_at_order = new_price
+        item.cost_at_order = new_variant.product.cost_price
 
     order = item.order
     order.total = sum(float(i.price_at_order) * (i.quantity - i.returned_quantity) for i in order.items)
@@ -203,6 +226,24 @@ def update_status(db: Session, order: Order, new_status: str) -> Order:
     if new_status == "delivered" and not order.delivered_at:
         from datetime import datetime
         order.delivered_at = datetime.utcnow()
+
+    if already_restored and not will_restore:
+        # заказ восстановлен из отмены/возврата — снова списываем товар со склада
+        need: dict[int, int] = {}
+        for i in order.items:
+            left = i.quantity - i.returned_quantity
+            if left > 0:
+                need[i.product_variant_id] = need.get(i.product_variant_id, 0) + left
+        locked = {vid: get_variant_locked(db, vid) for vid in sorted(need)}
+        for vid, qty in need.items():
+            if locked[vid].stock < qty:
+                db.rollback()
+                raise HTTPException(status_code=400, detail=f"Нельзя восстановить заказ: на складе {locked[vid].stock}, нужно {qty} (вариант №{vid})")
+        for vid, qty in need.items():
+            locked[vid].stock -= qty
+            record_movement(db, variant_id=vid, movement_type="sale", quantity=-qty, order_id=order.id,
+                            cost_price_at_time=locked[vid].product.cost_price,
+                            note=f"Заказ №{order.id} восстановлен из статуса {old_status.value}")
 
     if will_restore and not already_restored:
         for item in order.items:
