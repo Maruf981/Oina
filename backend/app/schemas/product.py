@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 class SizeGuideRow(BaseModel):
     size: str
     chest: str | None = None
@@ -80,6 +80,19 @@ class ProductBase(BaseModel):
 
 class ProductCreate(ProductBase):
     variants: list[ProductVariantCreate] = []
+
+    @field_validator("discount_percent")
+    @classmethod
+    def v_discount_percent(cls, v):
+        if v is not None and not (1 <= v <= 99):
+            raise ValueError("Скидка должна быть от 1 до 99%")
+        return v
+
+    @model_validator(mode="after")
+    def v_discount_dates(self):
+        if self.discount_from and self.discount_to and self.discount_from > self.discount_to:
+            raise ValueError("Дата начала скидки позже даты окончания")
+        return self
 
 
 class ProductOut(ProductBase):
