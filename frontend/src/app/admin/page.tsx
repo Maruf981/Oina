@@ -474,6 +474,10 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
   const [publishedPage, setPublishedPage] = useState(1);
   const [archivedProducts, setArchivedProducts] = useState<Product[]>([]);
   const [archivedPage, setArchivedPage] = useState(1);
+  const [pubSearch, setPubSearch] = useState("");
+  const [pubCat, setPubCat] = useState("");
+  const [pubSort, setPubSort] = useState("new");
+  const pubCtl = { padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 0, color: "var(--text)", fontSize: 13, boxSizing: "border-box" as const };
   useEffect(() => {
     if (view === "archived") {
       authFetch(`${API}/products/admin/archived`).then((r: any) => r.json()).then(setArchivedProducts);
@@ -533,7 +537,29 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
   };
 
   const draftProducts = productList.filter((p) => !p.is_active);
-  const publishedProducts = productList.filter((p) => p.is_active);
+  const publishedProducts = (() => {
+    const q = pubSearch.trim().toLowerCase();
+    const catId = pubCat ? Number(pubCat) : null;
+    const cats: any[] = Array.isArray(categories) ? categories : [];
+    const inCat = (p: any) => !catId || p.category_id === catId || cats.find((c) => c.id === p.category_id)?.parent_id === catId;
+    const stockOf = (p: any) => (p.variants ?? []).reduce((sum: number, v: any) => sum + (v.stock ?? 0), 0);
+    const list = productList.filter((p: any) => p.is_active && inCat(p) && (
+      !q || String(p.id) === q ||
+      (p.title_ru ?? "").toLowerCase().includes(q) ||
+      (p.title_tj ?? "").toLowerCase().includes(q) ||
+      (p.catalog_number ?? "").toLowerCase().includes(q)
+    ));
+    const sorters: Record<string, (a: any, b: any) => number> = {
+      new: (a, b) => String(b.created_at).localeCompare(String(a.created_at)),
+      old: (a, b) => String(a.created_at).localeCompare(String(b.created_at)),
+      name: (a, b) => (a.title_ru ?? "").localeCompare(b.title_ru ?? "", "ru"),
+      price_asc: (a, b) => Number(a.current_price ?? a.price) - Number(b.current_price ?? b.price),
+      price_desc: (a, b) => Number(b.current_price ?? b.price) - Number(a.current_price ?? a.price),
+      stock_asc: (a, b) => stockOf(a) - stockOf(b),
+      sold: (a, b) => (b.sold_count ?? 0) - (a.sold_count ?? 0),
+    };
+    return [...list].sort(sorters[pubSort] ?? sorters.new);
+  })();
   const PAGE_SIZE = 20;
   const draftTotalPages = Math.max(1, Math.ceil(draftProducts.length / PAGE_SIZE));
   const publishedTotalPages = Math.max(1, Math.ceil(publishedProducts.length / PAGE_SIZE));
@@ -663,7 +689,36 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
         </div>
       )}
 
-      {view === "published" && publishedProducts.length === 0 && <p style={{ color: "var(--text-muted)" }}>Опубликованных товаров пока нет</p>}
+      {view === "published" && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 20 }}>
+          <input
+            value={pubSearch}
+            onChange={(e) => { setPubSearch(e.target.value); setPublishedPage(1); }}
+            placeholder="Поиск: название, артикул или ID"
+            style={{ ...pubCtl, flex: "1 1 260px" }}
+          />
+          <select value={pubCat} onChange={(e) => { setPubCat(e.target.value); setPublishedPage(1); }} style={pubCtl}>
+            <option value="">Все категории</option>
+            {(Array.isArray(categories) ? categories : []).map((c: any) => (
+              <option key={c.id} value={c.id}>{c.parent_id ? "— " : ""}{c.name}</option>
+            ))}
+          </select>
+          <select value={pubSort} onChange={(e) => { setPubSort(e.target.value); setPublishedPage(1); }} style={pubCtl}>
+            <option value="new">Сначала новые</option>
+            <option value="old">Сначала старые</option>
+            <option value="name">По названию (А–Я)</option>
+            <option value="price_asc">Цена ↑</option>
+            <option value="price_desc">Цена ↓</option>
+            <option value="stock_asc">Мало на складе</option>
+            <option value="sold">Хиты продаж</option>
+          </select>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Найдено: {publishedProducts.length}</span>
+          {(pubSearch || pubCat) && (
+            <span onClick={() => { setPubSearch(""); setPubCat(""); setPublishedPage(1); }} style={{ fontSize: 12, textDecoration: "underline", cursor: "pointer" }}>Сбросить</span>
+          )}
+        </div>
+      )}
+      {view === "published" && publishedProducts.length === 0 && <p style={{ color: "var(--text-muted)" }}>{pubSearch || pubCat ? "Ничего не найдено" : "Опубликованных товаров пока нет"}</p>}
 
       {view === "published" && publishedProducts.length > 0 && (
         <div>
