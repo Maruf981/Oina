@@ -183,3 +183,7 @@
     font-size: .625rem;
   }
 }
+
+/* категории: обычный регистр вместо капса */
+.coll-bar .coll-item { text-transform: none; letter-spacing: .04em; font-size: .8125rem; }
+.coll-bar--sub .coll-item { font-size: .75rem; }

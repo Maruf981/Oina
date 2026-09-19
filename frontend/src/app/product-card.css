@@ -327,3 +327,6 @@
 @media (max-width: 700px) {
   .sec--reviews .sec-head { padding-top: 1.5rem; }
 }
+
+/* сортировка: обычный регистр вместо капса */
+.sec-sort .coll-item { text-transform: none; letter-spacing: .04em; font-size: .8125rem; }
