@@ -1,0 +1,70 @@
+/* ===== Хиты продаж (Omira style) ===== */
+.bs {
+  display: grid;
+  grid-template-columns: minmax(0, 26%) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+  padding: 3rem 0 2rem;
+}
+.bs-head { padding-top: .5rem; }
+.bs-title {
+  text-align: left !important;
+  margin: 0 !important;
+  font-size: clamp(2.25rem, 4.2vw, 4.25rem) !important;
+  line-height: 1 !important;
+  letter-spacing: -.01em;
+  text-transform: uppercase;
+}
+.bs-sub {
+  margin: .9rem 0 0;
+  font-family: var(--font-label);
+  font-size: .75rem;
+  line-height: 1.5;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.bs-all {
+  display: inline-block;
+  margin-top: 3rem;
+  padding: 9px 22px;
+  background: var(--text);
+  border: 1px solid var(--text);
+  border-radius: 0;
+  font-family: var(--font-label);
+  font-size: .6875rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--bg);
+  cursor: pointer;
+  transition: background-color .25s ease, border-color .25s ease, color .25s ease;
+}
+.bs-all:hover { background: transparent; border-color: var(--text); color: var(--text); }
+
+.bs-track {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: .5rem 0 1rem;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+}
+.bs-track::-webkit-scrollbar { display: none; }
+.bs-track.is-drag { cursor: grabbing; user-select: none; }
+.bs-track.is-drag * { pointer-events: none; }
+.bs-item {
+  flex: 0 0 calc((100% - 3rem) / 2.6);
+  min-width: 0;
+}
+.bs-item img { -webkit-user-drag: none; user-select: none; }
+
+@media (max-width: 768px) {
+  .bs { grid-template-columns: 1fr; gap: 1.25rem; padding: 2rem 0 1rem; }
+  .bs-all { margin-top: 1.5rem; }
+  .bs-track { gap: 1rem; cursor: auto; }
+  .bs-item { flex-basis: 72%; }
+}

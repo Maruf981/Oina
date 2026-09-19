@@ -1,6 +1,7 @@
 "use client";
 import { cld } from "../lib/cld";
 import { DualSlider, type DualSlide } from "./dual-slider";
+import { BestsellersRow } from "./bestsellers-row";
 
 import { Fragment, useEffect, useState, useRef, Suspense } from "react";
 import Image from "next/image";
@@ -302,6 +303,13 @@ function HomeInner() {
       .catch(() => setBanners([]));
   }, []);
   const [products, setProducts] = useState<Product[]>([]);
+  const [hits, setHits] = useState<typeof products>([]);
+  useEffect(() => {
+    fetch(`${API_URL}/products/?sort=popularity&limit=10`)
+      .then((r) => r.json())
+      .then((d) => setHits(Array.isArray(d) ? d : d.items || d.products || []))
+      .catch(() => {});
+  }, []);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState(false);
   const [retryTrigger, setRetryTrigger] = useState(0);
@@ -953,6 +961,14 @@ function HomeInner() {
             <Fragment key={p.id}>
             
             {renderCard(p, "grid")}
+            {idx === Math.min(gridCols * 2, products.length) - 1 && hits.length > 0 && !selectedCategoryId && !searchQuery && !minPrice && !maxPrice && !filterSize && !filterColor && !filterMaterial && !filterSeason && !filterBrandOnly && !filterInStock && !filterOnSale && !filterRecommendedOnly && (
+              <BestsellersRow
+                items={hits}
+                lang={lang}
+                onAll={() => router.push("/bestsellers")}
+                renderItem={(p) => renderCard(p, "hits")}
+              />
+            )}
             {idx === Math.min(gridCols * 4, products.length) - 1 && dualSlides.length > 0 && (
               <div style={{ gridColumn: "1 / -1" }}>
                 <div className="sec-head" style={{ paddingBottom: "1rem" }}>
