@@ -18,9 +18,23 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 CLAUDE_MODEL = "claude-sonnet-4-6"
 API_URL = os.getenv("API_URL", "https://oina.onrender.com")
 BOT_INTERNAL_SECRET = os.getenv("BOT_INTERNAL_SECRET", "")
+import contextvars
+CURRENT_UID: contextvars.ContextVar[int] = contextvars.ContextVar("CURRENT_UID", default=0)
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+
+
+@dp.update.outer_middleware()
+async def _remember_user(handler, event, data):
+    """Запоминаем, кто пишет боту, — сервер показывает заказы только их владельцу."""
+    user = data.get("event_from_user")
+    token = CURRENT_UID.set(user.id if user else 0)
+    try:
+        return await handler(event, data)
+    finally:
+        CURRENT_UID.reset(token)
+
 
 # Простая память диалога в оперативной памяти процесса: user_id -> список сообщений.
 # Сбрасывается при перезапуске бота. Для продакшена этого достаточно на первом этапе.
@@ -101,7 +115,7 @@ async def post_backend(path: str, json_body: dict) -> tuple[int, dict | None]:
     async with httpx.AsyncClient(timeout=15) as client:
         for attempt in range(len(delays) + 1):
             try:
-                response = await client.post(f"{API_URL}{path}", json=json_body)
+                response = await client.post(f"{API_URL}{path}", json=json_body, headers={"X-Bot-Secret": BOT_INTERNAL_SECRET})
             except Exception as e:
                 logging.error(f"Backend POST error: {e}")
                 return 0, None
@@ -159,7 +173,7 @@ async def post_backend_put(path: str, json_body: dict) -> tuple[int, dict | None
 
 
 async def lookup_order_by_phone(phone: str) -> list:
-    result = await fetch_backend("/orders/lookup", {"phone": phone})
+    result = await fetch_backend("/orders/lookup", {"phone": phone, "telegram_id": CURRENT_UID.get()})
     return result if isinstance(result, list) else []
 
 
@@ -306,6 +320,7 @@ async def request_exchange(
         f"/orders/{order_id}/exchange-request",
         {
             "phone": phone,
+            "telegram_id": CURRENT_UID.get(),
             "is_dushanbe": is_dushanbe,
             "current_item": current_item,
             "desired_size": desired_size,
@@ -385,7 +400,7 @@ async def ask_claude(user_id: int, user_message: str) -> str:
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block.get("id"),
-                    "content": str(orders) if orders else "Заказов с таким номером не найдено.",
+                    "content": str(orders) if orders else "Заказов не найдено. Клиент должен сначала подтвердить номер кнопкой «📱 Поделиться номером телефона» — без этого заказы не показываются.",
                 })
             elif block.get("name") == "place_order":
                 tool_input = block.get("input", {})
@@ -873,7 +888,7 @@ async def cb_confirm(callback: CallbackQuery):
     phone = flow["phone"]
 
     if pending.get("action") == "cancel_whole":
-        status_code, body = await post_backend(f"/orders/{order_id}/cancel-request", {"phone": phone})
+        status_code, body = await post_backend(f"/orders/{order_id}/cancel-request", {"phone": phone, "telegram_id": CURRENT_UID.get()})
         if status_code == 200:
             await callback.message.answer(f"✅ Заказ №{order_id} отменён.")
         else:
@@ -884,7 +899,7 @@ async def cb_confirm(callback: CallbackQuery):
         quantity = pending.get("quantity")
         status_code, body = await post_backend(
             f"/orders/{order_id}/items/{item_id}/return-request",
-            {"phone": phone, "quantity": quantity},
+            {"phone": phone, "quantity": quantity, "telegram_id": CURRENT_UID.get()},
         )
         if status_code == 200:
             await callback.message.answer("✅ Возврат оформлен.")
@@ -921,7 +936,7 @@ async def text_handler(message: Message):
         orders = await lookup_order_by_phone(text)
         user_flow.pop(uid, None)
         if not orders:
-            await message.answer("Заказов с таким номером не найдено.")
+            await message.answer("Заказов не найдено. Если заказ ваш — сначала нажмите «📱 Поделиться номером телефона», чтобы подтвердить номер.", reply_markup=CONTACT_SHARE_MENU)
             return
         reply_text = "\n\n".join(format_order_summary(o) for o in orders[:5])
         await message.answer(reply_text)
@@ -952,11 +967,11 @@ async def text_handler(message: Message):
     if flow and flow.get("flow") == "cancel_phone":
         phone = text
         order_id = flow["order_id"]
-        order = await fetch_backend(f"/orders/{order_id}/verify", {"phone": phone})
+        order = await fetch_backend(f"/orders/{order_id}/verify", {"phone": phone, "telegram_id": CURRENT_UID.get()})
         if not order or not isinstance(order, dict):
             user_flow.pop(uid, None)
             await message.answer(
-                "Не удалось найти заказ с таким номером и телефоном. Проверьте данные и попробуйте снова через меню."
+                "Не удалось найти заказ с таким номером и телефоном. Проверьте данные. Если заказ ваш — сначала нажмите «📱 Поделиться номером телефона».", reply_markup=CONTACT_SHARE_MENU
             )
             return
 
@@ -1022,11 +1037,11 @@ async def text_handler(message: Message):
     if flow and flow.get("flow") == "exchange_phone":
         phone = text
         order_id = flow["order_id"]
-        order = await fetch_backend(f"/orders/{order_id}/verify", {"phone": phone})
+        order = await fetch_backend(f"/orders/{order_id}/verify", {"phone": phone, "telegram_id": CURRENT_UID.get()})
         if not order or not isinstance(order, dict):
             user_flow.pop(uid, None)
             await message.answer(
-                "Не удалось найти заказ с таким номером и телефоном. Проверьте данные и попробуйте снова через меню."
+                "Не удалось найти заказ с таким номером и телефоном. Проверьте данные. Если заказ ваш — сначала нажмите «📱 Поделиться номером телефона».", reply_markup=CONTACT_SHARE_MENU
             )
             return
         if order.get("status") != "delivered":

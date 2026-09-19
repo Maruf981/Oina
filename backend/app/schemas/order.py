@@ -42,6 +42,7 @@ class OrderItemOut(BaseModel):
 
 class ReturnItemRequest(BaseModel):
     phone: str
+    telegram_id: int | None = None
     quantity: int | None = None
     reason: str | None = None
 
@@ -49,6 +50,7 @@ class ReturnItemRequest(BaseModel):
 
 class ExchangeRequest(BaseModel):
     phone: str
+    telegram_id: int | None = None
     is_dushanbe: bool
     current_item: str
     desired_size: str

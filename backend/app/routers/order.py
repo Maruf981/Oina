@@ -1,3 +1,12 @@
+from app.core.deps import verify_bot_secret
+
+
+def _owner_ok(order, phone, telegram_id) -> bool:
+    """Заказ показываем/меняем только владельцу: телефон совпадает И пишущий боту Telegram привязан к этому клиенту."""
+    c = order.customer if order else None
+    return bool(c and c.phone == phone and c.telegram_id and telegram_id and int(c.telegram_id) == int(telegram_id))
+
+
 from app.schemas.order import OrderAdminOut
 from fastapi import APIRouter, Depends, BackgroundTasks
 from app.core.telegram_notify import send_admin_notification, send_customer_notification, send_admin_bot_message
@@ -19,7 +28,7 @@ def list_my_orders(current: Customer = Depends(get_current_customer), db: Sessio
 
 
 @router.get("/lookup", response_model=list[OrderOut])
-def lookup_orders_by_phone(phone: str, db: Session = Depends(get_db)):
+def lookup_orders_by_phone(phone: str, telegram_id: int = 0, db: Session = Depends(get_db), _: bool = Depends(verify_bot_secret)):
     """
     Публичный поиск последних заказов по номеру телефона — используется клиентским
     ИИ-ботом, чтобы отвечать на вопрос "где мой заказ" без полноценного входа в аккаунт.
@@ -27,7 +36,7 @@ def lookup_orders_by_phone(phone: str, db: Session = Depends(get_db)):
     """
     from app.models.order import Order
     customer = db.query(Customer).filter(Customer.phone == phone).first()
-    if not customer:
+    if not customer or not customer.telegram_id or customer.telegram_id != telegram_id:
         return []
     return (
         db.query(Order)
@@ -89,7 +98,7 @@ def order_stats(db: Session = Depends(get_db), _: bool = Depends(get_current_adm
         "month": summarize(month_start),
     }
 @router.get("/{order_id}/verify", response_model=OrderOut)
-def verify_order_for_customer(order_id: int, phone: str, db: Session = Depends(get_db)):
+def verify_order_for_customer(order_id: int, phone: str, telegram_id: int = 0, db: Session = Depends(get_db), _: bool = Depends(verify_bot_secret)):
     """
     Публичный просмотр заказа для самообслуживания клиента через бота — требует
     совпадения номера телефона с владельцем заказа вместо прав администратора.
@@ -97,7 +106,7 @@ def verify_order_for_customer(order_id: int, phone: str, db: Session = Depends(g
     from app.models.order import Order
     from fastapi import HTTPException
     order = db.query(Order).filter(Order.id == order_id).first()
-    if not order or order.customer.phone != phone:
+    if not _owner_ok(order, phone, telegram_id):
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
     return order
 
@@ -108,6 +117,7 @@ def cancel_order_by_customer(
     data: dict,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    _: bool = Depends(verify_bot_secret),
 ):
     """
     Отмена всего заказа клиентом через бота — требует номер телефона владельца заказа.
@@ -116,8 +126,9 @@ def cancel_order_by_customer(
     from app.models.order import Order
     from fastapi import HTTPException
     phone = data.get("phone", "")
+    telegram_id = data.get("telegram_id")
     order = db.query(Order).filter(Order.id == order_id).first()
-    if not order or order.customer.phone != phone:
+    if not _owner_ok(order, phone, telegram_id):
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
     if order.status not in ("new", "awaiting_payment", "paid", "confirmed"):
         raise HTTPException(status_code=400, detail="Заказ уже отправлен, отмена через бота недоступна — обратитесь в поддержку")
@@ -134,6 +145,7 @@ def return_item_by_customer(
     data: ReturnItemRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    _: bool = Depends(verify_bot_secret),
 ):
     """
     Возврат одного товара (целиком или частично по количеству) клиентом через бота —
@@ -142,7 +154,7 @@ def return_item_by_customer(
     from app.models.order import Order
     from fastapi import HTTPException
     order = db.query(Order).filter(Order.id == order_id).first()
-    if not order or order.customer.phone != data.phone:
+    if not _owner_ok(order, data.phone, data.telegram_id):
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
     if order.status == "delivered":
         from datetime import datetime, timedelta
@@ -176,6 +188,7 @@ def request_exchange(
     data: ExchangeRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    _: bool = Depends(verify_bot_secret),
 ):
     """
     Запрос на обмен размера/цвета клиентом через бота — доступен только в течение
@@ -188,7 +201,7 @@ def request_exchange(
     from datetime import datetime, timedelta
 
     order = db.query(Order).filter(Order.id == order_id).first()
-    if not order or order.customer.phone != data.phone:
+    if not _owner_ok(order, data.phone, data.telegram_id):
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
     if order.status != "delivered" or not order.delivered_at:
         raise HTTPException(status_code=400, detail="Обмен доступен только для доставленных заказов")
