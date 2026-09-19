@@ -22,7 +22,7 @@ export default function DeliveryPage() {
     <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px" }}>
         <div style={{ marginBottom: 30 }}>
-          <BackButton href="/" />
+          <BackButton />
         </div>
 
         <h1 className="product-title" style={{ fontSize: 32, marginBottom: 40 }}>

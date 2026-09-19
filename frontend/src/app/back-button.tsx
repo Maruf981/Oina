@@ -2,11 +2,11 @@
 
 import { useRouter } from "next/navigation";
 
-export function BackButton({ href }: { href?: string }) {
+export function BackButton({ href, fallback = "/" }: { href?: string; fallback?: string }) {
   const router = useRouter();
   return (
     <span
-      onClick={() => (href ? router.push(href) : router.back())}
+      onClick={() => (href ? router.push(href) : window.history.length > 1 ? router.back() : router.push(fallback))}
       role="button"
       aria-label="Назад"
       style={{

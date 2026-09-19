@@ -229,7 +229,7 @@ export function BagDrawerHost() {
           <span className="oh-label">
             {title}{step === "cart" && <span className="bag-count"> ({cart.totalCount})</span>}
           </span>
-          {step !== "payment" && <span className="oh-action" onClick={close}>{tr("Закрыть", "Пӯшидан")} ×</span>}
+          {step !== "payment" && <span className="oh-action" onClick={close}>{tr("Закрыть", "Пӯшидан")}</span>}
         </div>
 
         {cart.items.length > 0 || step !== "cart" ? (
