@@ -172,7 +172,6 @@
   font-size: .6875rem;
   font-weight: 500;
   letter-spacing: .22em;
-  text-transform: uppercase;
   pointer-events: none;
 }
 @media (max-width: 640px) {
