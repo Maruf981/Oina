@@ -99,7 +99,7 @@
 
 /* Фон-полоса от верхней линии до нижней */
 .bs { position: relative; --bs-band: #EAE0D2; }
-[data-theme="dark"] .bs, .dark .bs { --bs-band: #26231F; }
+[data-theme="dark"] .bs, .dark .bs { --bs-band: #1F2A25; }
 .bs > * { position: relative; z-index: 1; }
 .bs > .bs-bg {
   position: absolute;
@@ -122,4 +122,35 @@
 .bs-head > .bs-all { margin-left: var(--bs-inset); }
 @media (max-width: 768px) {
   .bs { --bs-inset: 1rem; }
+}
+
+/* Десктоп: линии дотягиваются до первого фото (через gap 2rem) */
+.bs-head::before,
+.bs-head::after { width: calc(100% + 2rem); }
+
+/* Мобильный: линии = верх и низ тёмной полосы */
+@media (max-width: 768px) {
+  .bs-head::before,
+  .bs-head::after { display: none; }
+  .bs > .bs-bg {
+    box-sizing: border-box;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+/* Десктоп: полоса только под колонкой заголовка, до первого фото */
+@media (min-width: 769px) {
+  .bs > .bs-bg { right: auto; width: calc(26% + 2rem); }
+}
+
+/* Мобильный: полоса только под заголовком, линии по её краям */
+@media (max-width: 768px) {
+  .bs > .bs-bg { display: none; }
+  .bs > .bs-head {
+    background: var(--bs-band);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 1.5rem 0;
+  }
 }
