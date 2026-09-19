@@ -68,3 +68,31 @@
   .bs-track { gap: 1rem; cursor: auto; }
   .bs-item { flex-basis: 72%; }
 }
+
+/* Линии в колонке заголовка «Хиты продаж»: верхняя — на уровне верха фото, нижняя — на уровне низа фото */
+.bs { container-type: inline-size; }
+.bs-head {
+  position: relative;
+  /* высота фото: ширина ленты = 74% − gap 2rem; карточка = (лента − 2 зазора по 1.5rem) / 2.6; фото 3:4 */
+  --bs-photo-h: calc((74cqw - 5rem) / 2.6 * 4 / 3);
+  min-height: calc(.5rem + var(--bs-photo-h));
+}
+.bs-head::before,
+.bs-head::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--line);
+}
+.bs-head::before { margin-bottom: 1.5rem; }
+.bs-head::after {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(.5rem + var(--bs-photo-h) - 1px);
+}
+@media (max-width: 768px) {
+  .bs-head { min-height: 0; }
+  .bs-head::after { position: static; margin-top: 1.5rem; }
+}
