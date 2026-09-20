@@ -24,7 +24,7 @@ export type DualSlide = {
 type Side = "left" | "center" | "right";
 const SIDES: Side[] = ["left", "center", "right"];
 const BALL = 112;
-const DESKTOP_H = "min(460px, calc(100svh - 150px))";
+const DESKTOP_H = "min(70svh, calc(100svh - var(--header-h, 84px) - 90px))"; // во всю ширину — выше, чтобы фото не резались
 
 const imgOf = (s: DualSlide, side: Side) =>
   side === "left" ? s.left_image_url : side === "center" ? s.center_image_url ?? null : s.right_image_url;
@@ -225,7 +225,7 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
   };
 
   return (
-    <div style={{ position: "relative", width: "100%", margin: "20px 0" }}>
+    <div style={{ position: "relative", width: "100vw", marginLeft: "calc(50% - 50vw)", marginTop: 20, marginBottom: 20 }}>
       {cards.map((c, i) => (
         <div
           key={c.key}
