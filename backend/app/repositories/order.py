@@ -44,12 +44,14 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
     total = 0.0
     order_items = []
 
-    for item in data.items:
+    for item in sorted(data.items, key=lambda i: i.product_variant_id):
         if item.quantity < 1:
             raise HTTPException(status_code=400, detail="Некорректное количество")
         variant = get_variant_locked(db, item.product_variant_id)
         if not variant:
             raise HTTPException(status_code=404, detail=f"Variant {item.product_variant_id} not found")
+        if not admin and not getattr(variant.product, "is_active", True):
+            raise HTTPException(status_code=400, detail=f"Товар снят с продажи: {variant.product.title_ru}")
         if variant.stock < item.quantity:
             raise HTTPException(status_code=400, detail=f"Not enough stock for variant {variant.id}")
 
@@ -101,9 +103,12 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
 
 
 def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | None = None) -> OrderItem:
+    # блокируем заказ: одновременные возврат/обмен/отмена идут строго по очереди
+    db.query(Order).filter(Order.id == order_id).with_for_update().populate_existing().first()
     item = (
         db.query(OrderItem)
         .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
+        .populate_existing()
         .first()
     )
     if not item:
@@ -143,9 +148,12 @@ def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | 
 
 
 def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_id: int) -> OrderItem:
+    # блокируем заказ: одновременные возврат/обмен/отмена идут строго по очереди
+    db.query(Order).filter(Order.id == order_id).with_for_update().populate_existing().first()
     item = (
         db.query(OrderItem)
         .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
+        .populate_existing()
         .first()
     )
     if not item:
@@ -217,7 +225,15 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
 
 
 def update_status(db: Session, order: Order, new_status: str) -> Order:
+    try:
+        OrderStatus(new_status)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Некорректный статус")
+    # блокируем заказ: двойной клик или админ+бот одновременно не вернут товар дважды
+    order = db.query(Order).filter(Order.id == order.id).with_for_update().populate_existing().one()
     old_status = order.status
+    if old_status == OrderStatus(new_status):
+        return order
     restore_statuses = {OrderStatus.CANCELLED, OrderStatus.RETURNED}
     already_restored = old_status in restore_statuses
     will_restore = OrderStatus(new_status) in restore_statuses
@@ -247,7 +263,7 @@ def update_status(db: Session, order: Order, new_status: str) -> Order:
                             note=f"Заказ №{order.id} восстановлен из статуса {old_status.value}")
 
     if will_restore and not already_restored:
-        for item in order.items:
+        for item in sorted(order.items, key=lambda i: i.product_variant_id):
             remaining = item.quantity - item.returned_quantity
             if remaining <= 0:
                 continue

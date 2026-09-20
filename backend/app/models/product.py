@@ -43,7 +43,7 @@ class Product(Base):
 
     category: Mapped["Category"] = relationship(back_populates="products")
     supplier: Mapped["Supplier | None"] = relationship(back_populates="products")
-    variants: Mapped[list["ProductVariant"]] = relationship(back_populates="product", cascade="all, delete-orphan")
+    variants: Mapped[list["ProductVariant"]] = relationship(back_populates="product", cascade="all, delete-orphan", order_by="ProductVariant.id")
     images: Mapped[list["ProductImage"]] = relationship(back_populates="product", cascade="all, delete-orphan", order_by="ProductImage.sort_order")
 
 

@@ -181,6 +181,8 @@ def return_item_by_customer(
         )
         background_tasks.add_task(send_admin_notification, text)
         return item
+    if order.status not in ("new", "awaiting_payment", "paid", "confirmed"):
+        raise HTTPException(status_code=400, detail="Заказ уже в пути или закрыт — возврат через бота недоступен, обратитесь в поддержку")
     result = order_repo.return_order_item(db, order_id, item_id, quantity=data.quantity)
     text = f"↩️ Возврат товара клиентом через бота: Заказ №{order_id}, позиция №{item_id}, кол-во {data.quantity or 'всё'}"
     background_tasks.add_task(send_admin_notification, text)
@@ -351,6 +353,10 @@ def courier_status(
 
     status = data.get("status")
     if status == "delivered":
+        if order.status == "delivered":
+            return {"ok": True}
+        if order.status in ("cancelled", "returned"):
+            raise HTTPException(status_code=400, detail="Заказ отменён или возвращён — отметить доставку нельзя")
         order_repo.update_status(db, order, "delivered")
         return {"ok": True}
     elif status == "failed":
