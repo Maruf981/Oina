@@ -71,6 +71,9 @@ def create_order(data: OrderCreate, background_tasks: BackgroundTasks, request: 
     from_bot = bool(settings.BOT_INTERNAL_SECRET) and hmac.compare_digest(request.headers.get("x-bot-secret") or "", settings.BOT_INTERNAL_SECRET)
     if not from_bot:
         _order_rate_limit(f"ip:{ip}", 5, 600)
+    if not current and not from_bot and data.payment_method != "qr":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Оплата картой и при получении — только после входа в аккаунт")
     _order_rate_limit(f"phone:{phone_core(data.customer_phone)}", 5, 3600)
     from sqlalchemy import func as _func
     from fastapi import HTTPException
