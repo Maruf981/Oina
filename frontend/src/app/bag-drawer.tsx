@@ -197,7 +197,7 @@ export function BagDrawerHost() {
       setStep(paymentMethod === "cod" ? "done" : "payment");
     } catch (err: any) {
       const msg = typeof err?.message === "string" ? err.message : "";
-      setError(msg.includes("В наличии только") || msg.includes("снят с продажи") || msg.includes("Слишком много заказов") || msg.toLowerCase().includes("промокод") ? msg : tr("Ошибка оформления заказа. Попробуйте ещё раз.", "Хатогӣ ҳангоми фармоиш. Бори дигар кӯшиш кунед."));
+      setError(msg.includes("В наличии только") || msg.includes("снят с продажи") || msg.includes("Слишком много заказов") || msg.includes("неоплаченн") || msg.includes("Оплата при получении") || msg.includes("после входа") || msg.toLowerCase().includes("промокод") ? msg : tr("Ошибка оформления заказа. Попробуйте ещё раз.", "Хатогӣ ҳангоми фармоиш. Бори дигар кӯшиш кунед."));
     } finally {
       setPlacing(false);
     }
