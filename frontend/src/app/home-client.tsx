@@ -1,6 +1,7 @@
 "use client";
 import { cld } from "../lib/cld";
 import { DualSlider, type DualSlide } from "./dual-slider";
+import { SeasonCountdown } from "./season-countdown";
 import { BestsellersRow } from "./bestsellers-row";
 
 import { Fragment, useEffect, useState, useRef, Suspense } from "react";
@@ -1320,7 +1321,10 @@ function HeroSlider({ banners }: { banners: Banner[] }) {
         </button>
       </div>
       <div className="hero-foot">
-        <span>Dushanbe</span>
+        <div className="hero-foot-left">
+          <span>Dushanbe</span>
+          <SeasonCountdown lang={lang} />
+        </div>
         <span>Tajikistan</span>
       </div>
     </section>
