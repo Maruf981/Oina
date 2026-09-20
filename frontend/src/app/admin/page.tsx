@@ -175,6 +175,7 @@ type Order = {
   delivery_address: string | null;
   comment: string | null;
   payment_method: string | null;
+  source?: string;
   customer: { id: number; name: string | null; phone: string };
   items: { id: number; product_variant_id: number; quantity: number; price_at_order: number; variant: { id: number; size: string; color: string; title_ru: string; title_tj: string | null; catalog_number: string } | null }[];
 };
@@ -2632,6 +2633,7 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
   };
   return (
     <div>
+      <PhoneOrderForm authFetch={authFetch} products={products} refreshOrders={refreshOrders} />
       <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
         <input
           placeholder="Поиск по номеру заказа, названию или артикулу"
@@ -2685,6 +2687,7 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
         <div key={o.id} style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span className="product-title" style={{ fontSize: 16 }}>Заказ №{o.id}</span>
+            {o.source === "phone" && (<span style={{ border: "1px solid var(--line)", padding: "2px 8px", fontSize: 12 }}>📞 По телефону</span>)}
             <span className="price">{o.total} смн</span>
           </div>
           <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 6 }}>
@@ -3361,6 +3364,107 @@ function TemplatesTab({ products, authFetch }: any) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
+  const empty = { productId: "", variantId: "", quantity: 1 };
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [comment, setComment] = useState("");
+  const [payment, setPayment] = useState("cod");
+  const [isDushanbe, setIsDushanbe] = useState(true);
+  const [items, setItems] = useState<any[]>([empty]);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const inp: any = { border: "1px solid var(--line)", padding: "8px 10px", background: "transparent", color: "inherit", fontSize: 14, borderRadius: 0 };
+  const btn: any = { border: "1px solid var(--line)", padding: "8px 14px", background: "transparent", color: "inherit", cursor: "pointer", borderRadius: 0 };
+  const list = (products || []).filter((p: any) => p.is_active !== false);
+  const updateItem = (i: number, patch: any) => setItems(items.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
+
+  const reset = () => { setName(""); setPhone(""); setAddress(""); setComment(""); setPayment("cod"); setIsDushanbe(true); setItems([empty]); setError(""); };
+
+  const submit = async () => {
+    setError("");
+    if (!name.trim() || !phone.trim() || !address.trim()) return setError("Заполните имя, телефон и адрес");
+    const valid = items.filter((it) => it.variantId && Number(it.quantity) > 0);
+    if (!valid.length) return setError("Добавьте хотя бы один товар");
+    setSaving(true);
+    const res = await authFetch(`${API}/orders/phone`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customer_name: name.trim(),
+        customer_phone: phone.trim(),
+        delivery_address: address.trim(),
+        comment: comment.trim() || null,
+        payment_method: payment,
+        is_dushanbe: isDushanbe,
+        items: valid.map((it) => ({ product_variant_id: Number(it.variantId), quantity: Number(it.quantity) })),
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      setError(typeof err?.detail === "string" ? err.detail : "Не удалось создать заказ");
+      return;
+    }
+    reset();
+    setOpen(false);
+    refreshOrders();
+  };
+
+  if (!open) return <button style={{ ...btn, marginBottom: 14 }} onClick={() => setOpen(true)}>+ Заказ по телефону</button>;
+
+  return (
+    <div style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 14, display: "grid", gap: 10 }}>
+      <b>📞 Новый заказ по телефону</b>
+      <input style={inp} placeholder="Имя клиента" value={name} onChange={(e) => setName(e.target.value)} />
+      <input style={inp} placeholder="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      <input style={inp} placeholder="Адрес доставки" value={address} onChange={(e) => setAddress(e.target.value)} />
+      <input style={inp} placeholder="Комментарий (необязательно)" value={comment} onChange={(e) => setComment(e.target.value)} />
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <select style={inp} value={isDushanbe ? "1" : "0"} onChange={(e) => { const d = e.target.value === "1"; setIsDushanbe(d); if (!d && payment === "cod") setPayment("qr"); }}>
+          <option value="1">Душанбе</option>
+          <option value="0">За пределы Душанбе</option>
+        </select>
+        <select style={inp} value={payment} onChange={(e) => setPayment(e.target.value)}>
+          {isDushanbe && <option value="cod">ОПП (при получении)</option>}
+          <option value="qr">QR</option>
+          <option value="card">Карта</option>
+        </select>
+      </div>
+      {items.map((it, i) => {
+        const prod = list.find((p: any) => String(p.id) === it.productId);
+        return (
+          <div key={i} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <select style={{ ...inp, minWidth: 220 }} value={it.productId} onChange={(e) => updateItem(i, { productId: e.target.value, variantId: "" })}>
+              <option value="">— товар —</option>
+              {list.map((p: any) => <option key={p.id} value={p.id}>{p.catalog_number} — {p.title_ru}</option>)}
+            </select>
+            {prod && (
+              <select style={inp} value={it.variantId} onChange={(e) => updateItem(i, { variantId: e.target.value })}>
+                <option value="">— цвет / размер —</option>
+                {(prod.variants || []).map((v: any) => (
+                  <option key={v.id} value={v.id} disabled={v.stock <= 0}>{v.color}, {v.size} (ост. {v.stock})</option>
+                ))}
+              </select>
+            )}
+            <input style={{ ...inp, width: 70 }} type="number" min={1} value={it.quantity} onChange={(e) => updateItem(i, { quantity: e.target.value })} />
+            {items.length > 1 && <span style={{ cursor: "pointer", color: "#E24B4A", fontSize: 12 }} onClick={() => setItems(items.filter((_, idx) => idx !== i))}>Удалить</span>}
+          </div>
+        );
+      })}
+      <span style={{ cursor: "pointer", fontSize: 13, textDecoration: "underline" }} onClick={() => setItems([...items, empty])}>+ ещё товар</span>
+      {error && <span style={{ color: "#E24B4A", fontSize: 13 }}>{error}</span>}
+      <div style={{ display: "flex", gap: 10 }}>
+        <button style={btn} disabled={saving} onClick={submit}>{saving ? "Сохраняю..." : "Создать заказ"}</button>
+        <button style={btn} onClick={() => { reset(); setOpen(false); }}>Отмена</button>
+      </div>
     </div>
   );
 }

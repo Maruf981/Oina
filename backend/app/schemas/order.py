@@ -100,4 +100,5 @@ class OrderItemAdminOut(OrderItemOut):
 
 
 class OrderAdminOut(OrderOut):
+    source: str = "site"
     items: list[OrderItemAdminOut]

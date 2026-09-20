@@ -67,6 +67,11 @@ def create_order(data: OrderCreate, background_tasks: BackgroundTasks, db: Sessi
     return order
 
 
+
+@router.post("/phone", response_model=OrderOut)
+def create_phone_order(data: OrderCreate, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    return order_repo.create_order(db, data, None, admin=True)
+
 @router.get("/", response_model=list[OrderAdminOut])
 def list_orders(db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     from app.models.order import Order
