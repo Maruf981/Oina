@@ -213,7 +213,7 @@ def request_exchange(
     if order.status != "delivered" or not order.delivered_at:
         raise HTTPException(status_code=400, detail="Обмен доступен только для доставленных заказов")
 
-    window_hours = 24 if data.is_dushanbe else 48
+    window_hours = 24 if order.is_dushanbe else 48
     deadline = order.delivered_at + timedelta(hours=window_hours)
     if datetime.utcnow() > deadline:
         raise HTTPException(
