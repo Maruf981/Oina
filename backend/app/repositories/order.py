@@ -30,6 +30,9 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
         if not current and not admin:
             raise HTTPException(status_code=401, detail="Оплата при получении доступна только авторизованным клиентам")
         customer = current or get_or_create_customer(db, data.customer_name, data.customer_phone)
+        fakes = db.query(Order.id).filter(Order.customer_id == customer.id, Order.status.in_([OrderStatus.CANCELLED, OrderStatus.RETURNED]), Order.comment.like("[fake]%")).count()
+        if fakes >= 2:
+            raise HTTPException(status_code=400, detail="Оплата при получении недоступна: клиент 2 раза не принял заказ. Нужна предоплата — QR или карта.")
     else:
         customer = current or get_or_create_customer(db, data.customer_name, data.customer_phone)
 
@@ -339,6 +342,8 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
             )
 
     order.status = OrderStatus(new_status)
+    if order.payment_method == PaymentMethod.COD and old_status == OrderStatus.SHIPPED and will_restore and not (order.comment or "").startswith("[fake]"):
+        order.comment = ("[fake] " + (order.comment or ""))[:500]
     db.commit()
     db.refresh(order)
     return order

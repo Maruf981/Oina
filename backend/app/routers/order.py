@@ -72,6 +72,14 @@ def create_order(data: OrderCreate, background_tasks: BackgroundTasks, request: 
     if not from_bot:
         _order_rate_limit(f"ip:{ip}", 5, 600)
     _order_rate_limit(f"phone:{phone_core(data.customer_phone)}", 5, 3600)
+    from sqlalchemy import func as _func
+    from fastapi import HTTPException
+    from app.models.order import Order, OrderStatus
+    owner = current or db.query(Customer).filter(Customer.phone.in_(phone_variants(data.customer_phone))).first()
+    if owner and data.payment_method != "cod":
+        unpaid = db.query(_func.count(Order.id)).filter(Order.customer_id == owner.id, Order.status == OrderStatus.AWAITING_PAYMENT).scalar() or 0
+        if unpaid >= 2:
+            raise HTTPException(status_code=400, detail="У вас уже 2 неоплаченных заказа. Оплатите их — потом можно оформить новый.")
     order = order_repo.create_order(db, data, current)
     items_text = "\n".join(
         f"— {item.variant.product.title_ru} ({item.variant.color}, {item.variant.size}) x{item.quantity}"
