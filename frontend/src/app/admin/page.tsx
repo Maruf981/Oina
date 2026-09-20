@@ -2709,12 +2709,12 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
           </div>
           {o.delivery_address && <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 10 }}>{o.delivery_address}</p>}
           {o.comment && <p style={{ color: "var(--accent)", fontSize: 13, marginBottom: 10 }}>💬 {o.comment}</p>}
-          {o.payment_method === "cod" && o.status !== "paid" && (
+          {o.payment_method === "cod" && !["paid", "cancelled", "returned"].includes(o.status) && (
             <div style={{ border: "2px solid #D97706", color: "#D97706", display: "inline-block", padding: "6px 12px", marginBottom: 10, fontSize: 15, fontWeight: 700 }}>
               ОПП {o.total} сом
             </div>
           )}
-          {(o.payment_method === "cod" ? o.status === "paid" : o.status !== "awaiting_payment") && (
+          {(o.payment_method === "cod" ? o.status === "paid" : ["paid", "confirmed", "shipped", "delivered"].includes(o.status)) && (
             <div style={{ border: "2px solid #16A34A", color: "#16A34A", display: "inline-block", padding: "6px 12px", marginBottom: 10, fontSize: 15, fontWeight: 700 }}>
               ✅ ОПЛАЧЕНО
             </div>

@@ -38,3 +38,11 @@ app.include_router(promo_code.router)
 @app.get("/health")
 def health():
     return {"status": "ok", "project": settings.PROJECT_NAME}
+
+import asyncio
+from app.services.auto_cancel import auto_cancel_loop
+
+
+@app.on_event("startup")
+async def start_auto_cancel():
+    app.state.auto_cancel_task = asyncio.create_task(auto_cancel_loop())

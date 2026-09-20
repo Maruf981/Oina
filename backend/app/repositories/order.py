@@ -224,13 +224,15 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     return item
 
 
-def update_status(db: Session, order: Order, new_status: str) -> Order:
+def update_status(db: Session, order: Order, new_status: str, only_from: str | None = None) -> Order:
     try:
         OrderStatus(new_status)
     except ValueError:
         raise HTTPException(status_code=400, detail="Некорректный статус")
     # блокируем заказ: двойной клик или админ+бот одновременно не вернут товар дважды
     order = db.query(Order).filter(Order.id == order.id).with_for_update().populate_existing().one()
+    if only_from and order.status.value != only_from:
+        return order
     old_status = order.status
     if old_status == OrderStatus(new_status):
         return order
