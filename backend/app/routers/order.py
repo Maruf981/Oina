@@ -202,8 +202,13 @@ def return_item_by_customer(
         return item
     if order.status not in ("new", "awaiting_payment", "paid", "confirmed"):
         raise HTTPException(status_code=400, detail="Заказ уже в пути или закрыт — возврат через бота недоступен, обратитесь в поддержку")
+    _it = next((i for i in order.items if i.id == item_id), None)
+    _prev = _it.returned_quantity if _it else 0
+    _paid = bool(order.payment_method and order.payment_method.value != "cod" and order.status.value in ("paid", "confirmed"))
     result = order_repo.return_order_item(db, order_id, item_id, quantity=data.quantity, require_status={"new", "awaiting_payment", "paid", "confirmed"})
     text = f"↩️ Возврат товара клиентом через бота: Заказ №{order_id}, позиция №{item_id}, кол-во {data.quantity or 'всё'}"
+    if _paid:
+        text += f"\n💸 Заказ оплачен — верните клиенту {float(result.price_at_order) * (result.returned_quantity - _prev):g} смн"
     background_tasks.add_task(send_admin_notification, text)
     return result
 

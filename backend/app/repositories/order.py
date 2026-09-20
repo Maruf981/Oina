@@ -155,6 +155,9 @@ def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | 
 
     order = item.order
     order.total = sum(float(i.price_at_order) * (i.quantity - i.returned_quantity) for i in order.items)
+    if all(i.returned_quantity >= i.quantity for i in order.items) and order.status not in (OrderStatus.CANCELLED, OrderStatus.RETURNED):
+        # все позиции возвращены — заказ целиком в "Возврат" (склад уже пополнен выше)
+        order.status = OrderStatus.RETURNED
 
     db.commit()
     db.refresh(item)
