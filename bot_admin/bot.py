@@ -162,6 +162,7 @@ async def cb_courier_delivered(callback: CallbackQuery):
         try:
             res = await client.post(
                 f"{API_BASE_URL}/orders/{order_id}/courier-status",
+                headers={"X-Bot-Secret": BOT_INTERNAL_SECRET},
                 json={"telegram_id": callback.from_user.id, "status": "delivered"},
             )
             ok = res.status_code == 200
@@ -183,6 +184,7 @@ async def cb_courier_failed(callback: CallbackQuery):
         try:
             res = await client.post(
                 f"{API_BASE_URL}/orders/{order_id}/courier-status",
+                headers={"X-Bot-Secret": BOT_INTERNAL_SECRET},
                 json={"telegram_id": callback.from_user.id, "status": "failed"},
             )
             ok = res.status_code == 200

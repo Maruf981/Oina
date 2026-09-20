@@ -333,6 +333,7 @@ def courier_status(
     data: dict,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    _: bool = Depends(verify_bot_secret),
 ):
     """
     Обновление статуса доставки самим доставщиком через бота — требует совпадения
