@@ -268,7 +268,7 @@ async def orders_handler(message: Message):
     try:
         token = await get_admin_token()
         async with httpx.AsyncClient(timeout=20) as client:
-            res = await client.get(f"{API_BASE_URL}/orders/", headers={"Authorization": f"Bearer {token}"})
+            res = await client.get(f"{API_BASE_URL}/orders/?limit=5", headers={"Authorization": f"Bearer {token}"})
             orders = res.json()
     except httpx.TimeoutException:
         await message.answer("Сервер долго не отвечает (возможно, ещё просыпается после простоя). Попробуйте ещё раз через несколько секунд.")

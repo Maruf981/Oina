@@ -111,3 +111,10 @@ class OrderItemAdminOut(OrderItemOut):
 class OrderAdminOut(OrderOut):
     source: str = "site"
     items: list[OrderItemAdminOut]
+
+
+class OrderAdminPage(BaseModel):
+    items: list[OrderAdminOut]
+    total: int
+    page: int
+    page_size: int

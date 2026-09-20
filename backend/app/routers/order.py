@@ -8,7 +8,7 @@ def _owner_ok(order, phone, telegram_id) -> bool:
     return bool(c and phone_core(phone) and phone_core(c.phone) == phone_core(phone) and c.telegram_id and telegram_id and int(c.telegram_id) == int(telegram_id))
 
 
-from app.schemas.order import OrderAdminOut
+from app.schemas.order import OrderAdminOut, OrderAdminPage
 from fastapi import APIRouter, Depends, BackgroundTasks, Request
 from app.core.telegram_notify import send_admin_notification, send_customer_notification, send_admin_bot_message
 from sqlalchemy.orm import Session
@@ -107,9 +107,25 @@ def create_phone_order(data: OrderCreate, db: Session = Depends(get_db), _: bool
     return order_repo.create_order(db, data, None, admin=True)
 
 @router.get("/", response_model=list[OrderAdminOut])
-def list_orders(db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+def list_orders(limit: int | None = None, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     from app.models.order import Order
-    return db.query(Order).order_by(Order.created_at.desc()).all()
+    q = db.query(Order).order_by(Order.created_at.desc())
+    if limit:
+        q = q.limit(min(limit, 500))
+    return q.all()
+
+
+@router.get("/admin-page", response_model=OrderAdminPage)
+def list_orders_page(page: int = 1, page_size: int = 20, q: str | None = None, status: str | None = None,
+                     period: str | None = None, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    """Заказы для админки по страницам: поиск (№, товар, артикул, телефон, имя), статус, период."""
+    return order_repo.admin_orders_page(db, page, page_size, q, status, period)
+
+
+@router.get("/finance")
+def finance(period: str | None = None, supplier_id: int | None = None, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    """Выручка и себестоимость проданного — считается в базе, без загрузки всех заказов."""
+    return order_repo.finance_summary(db, period, supplier_id)
 
 
 @router.get("/stats/summary")
@@ -124,12 +140,13 @@ def order_stats(db: Session = Depends(get_db), _: bool = Depends(get_current_adm
     excluded = ("cancelled", "returned")
 
     def summarize(since):
-        orders = (
-            db.query(Order)
+        from sqlalchemy import func
+        count, revenue = (
+            db.query(func.count(Order.id), func.coalesce(func.sum(Order.total), 0))
             .filter(Order.created_at >= since, Order.status.notin_(excluded))
-            .all()
+            .one()
         )
-        return {"count": len(orders), "revenue": sum(float(o.total) for o in orders)}
+        return {"count": count, "revenue": float(revenue)}
 
     return {
         "today": summarize(today_start),

@@ -376,6 +376,7 @@ export function BagDrawerHost() {
                 <>
                   <div className="ck-qr">{t.checkoutQrMock}</div>
                   <p className="ck-note ck-note--center">{t.checkoutScanQr.replace("{amount}", String(orderTotal))}</p>
+                  <p className="ck-note ck-note--center"><b>{tr("Оплатите в течение 2 часов — иначе заказ отменится и товар вернётся в продажу.", "Дар давоми 2 соат пардохт кунед — вагарна фармоиш бекор шуда, мол ба фурӯш бармегардад.")}</b></p>
                 </>
               ) : (
                 <div className="ck-card">

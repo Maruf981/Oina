@@ -408,3 +408,92 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
     db.commit()
     db.refresh(order)
     return order
+
+# ---------- Админка: заказы по страницам и финансы на сервере ----------
+
+def period_range(period: str | None):
+    """Границы периода в UTC; день считается по Душанбе (UTC+5)."""
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    midnight = (now + timedelta(hours=5)).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=5)
+    if period == "today":
+        return midnight, None
+    if period == "yesterday":
+        return midnight - timedelta(days=1), midnight
+    if period == "week":
+        return now - timedelta(days=7), None
+    if period == "month":
+        return now - timedelta(days=30), None
+    return None, None
+
+
+def admin_orders_page(db: Session, page: int = 1, page_size: int = 20, q: str | None = None,
+                      status: str | None = None, period: str | None = None):
+    from sqlalchemy import or_, select
+    from app.models.product import Product
+    query = db.query(Order)
+    if status:
+        try:
+            query = query.filter(Order.status == OrderStatus(status))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Некорректный статус")
+    since, until = period_range(period)
+    if since:
+        query = query.filter(Order.created_at >= since)
+    if until:
+        query = query.filter(Order.created_at < until)
+    q = (q or "").strip()
+    if q:
+        like = f"%{q}%"
+        by_product = (select(OrderItem.order_id)
+                      .join(ProductVariant, ProductVariant.id == OrderItem.product_variant_id)
+                      .join(Product, Product.id == ProductVariant.product_id)
+                      .where(or_(Product.title_ru.ilike(like), Product.title_tj.ilike(like), Product.catalog_number.ilike(like))))
+        by_customer = select(Customer.id).where(or_(Customer.phone.ilike(like), Customer.name.ilike(like)))
+        conds = [Order.id.in_(by_product), Order.customer_id.in_(by_customer)]
+        if q.isdigit():
+            conds.append(Order.id == int(q))
+        query = query.filter(or_(*conds))
+    total = query.count()
+    page_size = max(1, min(page_size, 100))
+    page = max(1, page)
+    items = (query.order_by(Order.created_at.desc(), Order.id.desc())
+             .offset((page - 1) * page_size).limit(page_size).all())
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+def finance_summary(db: Session, period: str | None = None, supplier_id: int | None = None):
+    from sqlalchemy import func, case
+    from app.models.product import Product
+    excluded = [OrderStatus.CANCELLED, OrderStatus.RETURNED]
+    since, until = period_range(period)
+    qty = OrderItem.quantity - OrderItem.returned_quantity
+    sup = func.coalesce(OrderItem.supplier_id, Product.supplier_id)
+    q = (db.query(
+            sup.label("sid"),
+            func.coalesce(func.sum(OrderItem.price_at_order * qty), 0),
+            func.coalesce(func.sum(func.coalesce(OrderItem.cost_at_order, 0) * qty), 0),
+            func.coalesce(func.sum(case((OrderItem.cost_at_order.is_(None), qty), else_=0)), 0),
+         )
+         .join(Order, Order.id == OrderItem.order_id)
+         .join(ProductVariant, ProductVariant.id == OrderItem.product_variant_id)
+         .join(Product, Product.id == ProductVariant.product_id)
+         .filter(Order.status.notin_(excluded), qty > 0))
+    oq = db.query(func.count(Order.id)).filter(Order.status.notin_(excluded))
+    if since:
+        q = q.filter(Order.created_at >= since)
+        oq = oq.filter(Order.created_at >= since)
+    if until:
+        q = q.filter(Order.created_at < until)
+        oq = oq.filter(Order.created_at < until)
+    if supplier_id is not None:
+        q = q.filter(sup == supplier_id)
+    rows = q.group_by(sup).all()
+    by_supplier = [{"supplier_id": sid, "revenue": float(rev), "cost": float(cost)} for sid, rev, cost, _ in rows]
+    return {
+        "orders_count": oq.scalar() or 0,
+        "revenue": sum(r["revenue"] for r in by_supplier),
+        "cost": sum(r["cost"] for r in by_supplier),
+        "missing_cost": int(sum(int(m) for *_, m in rows)),
+        "by_supplier": by_supplier,
+    }

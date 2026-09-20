@@ -279,7 +279,6 @@ export default function AdminPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [incomingMovements, setIncomingMovements] = useState<any[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [creatingProduct, setCreatingProduct] = useState(false);
@@ -341,7 +340,6 @@ export default function AdminPage() {
     if (!token) return;
     refreshProducts();
     fetch(`${API}/categories/?include_archived=true`).then((r) => r.json()).then(setCategories);
-    authFetch(`${API}/orders/`).then((r) => (r.ok ? r.json() : [])).then(setOrders);
     authFetch(`${API}/suppliers/`).then((r) => (r.ok ? r.json() : [])).then(setSuppliers);
     authFetch(`${API}/stock-movements/?movement_type=incoming`).then((r) => (r.ok ? r.json() : [])).then(setIncomingMovements);
   }, [token]);
@@ -355,7 +353,6 @@ export default function AdminPage() {
       return r.ok ? r.json() : [];
     }).then(setProducts);
   const refreshCategories = () => fetch(`${API}/categories/?include_archived=true`).then((r) => r.json()).then(setCategories);
-  const refreshOrders = () => authFetch(`${API}/orders/`).then((r) => (r.ok ? r.json() : [])).then(setOrders);
   const refreshSuppliers = () => authFetch(`${API}/suppliers/`).then((r) => (r.ok ? r.json() : [])).then(setSuppliers);
 
   if (!token) {
@@ -450,9 +447,9 @@ export default function AdminPage() {
             refreshCategories={refreshCategories}
           />
         )}
-        {tab === "orders" && <OrdersTab t={t} orders={orders} authFetch={authFetch} refreshOrders={refreshOrders} lang={lang} products={products} />}
+        {tab === "orders" && <OrdersTab t={t} authFetch={authFetch} lang={lang} products={products} />}
         {tab === "warehouse" && <WarehouseTab products={products} suppliers={suppliers} incomingMovements={incomingMovements} authFetch={authFetch} refreshProducts={refreshProducts} />}
-        {tab === "finance" && <FinanceTab orders={orders} products={products} suppliers={suppliers} authFetch={authFetch} />}
+        {tab === "finance" && <FinanceTab products={products} suppliers={suppliers} authFetch={authFetch} />}
         {tab === "employees" && <EmployeesTab t={t} authFetch={authFetch} />}
         {tab === "banners" && <BannersTab t={t} authFetch={authFetch} products={products} categories={categories} />}
 {tab === "templates" && <TemplatesTab products={products} authFetch={authFetch} />}
@@ -1805,7 +1802,7 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
   );
 }
 
-function FinanceTab({ orders, products, suppliers, authFetch }: any) {
+function FinanceTab({ products, suppliers, authFetch }: any) {
   const [writeoffs, setWriteoffs] = useState<any[]>([]);
   useEffect(() => {
     // в убыток идут только реальные списания (брак/потеря); "adjustment" — исправление ошибок ввода, не убыток
@@ -1818,6 +1815,12 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
   const [pinError, setPinError] = useState("");
   const [periodFilter, setPeriodFilter] = useState<"all" | "today" | "week" | "month">("all");
   const [supplierFilter, setSupplierFilter] = useState<number | "">("");
+  const [fin, setFin] = useState<any>(null);
+  useEffect(() => {
+    const params = new URLSearchParams({ period: periodFilter });
+    if (supplierFilter !== "") params.set("supplier_id", String(supplierFilter));
+    authFetch(`${API}/orders/finance?${params}`).then((r: any) => (r.ok ? r.json() : null)).then(setFin).catch(() => setFin(null));
+  }, [periodFilter, supplierFilter]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [expenseTitle, setExpenseTitle] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
@@ -1947,39 +1950,20 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
     .filter((m: any) => supplierFilter === "" || variantInfo.get(m.product_variant_id)?.supplierId === supplierFilter)
     .reduce((sum: number, m: any) => sum + Math.abs(Number(m.quantity)) * Number(m.cost_price_at_time ?? variantInfo.get(m.product_variant_id)?.costPrice ?? 0), 0);
 
-  const excludedStatuses = new Set(["cancelled", "returned"]);
-  const validOrders = (Array.isArray(orders) ? orders : []).filter(
-    (o: Order) => !excludedStatuses.has(o.status) && isWithinPeriod(o.created_at)
-  );
-
+  // выручка и себестоимость считаются на сервере (не грузим все заказы)
   type SupplierAgg = { revenue: number; cost: number; profit: number };
   const bySupplier = new Map<string, SupplierAgg>();
-  let totalRevenue = 0;
-  let totalCost = 0;
-  let missingCost = 0;
-
-  validOrders.forEach((o: Order) => {
-    o.items.forEach((item) => {
-      const effectiveQty = item.quantity - ((item as any).returned_quantity ?? 0);
-      if (effectiveQty <= 0) return;
-      const info = variantInfo.get(item.product_variant_id);
-      const itemSupplier = (item as any).supplier_id ?? info?.supplierId ?? null;
-      if (supplierFilter !== "" && itemSupplier !== supplierFilter) return;
-      if ((item as any).cost_at_order == null) missingCost += effectiveQty;
-
-      const revenue = item.price_at_order * effectiveQty;
-      const cost = Number((item as any).cost_at_order ?? 0) * effectiveQty;
-      totalRevenue += revenue;
-      totalCost += cost;
-
-      const key = supplierName(itemSupplier);
-      const agg = bySupplier.get(key) ?? { revenue: 0, cost: 0, profit: 0 };
-      agg.revenue += revenue;
-      agg.cost += cost;
-      agg.profit = agg.revenue - agg.cost;
-      bySupplier.set(key, agg);
-    });
+  (fin?.by_supplier ?? []).forEach((r: any) => {
+    const key = supplierName(r.supplier_id);
+    const agg = bySupplier.get(key) ?? { revenue: 0, cost: 0, profit: 0 };
+    agg.revenue += Number(r.revenue);
+    agg.cost += Number(r.cost);
+    agg.profit = agg.revenue - agg.cost;
+    bySupplier.set(key, agg);
   });
+  const totalRevenue = Number(fin?.revenue ?? 0);
+  const totalCost = Number(fin?.cost ?? 0);
+  const missingCost = Number(fin?.missing_cost ?? 0);
 
   const totalProfit = totalRevenue - totalCost - totalExpenses - writeoffCost;
   const supplierRows = Array.from(bySupplier.entries()).sort((a, b) => b[1].revenue - a[1].revenue);
@@ -2008,7 +1992,7 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
           ))}
         </select>
         <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-          Заказов учтено: {validOrders.length} (без отменённых/возвратов) · Списания: {Math.round(writeoffCost)} смн
+          Заказов учтено: {fin?.orders_count ?? 0} (без отменённых/возвратов) · Списания: {Math.round(writeoffCost)} смн
           {missingCost > 0 && <span style={{ color: "#E24B4A" }}> · без себестоимости: {missingCost} шт</span>}
         </span>
       </div>
@@ -2501,7 +2485,10 @@ const CANCEL_REASON_LABELS: Record<string, string> = {
 const FAKE_REASONS = new Set(["refused", "no_answer", "wrong_address"]);
 const ASK_REASONS = ["refused", "no_answer", "wrong_address", "not_fit", "store_fault", "other"];
 
-function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
+function OrdersTab({ t, authFetch, products }: any) {
+  const [pageData, setPageData] = useState<{ items: Order[]; total: number }>({ items: [], total: 0 });
+  const [reloadKey, setReloadKey] = useState(0);
+  const refreshOrders = () => setReloadKey((k) => k + 1);
   const [couriers, setCouriers] = useState<any[]>([]);
   const [assigningOrderId, setAssigningOrderId] = useState<number | null>(null);
   const [courierError, setCourierError] = useState("");
@@ -2575,7 +2562,7 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
   const handleStatusChange = async (orderId: number, status: string) => {
-    const ord = orders.find((x: any) => x.id === orderId);
+    const ord = pageData.items.find((x: any) => x.id === orderId);
     const current = ord?.status;
     const closed = ["cancelled", "returned"];
     let reason: string | null = null;
@@ -2638,50 +2625,21 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
     }
     refreshOrders();
   };
-  const query = searchQuery.trim().toLowerCase();
-  const searchedOrders = query
-    ? orders.filter((o: Order) => {
-        if (String(o.id).includes(query)) return true;
-        return o.items.some((item) => {
-          const v = item.variant;
-          if (!v) return false;
-          return (
-            v.title_ru?.toLowerCase().includes(query) ||
-            v.title_tj?.toLowerCase().includes(query) ||
-            v.catalog_number?.toLowerCase().includes(query)
-          );
-        });
-      })
-    : orders;
-  const isWithinPeriod = (iso: string): boolean => {
-    if (periodFilter === "all") return true;
-    const date = new Date(iso);
-    const now = new Date();
-    if (periodFilter === "today") return date.toDateString() === now.toDateString();
-    if (periodFilter === "yesterday") {
-      const yesterday = new Date(now);
-      yesterday.setDate(now.getDate() - 1);
-      return date.toDateString() === yesterday.toDateString();
-    }
-    if (periodFilter === "week") {
-      const weekAgo = new Date(now);
-      weekAgo.setDate(now.getDate() - 7);
-      return date >= weekAgo;
-    }
-    if (periodFilter === "month") {
-      const monthAgo = new Date(now);
-      monthAgo.setMonth(now.getMonth() - 1);
-      return date >= monthAgo;
-    }
-    return true;
-  };
-  const statusedOrders = statusFilter
-    ? searchedOrders.filter((o: Order) => o.status === statusFilter)
-    : searchedOrders;
-  const filteredOrders = statusedOrders.filter((o: Order) => isWithinPeriod(o.created_at));
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams({ page: String(page), page_size: String(PAGE_SIZE), period: periodFilter });
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      if (statusFilter) params.set("status", statusFilter);
+      authFetch(`${API}/orders/admin-page?${params}`)
+        .then((r: any) => (r.ok ? r.json() : { items: [], total: 0 }))
+        .then((d: any) => setPageData({ items: d.items ?? [], total: d.total ?? 0 }))
+        .catch(() => setPageData({ items: [], total: 0 }));
+    }, searchQuery ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [page, searchQuery, statusFilter, periodFilter, reloadKey]);
+  const totalPages = Math.max(1, Math.ceil(pageData.total / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const pagedOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pagedOrders: Order[] = pageData.items;
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     setPage(1);
@@ -2743,7 +2701,7 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
         ))}
       </div>
       <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
-        Найдено: {filteredOrders.length}
+        Найдено: {pageData.total}
       </div>
       {pagedOrders.length === 0 && <p style={{ color: "var(--text-muted)" }}>{t.noOrders}</p>}
       {pagedOrders.map((o: Order) => (
