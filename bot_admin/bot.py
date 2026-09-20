@@ -411,6 +411,8 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 WEBHOOK_PATH = "/webhook"
 WEBHOOK_BASE_URL = os.getenv("RENDER_EXTERNAL_URL", "https://oina-admin-bot.onrender.com")
 WEBHOOK_URL = f"{WEBHOOK_BASE_URL}{WEBHOOK_PATH}"
+import hashlib
+WEBHOOK_SECRET = hashlib.sha256(BOT_TOKEN.encode()).hexdigest()
 
 
 async def health_check(request):
@@ -418,7 +420,7 @@ async def health_check(request):
 
 
 async def on_startup(bot: Bot):
-    await bot.set_webhook(WEBHOOK_URL)
+    await bot.set_webhook(WEBHOOK_URL, secret_token=WEBHOOK_SECRET)
 
 
 async def on_shutdown(bot: Bot):
@@ -432,7 +434,7 @@ async def main():
     app = web.Application()
     app.router.add_get("/", health_check)
 
-    webhook_handler = SimpleRequestHandler(dispatcher=dp, bot=bot)
+    webhook_handler = SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=WEBHOOK_SECRET)
     webhook_handler.register(app, path=WEBHOOK_PATH)
     setup_application(app, dp, bot=bot)
 

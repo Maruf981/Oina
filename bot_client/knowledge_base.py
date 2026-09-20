@@ -61,9 +61,10 @@ TOOLS = [
                 "quantity": {"type": "integer", "description": "Количество, по умолчанию 1"},
                 "customer_name": {"type": "string", "description": "Имя клиента"},
                 "customer_phone": {"type": "string", "description": "Номер телефона клиента"},
+                "is_dushanbe": {"type": "boolean", "description": "true — доставка по Душанбе, false — другой город/регион (только предоплата). Обязательно уточни у клиента."},
                 "delivery_address": {"type": "string", "description": "Адрес доставки"},
             },
-            "required": ["variant_id", "customer_name", "customer_phone", "delivery_address"],
+            "required": ["variant_id", "customer_name", "customer_phone", "delivery_address", "is_dushanbe"],
         },
     },
     {

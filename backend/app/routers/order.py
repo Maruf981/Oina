@@ -66,7 +66,11 @@ def lookup_orders_by_phone(phone: str, telegram_id: int = 0, db: Session = Depen
 @router.post("/", response_model=OrderOut)
 def create_order(data: OrderCreate, background_tasks: BackgroundTasks, request: Request, db: Session = Depends(get_db), current: Customer | None = Depends(get_current_customer_optional)):
     ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "")).split(",")[0].strip()
-    _order_rate_limit(f"ip:{ip}", 5, 600)
+    import hmac
+    from app.core.config import settings
+    from_bot = bool(settings.BOT_INTERNAL_SECRET) and hmac.compare_digest(request.headers.get("x-bot-secret") or "", settings.BOT_INTERNAL_SECRET)
+    if not from_bot:
+        _order_rate_limit(f"ip:{ip}", 5, 600)
     _order_rate_limit(f"phone:{phone_core(data.customer_phone)}", 5, 3600)
     order = order_repo.create_order(db, data, current)
     items_text = "\n".join(
@@ -156,6 +160,8 @@ def cancel_order_by_customer(
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
     if order.status not in ("new", "awaiting_payment", "paid", "confirmed"):
         raise HTTPException(status_code=400, detail="Заказ уже отправлен, отмена через бота недоступна — обратитесь в поддержку")
+    if order.delivered_at:
+        raise HTTPException(status_code=400, detail="Заказ уже доставлен — отмена недоступна. Для обмена выберите «Обмен».")
     updated = order_repo.update_status(db, order, "cancelled", require_from={"new", "awaiting_payment", "paid", "confirmed"})
     text = f"❌ Отменён клиентом через бота: Заказ №{updated.id} — {updated.total} смн"
     background_tasks.add_task(send_admin_notification, text)

@@ -228,20 +228,21 @@ async def fetch_products_by_category(category_id: int) -> list:
     return simplified
 
 
-async def place_order(variant_id: int, quantity: int, customer_name: str, customer_phone: str, delivery_address: str) -> dict:
+async def place_order(variant_id: int, quantity: int, customer_name: str, customer_phone: str, delivery_address: str, is_dushanbe: bool = True) -> dict:
     payload = {
         "customer_name": customer_name,
         "customer_phone": customer_phone,
         "delivery_address": delivery_address,
         "comment": "",
         "payment_method": "qr",
+        "is_dushanbe": bool(is_dushanbe),
         "items": [{"product_variant_id": variant_id, "quantity": quantity}],
     }
     delays = [3, 6, 10]
     async with httpx.AsyncClient(timeout=15) as client:
         for attempt in range(len(delays) + 1):
             try:
-                response = await client.post(f"{API_URL}/orders/", json=payload)
+                response = await client.post(f"{API_URL}/orders/", json=payload, headers={"X-Bot-Secret": BOT_INTERNAL_SECRET})
             except Exception as e:
                 logging.error(f"Order placement error: {e}")
                 return {"error": "Ошибка соединения с сервером"}
@@ -409,7 +410,7 @@ async def ask_claude(user_id: int, user_message: str) -> str:
                     quantity=tool_input.get("quantity", 1),
                     customer_name=tool_input.get("customer_name", ""),
                     customer_phone=tool_input.get("customer_phone", ""),
-                    delivery_address=tool_input.get("delivery_address", ""),
+                    delivery_address=tool_input.get("delivery_address", ""), is_dushanbe=tool_input.get("is_dushanbe", True),
                 )
                 tool_results.append({
                     "type": "tool_result",
@@ -1105,6 +1106,8 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 WEBHOOK_PATH = "/webhook"
 WEBHOOK_BASE_URL = os.getenv("RENDER_EXTERNAL_URL", "https://oina-client-bot.onrender.com")
 WEBHOOK_URL = f"{WEBHOOK_BASE_URL}{WEBHOOK_PATH}"
+import hashlib
+WEBHOOK_SECRET = hashlib.sha256(BOT_TOKEN.encode()).hexdigest()
 
 
 async def health_check(request):
@@ -1112,7 +1115,7 @@ async def health_check(request):
 
 
 async def on_startup(bot: Bot):
-    await bot.set_webhook(WEBHOOK_URL)
+    await bot.set_webhook(WEBHOOK_URL, secret_token=WEBHOOK_SECRET)
     logging.info(f"Webhook set to {WEBHOOK_URL}")
 
 
@@ -1127,7 +1130,7 @@ async def main():
     app = web.Application()
     app.router.add_get("/", health_check)
 
-    webhook_handler = SimpleRequestHandler(dispatcher=dp, bot=bot)
+    webhook_handler = SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=WEBHOOK_SECRET)
     webhook_handler.register(app, path=WEBHOOK_PATH)
     setup_application(app, dp, bot=bot)
 

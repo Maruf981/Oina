@@ -240,7 +240,8 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     order = item.order
     order.total = sum(float(i.price_at_order) * (i.quantity - i.returned_quantity) for i in order.items)
     diff = round(float(order.total) - old_total, 2)
-    if diff and order.payment_method and order.payment_method.value != "cod" and order.status.value != "awaiting_payment":
+    already_paid = order.status.value in ("paid", "delivered") or bool(order.payment_method and order.payment_method.value != "cod" and order.status.value != "awaiting_payment")
+    if diff and already_paid:
         note = f"Обмен: {'доплата клиента' if diff > 0 else 'вернуть клиенту'} {abs(diff):g} смн"
         order.comment = (f"{order.comment} · {note}" if order.comment else note)[:500]
 
@@ -260,7 +261,7 @@ ALLOWED_TRANSITIONS = {
     "confirmed": {"paid", "shipped", "delivered", "cancelled"},
     "shipped": {"paid", "delivered", "cancelled", "returned"},
     "delivered": {"paid", "returned", "shipped"},  # shipped — откат ошибочной отметки
-    "cancelled": {"new", "awaiting_payment", "paid", "confirmed"},  # восстановление
+    "cancelled": {"new", "paid", "confirmed"},  # восстановление
     "returned": {"delivered"},  # откат ошибочного возврата
 }
 
@@ -284,8 +285,6 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
     restore_statuses = {OrderStatus.CANCELLED, OrderStatus.RETURNED}
     already_restored = old_status in restore_statuses
     will_restore = OrderStatus(new_status) in restore_statuses
-
-    order.status = OrderStatus(new_status)
 
     if new_status == "delivered" and not order.delivered_at:
         from datetime import datetime
@@ -339,6 +338,7 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
                 note=f"Заказ №{order.id} — {new_status}",
             )
 
+    order.status = OrderStatus(new_status)
     db.commit()
     db.refresh(order)
     return order
