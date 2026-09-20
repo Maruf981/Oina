@@ -173,8 +173,11 @@ def cancel_order_by_customer(
         raise HTTPException(status_code=400, detail="Заказ уже отправлен, отмена через бота недоступна — обратитесь в поддержку")
     if order.delivered_at:
         raise HTTPException(status_code=400, detail="Заказ уже доставлен — отмена недоступна. Для обмена выберите «Обмен».")
+    was_paid = order.status.value in ("paid", "confirmed") and order.payment_method is not None and order.payment_method.value != "cod"
     updated = order_repo.update_status(db, order, "cancelled", require_from={"new", "awaiting_payment", "paid", "confirmed"})
     text = f"❌ Отменён клиентом через бота: Заказ №{updated.id} — {updated.total} смн"
+    if was_paid:
+        text += f"\n💸 Заказ оплачен — верните клиенту {float(updated.total):g} смн"
     background_tasks.add_task(send_admin_notification, text)
     return updated
 
@@ -423,10 +426,15 @@ def change_order_status(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    prev_status = order.status.value
     updated = order_repo.update_status(db, order, data.status)
     if data.status in ("cancelled", "returned"):
         label = "❌ Отменён" if data.status == "cancelled" else "↩️ Возврат"
         text = f"{label}: Заказ №{updated.id} — {updated.total} смн"
+        paid_before = prev_status in ("paid", "delivered") or (
+            prev_status in ("confirmed", "shipped") and updated.payment_method is not None and updated.payment_method.value != "cod")
+        if paid_before and prev_status != data.status:
+            text += f"\n💸 Деньги получены — верните клиенту {float(updated.total):g} смн"
         background_tasks.add_task(send_admin_notification, text)
 
     status_labels_ru = {

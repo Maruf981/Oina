@@ -1806,7 +1806,8 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
 function FinanceTab({ orders, products, suppliers, authFetch }: any) {
   const [writeoffs, setWriteoffs] = useState<any[]>([]);
   useEffect(() => {
-    Promise.all(["writeoff", "adjustment"].map((t) =>
+    // в убыток идут только реальные списания (брак/потеря); "adjustment" — исправление ошибок ввода, не убыток
+    Promise.all(["writeoff"].map((t) =>
       authFetch(`${API}/stock-movements/?movement_type=${t}`).then((r: any) => (r.ok ? r.json() : [])).catch(() => [])
     )).then((lists: any[]) => setWriteoffs(lists.flat()));
   }, []);

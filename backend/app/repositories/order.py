@@ -159,8 +159,9 @@ def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | 
     order = item.order
     order.total = sum(float(i.price_at_order) * (i.quantity - i.returned_quantity) for i in order.items)
     if all(i.returned_quantity >= i.quantity for i in order.items) and order.status not in (OrderStatus.CANCELLED, OrderStatus.RETURNED):
-        # все позиции возвращены — заказ целиком в "Возврат" (склад уже пополнен выше)
-        order.status = OrderStatus.RETURNED
+        # все позиции возвращены: до отправки это отмена, после — "Возврат" (склад уже пополнен выше)
+        not_sent = order.status in (OrderStatus.NEW, OrderStatus.AWAITING_PAYMENT, OrderStatus.PAID, OrderStatus.CONFIRMED) and not order.delivered_at
+        order.status = OrderStatus.CANCELLED if not_sent else OrderStatus.RETURNED
 
     db.commit()
     db.refresh(item)
@@ -285,6 +286,10 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
         return order
     if new_status not in ALLOWED_TRANSITIONS.get(old_status.value, set()):
         raise HTTPException(status_code=400, detail=f"Нельзя сменить статус: «{STATUS_RU.get(old_status.value, old_status.value)}» → «{STATUS_RU.get(new_status, new_status)}»")
+    if old_status == OrderStatus.CANCELLED and new_status in ("new", "confirmed") and order.payment_method != PaymentMethod.COD:
+        raise HTTPException(status_code=400, detail="Заказ с предоплатой (QR/карта) восстанавливается только в «Оплачен»")
+    if old_status == OrderStatus.RETURNED and all(i.returned_quantity >= i.quantity for i in order.items):
+        raise HTTPException(status_code=400, detail="Все позиции возвращены по отдельности — откат статуса ничего не вернёт. Оформите новый заказ.")
     restore_statuses = {OrderStatus.CANCELLED, OrderStatus.RETURNED}
     already_restored = old_status in restore_statuses
     will_restore = OrderStatus(new_status) in restore_statuses

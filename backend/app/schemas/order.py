@@ -1,4 +1,5 @@
 from datetime import datetime
+from app.schemas._types import UtcDateTime
 
 from pydantic import BaseModel
 
@@ -87,7 +88,7 @@ class OrderOut(BaseModel):
     total: float
     promo_code: str | None = None
     promo_percent: int | None = None
-    created_at: datetime
+    created_at: UtcDateTime
     items: list[OrderItemOut]
     customer: CustomerBrief
 

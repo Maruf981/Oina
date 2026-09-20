@@ -265,7 +265,7 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
                 record_movement(
                     db,
                     variant_id=existing.id,
-                    movement_type="writeoff",
+                    movement_type="adjustment",
                     quantity=-removed_qty,
                     cost_price_at_time=existing.product.cost_price,
                     note="Вариант удалён из формы товара",

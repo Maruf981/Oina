@@ -1,4 +1,5 @@
 from datetime import datetime
+from app.schemas._types import UtcDateTime
 from pydantic import BaseModel
 
 
@@ -27,7 +28,7 @@ class StockMovementOut(BaseModel):
     order_id: int | None = None
     supplier_id: int | None = None
     note: str | None = None
-    created_at: datetime
+    created_at: UtcDateTime
 
     class Config:
         from_attributes = True
