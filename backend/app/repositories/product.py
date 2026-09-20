@@ -229,7 +229,7 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
                     variant_id=existing.id,
                     movement_type="incoming" if delta > 0 else "adjustment",
                     quantity=delta,
-                    cost_price_at_time=product.cost_price if delta > 0 else None,
+                    cost_price_at_time=product.cost_price,
                     supplier_id=product.supplier_id if delta > 0 else None,
                     note=f"Изменение остатка через форму товара" if delta > 0 else "Ручная корректировка остатка",
                 )

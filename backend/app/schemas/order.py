@@ -97,6 +97,7 @@ class OrderOut(BaseModel):
 
 class OrderItemAdminOut(OrderItemOut):
     cost_at_order: float | None = None
+    supplier_id: int | None = None
 
 
 class OrderAdminOut(OrderOut):

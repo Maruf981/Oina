@@ -96,6 +96,7 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
             quantity=quantity,
             price_at_order=price,
             cost_at_order=variant.product.cost_price,
+            supplier_id=variant.product.supplier_id,
         ))
         variant.stock -= quantity
         record_movement(
@@ -224,13 +225,14 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
         item.is_returned = True
         new_item = OrderItem(product_variant_id=new_variant_id, quantity=remaining,
                              price_at_order=new_price, cost_at_order=new_variant.product.cost_price,
-                             returned_quantity=0, is_returned=False)
+                             returned_quantity=0, is_returned=False, supplier_id=new_variant.product.supplier_id)
         order.items.append(new_item)
         item = new_item
     else:
         item.product_variant_id = new_variant_id
         item.price_at_order = new_price
         item.cost_at_order = new_variant.product.cost_price
+        item.supplier_id = new_variant.product.supplier_id
 
     order = item.order
     order.total = sum(float(i.price_at_order) * (i.quantity - i.returned_quantity) for i in order.items)

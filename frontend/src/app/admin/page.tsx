@@ -1804,6 +1804,12 @@ function CategoriesTab({ t, categories, creatingCategory, setCreatingCategory, a
 }
 
 function FinanceTab({ orders, products, suppliers, authFetch }: any) {
+  const [writeoffs, setWriteoffs] = useState<any[]>([]);
+  useEffect(() => {
+    Promise.all(["writeoff", "adjustment"].map((t) =>
+      authFetch(`${API}/stock-movements/?movement_type=${t}`).then((r: any) => (r.ok ? r.json() : [])).catch(() => [])
+    )).then((lists: any[]) => setWriteoffs(lists.flat()));
+  }, []);
   const [unlocked, setUnlocked] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
@@ -1933,6 +1939,10 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
   };
   const filteredExpenses = expenses.filter((e: any) => isWithinPeriod(e.expense_date));
   const totalExpenses = filteredExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+  const writeoffCost = writeoffs
+    .filter((m: any) => Number(m.quantity) < 0 && isWithinPeriod(m.created_at))
+    .filter((m: any) => supplierFilter === "" || variantInfo.get(m.product_variant_id)?.supplierId === supplierFilter)
+    .reduce((sum: number, m: any) => sum + Math.abs(Number(m.quantity)) * Number(m.cost_price_at_time ?? variantInfo.get(m.product_variant_id)?.costPrice ?? 0), 0);
 
   const excludedStatuses = new Set(["cancelled", "returned"]);
   const validOrders = (Array.isArray(orders) ? orders : []).filter(
@@ -1943,20 +1953,23 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
   const bySupplier = new Map<string, SupplierAgg>();
   let totalRevenue = 0;
   let totalCost = 0;
+  let missingCost = 0;
 
   validOrders.forEach((o: Order) => {
     o.items.forEach((item) => {
       const effectiveQty = item.quantity - ((item as any).returned_quantity ?? 0);
       if (effectiveQty <= 0) return;
       const info = variantInfo.get(item.product_variant_id);
-      if (supplierFilter !== "" && info?.supplierId !== supplierFilter) return;
+      const itemSupplier = (item as any).supplier_id ?? info?.supplierId ?? null;
+      if (supplierFilter !== "" && itemSupplier !== supplierFilter) return;
+      if ((item as any).cost_at_order == null) missingCost += effectiveQty;
 
       const revenue = item.price_at_order * effectiveQty;
-      const cost = Number((item as any).cost_at_order ?? info?.costPrice ?? 0) * effectiveQty;
+      const cost = Number((item as any).cost_at_order ?? 0) * effectiveQty;
       totalRevenue += revenue;
       totalCost += cost;
 
-      const key = supplierName(info?.supplierId ?? null);
+      const key = supplierName(itemSupplier);
       const agg = bySupplier.get(key) ?? { revenue: 0, cost: 0, profit: 0 };
       agg.revenue += revenue;
       agg.cost += cost;
@@ -1965,7 +1978,7 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
     });
   });
 
-  const totalProfit = totalRevenue - totalCost - totalExpenses;
+  const totalProfit = totalRevenue - totalCost - totalExpenses - writeoffCost;
   const supplierRows = Array.from(bySupplier.entries()).sort((a, b) => b[1].revenue - a[1].revenue);
 
   return (
@@ -1992,7 +2005,8 @@ function FinanceTab({ orders, products, suppliers, authFetch }: any) {
           ))}
         </select>
         <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-          Заказов учтено: {validOrders.length} (без отменённых/возвратов)
+          Заказов учтено: {validOrders.length} (без отменённых/возвратов) · Списания: {Math.round(writeoffCost)} смн
+          {missingCost > 0 && <span style={{ color: "#E24B4A" }}> · без себестоимости: {missingCost} шт</span>}
         </span>
       </div>
       <div className="finance-summary-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 30 }}>
