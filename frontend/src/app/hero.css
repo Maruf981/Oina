@@ -211,3 +211,7 @@
   .season-cd-sep { margin: 0 .28rem; }
   .season-cd-title { margin-right: .6rem; }
 }
+
+/* «Dushanbe» / «Tajikistan» — чуть прозрачнее */
+.hero-foot > span:not(.season-cd),
+.hero-foot-left > span:not(.season-cd) { opacity: .55; }
