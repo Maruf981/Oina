@@ -211,7 +211,18 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
 
   if (count === 0) return null;
 
-  const open = (s: DualSlide) => { if (s.category_id) router.push(`/?category_id=${s.category_id}`); };
+  // открыть категорию и плавно проехать к блоку категории (а не прыгать наверх на hero)
+  const open = (s: DualSlide) => {
+    if (!s.category_id) return;
+    router.push(`/?category_id=${s.category_id}`, { scroll: false });
+    let tries = 0;
+    const go = () => {
+      const el = document.querySelector(".coll");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      else if (tries++ < 20) setTimeout(go, 50);
+    };
+    setTimeout(go, 60);
+  };
 
   return (
     <div style={{ position: "relative", width: "100%", margin: "20px 0" }}>
