@@ -2546,11 +2546,22 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
   const handleStatusChange = async (orderId: number, status: string) => {
-    await authFetch(`${API}/orders/${orderId}/status`, {
+    const current = orders.find((x: any) => x.id === orderId)?.status;
+    const closed = ["cancelled", "returned"];
+    if (current && closed.includes(current) && !closed.includes(status)) {
+      if (!window.confirm(`Заказ №${orderId} отменён/возвращён. Восстановить его и снова списать товар со склада?`)) return;
+    } else if (current && !closed.includes(current) && closed.includes(status)) {
+      if (!window.confirm(`Заказ №${orderId}: ${status === "cancelled" ? "отменить" : "оформить возврат"} и вернуть товар на склад?`)) return;
+    }
+    const res = await authFetch(`${API}/orders/${orderId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      window.alert(typeof err?.detail === "string" ? err.detail : "Не удалось изменить статус");
+    }
     refreshOrders();
   };
   const handleReturnItem = async (orderId: number, itemId: number, quantity: number, returnedQuantity: number) => {
