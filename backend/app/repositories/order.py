@@ -53,7 +53,7 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
         if not admin and not getattr(variant.product, "is_active", True):
             raise HTTPException(status_code=400, detail=f"Товар снят с продажи: {variant.product.title_ru}")
         if variant.stock < item.quantity:
-            raise HTTPException(status_code=400, detail=f"Not enough stock for variant {variant.id}")
+            raise HTTPException(status_code=400, detail=f"В наличии только {variant.stock} шт: {variant.product.title_ru} ({variant.color}, {variant.size})")
 
         order_items.append((variant, item.quantity))
 
