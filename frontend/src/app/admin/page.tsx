@@ -2695,6 +2695,16 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
           </div>
           {o.delivery_address && <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 10 }}>{o.delivery_address}</p>}
           {o.comment && <p style={{ color: "var(--accent)", fontSize: 13, marginBottom: 10 }}>💬 {o.comment}</p>}
+          {o.payment_method === "cod" && o.status !== "paid" && (
+            <div style={{ border: "2px solid #D97706", color: "#D97706", display: "inline-block", padding: "6px 12px", marginBottom: 10, fontSize: 15, fontWeight: 700 }}>
+              ОПП {o.total} сом
+            </div>
+          )}
+          {(o.payment_method === "cod" ? o.status === "paid" : o.status !== "awaiting_payment") && (
+            <div style={{ border: "2px solid #16A34A", color: "#16A34A", display: "inline-block", padding: "6px 12px", marginBottom: 10, fontSize: 15, fontWeight: 700 }}>
+              ✅ ОПЛАЧЕНО
+            </div>
+          )}
           <div style={{ borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)", padding: "10px 0", marginBottom: 10 }}>
             {o.items.map((item) => (
               <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, marginBottom: 4, opacity: (item as any).is_returned ? 0.5 : 1 }}>
