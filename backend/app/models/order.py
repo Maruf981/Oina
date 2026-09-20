@@ -10,7 +10,7 @@ from app.core.database import Base
 class OrderStatus(str, enum.Enum):
     NEW = "new"
     AWAITING_PAYMENT = "awaiting_payment"
-    PAID = "paid"
+    PAID = "paid"  # устарел: оплата теперь в Order.paid_at, статус не ставится
     CONFIRMED = "confirmed"
     SHIPPED = "shipped"
     DELIVERED = "delivered"
@@ -37,6 +37,8 @@ class Order(Base):
     total: Mapped[float] = mapped_column(Numeric(10, 2))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    cancel_reason: Mapped[str | None] = mapped_column(String(30), nullable=True)
     courier_id: Mapped[int | None] = mapped_column(ForeignKey("employees.id"), nullable=True)
     promo_code_id: Mapped[int | None] = mapped_column(ForeignKey("promo_codes.id"), nullable=True)
     promo_code: Mapped[str | None] = mapped_column(String(32), nullable=True)

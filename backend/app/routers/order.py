@@ -17,7 +17,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_customer, get_current_admin, get_current_customer_optional
 from app.models.customer import Customer
 from app.repositories import order as order_repo
-from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderItemOut, ReturnItemRequest, ExchangeRequest, ExchangeVariantRequest
+from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderItemOut, ReturnItemRequest, ExchangeRequest, ExchangeVariantRequest, OrderPaymentUpdate
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -173,8 +173,8 @@ def cancel_order_by_customer(
         raise HTTPException(status_code=400, detail="Заказ уже отправлен, отмена через бота недоступна — обратитесь в поддержку")
     if order.delivered_at:
         raise HTTPException(status_code=400, detail="Заказ уже доставлен — отмена недоступна. Для обмена выберите «Обмен».")
-    was_paid = order.status.value in ("paid", "confirmed") and order.payment_method is not None and order.payment_method.value != "cod"
-    updated = order_repo.update_status(db, order, "cancelled", require_from={"new", "awaiting_payment", "paid", "confirmed"})
+    was_paid = order.paid_at is not None
+    updated = order_repo.update_status(db, order, "cancelled", require_from={"new", "awaiting_payment", "paid", "confirmed"}, reason="customer_request")
     text = f"❌ Отменён клиентом через бота: Заказ №{updated.id} — {updated.total} смн"
     if was_paid:
         text += f"\n💸 Заказ оплачен — верните клиенту {float(updated.total):g} смн"
@@ -200,7 +200,7 @@ def return_item_by_customer(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not _owner_ok(order, data.phone, data.telegram_id):
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
-    if order.delivered_at and order.status in ("delivered", "paid"):
+    if order.delivered_at and order.status == "delivered":
         from datetime import datetime, timedelta
         if order.is_dushanbe:
             raise HTTPException(status_code=400, detail="В Душанбе товар проверяется при получении — после принятия возврат не производится. Для обмена размера/цвета (24 часа) воспользуйтесь пунктом «Обмен».")
@@ -224,7 +224,7 @@ def return_item_by_customer(
         raise HTTPException(status_code=400, detail="Заказ уже в пути или закрыт — возврат через бота недоступен, обратитесь в поддержку")
     _it = next((i for i in order.items if i.id == item_id), None)
     _prev = _it.returned_quantity if _it else 0
-    _paid = bool(order.payment_method and order.payment_method.value != "cod" and order.status.value in ("paid", "confirmed"))
+    _paid = order.paid_at is not None
     result = order_repo.return_order_item(db, order_id, item_id, quantity=data.quantity, require_status={"new", "awaiting_payment", "paid", "confirmed"})
     text = f"↩️ Возврат товара клиентом через бота: Заказ №{order_id}, позиция №{item_id}, кол-во {data.quantity or 'всё'}"
     if _paid:
@@ -254,7 +254,7 @@ def request_exchange(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not _owner_ok(order, data.phone, data.telegram_id):
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
-    if order.status not in ("delivered", "paid") or not order.delivered_at:
+    if order.status != "delivered" or not order.delivered_at:
         raise HTTPException(status_code=400, detail="Обмен доступен только для доставленных заказов")
 
     window_hours = 24 if order.is_dushanbe else 48
@@ -406,11 +406,39 @@ def courier_status(
         order_repo.update_status(db, order, "delivered")
         return {"ok": True}
     elif status == "failed":
+        reason = data.get("reason")
         text = f"❌ Доставщик {employee.name} не смог доставить заказ №{order.id}"
+        if reason in order_repo.CANCEL_REASONS:
+            text += f"\nПричина: {order_repo.CANCEL_REASONS[reason]}"
+            if reason in order_repo.FAKE_REASONS:
+                text += " (засчитается как фейк при отмене)"
+        text += "\nОтмените заказ в админке с этой причиной или назначьте повторную доставку."
         background_tasks.add_task(send_admin_notification, text)
         return {"ok": True}
     else:
         raise HTTPException(status_code=400, detail="Некорректный статус")
+
+
+@router.patch("/{order_id}/payment", response_model=OrderOut)
+def mark_payment(
+    order_id: int,
+    data: OrderPaymentUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin),
+):
+    """Отметка "Оплата получена" / снятие отметки. Для QR/карты из "Ожидает оплаты" заказ переходит в "Подтверждён"."""
+    from app.models.order import Order
+    from fastapi import HTTPException
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    was_paid = order.paid_at is not None
+    updated = order_repo.set_paid(db, order, data.paid)
+    if data.paid and not was_paid and updated.customer.telegram_id:
+        background_tasks.add_task(send_customer_notification, updated.customer.telegram_id,
+                                  f"💰 Оплата по заказу №{updated.id} получена. Спасибо!")
+    return updated
 
 
 @router.patch("/{order_id}/status", response_model=OrderOut)
@@ -426,14 +454,20 @@ def change_order_status(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    if data.status == "paid":
+        # совместимость: кнопка "Оплачен" в боте = отметка оплаты, а не статус
+        return mark_payment(order_id, OrderPaymentUpdate(paid=True), background_tasks, db, True)
     prev_status = order.status.value
-    updated = order_repo.update_status(db, order, data.status)
+    was_paid = order.paid_at is not None
+    updated = order_repo.update_status(db, order, data.status, reason=data.reason)
     if data.status in ("cancelled", "returned"):
         label = "❌ Отменён" if data.status == "cancelled" else "↩️ Возврат"
         text = f"{label}: Заказ №{updated.id} — {updated.total} смн"
-        paid_before = prev_status in ("paid", "delivered") or (
-            prev_status in ("confirmed", "shipped") and updated.payment_method is not None and updated.payment_method.value != "cod")
-        if paid_before and prev_status != data.status:
+        if updated.cancel_reason:
+            text += f"\nПричина: {order_repo.CANCEL_REASONS.get(updated.cancel_reason, updated.cancel_reason)}"
+            if updated.cancel_reason in order_repo.FAKE_REASONS:
+                text += " ⚠️ фейк"
+        if was_paid and prev_status != data.status:
             text += f"\n💸 Деньги получены — верните клиенту {float(updated.total):g} смн"
         background_tasks.add_task(send_admin_notification, text)
 

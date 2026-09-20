@@ -10,6 +10,19 @@ from app.repositories.stock_movement import record_movement, get_variant_locked
 from app.schemas.order import OrderCreate
 
 
+# Причины отмены/отказа. Фейк (вина клиента) — только FAKE_REASONS.
+CANCEL_REASONS = {
+    "refused": "Отказался без причины",
+    "no_answer": "Не берёт трубку / не открыл",
+    "wrong_address": "Дал неверный адрес",
+    "not_fit": "Не подошёл размер / брак",
+    "store_fault": "Ошибка магазина / курьера",
+    "customer_request": "Клиент попросил отменить",
+    "other": "Другое",
+}
+FAKE_REASONS = {"refused", "no_answer", "wrong_address"}
+
+
 def get_or_create_customer(db: Session, name: str, phone: str) -> Customer:
     from app.core.phone import phone_variants
     customer = db.query(Customer).filter(Customer.phone.in_(phone_variants(phone))).first()
@@ -30,7 +43,11 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
         if not current and not admin:
             raise HTTPException(status_code=401, detail="Оплата при получении доступна только авторизованным клиентам")
         customer = current or get_or_create_customer(db, data.customer_name, data.customer_phone)
-        fakes = db.query(Order.id).filter(Order.customer_id == customer.id, Order.status.in_([OrderStatus.CANCELLED, OrderStatus.RETURNED]), Order.comment.like("[fake]%")).count()
+        fakes = db.query(Order.id).filter(
+            Order.customer_id == customer.id,
+            Order.status.in_([OrderStatus.CANCELLED, OrderStatus.RETURNED]),
+            Order.cancel_reason.in_(FAKE_REASONS),
+        ).count()
         if fakes >= 2:
             raise HTTPException(status_code=400, detail="Оплата при получении недоступна: клиент 2 раза не принял заказ. Нужна предоплата — QR или карта.")
     else:
@@ -244,8 +261,7 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     order = item.order
     order.total = sum(float(i.price_at_order) * (i.quantity - i.returned_quantity) for i in order.items)
     diff = round(float(order.total) - old_total, 2)
-    already_paid = order.status.value in ("paid", "delivered") or bool(order.payment_method and order.payment_method.value != "cod" and order.status.value != "awaiting_payment")
-    if diff and already_paid:
+    if diff and order.paid_at:
         note = f"Обмен: {'доплата клиента' if diff > 0 else 'вернуть клиенту'} {abs(diff):g} смн"
         order.comment = (f"{order.comment} · {note}" if order.comment else note)[:500]
 
@@ -258,19 +274,44 @@ STATUS_RU = {
     "new": "Новый", "awaiting_payment": "Ожидает оплаты", "paid": "Оплачен", "confirmed": "Подтверждён",
     "shipped": "Отправлен", "delivered": "Доставлен", "cancelled": "Отменён", "returned": "Возврат",
 }
+# "Оплачен" больше не статус — оплата отмечается отдельно (set_paid -> paid_at)
 ALLOWED_TRANSITIONS = {
-    "new": {"confirmed", "paid", "shipped", "delivered", "cancelled"},
-    "awaiting_payment": {"paid", "cancelled"},
-    "paid": {"confirmed", "shipped", "delivered", "cancelled", "returned"},
-    "confirmed": {"paid", "shipped", "delivered", "cancelled"},
-    "shipped": {"paid", "delivered", "cancelled", "returned"},
-    "delivered": {"paid", "returned", "shipped"},  # shipped — откат ошибочной отметки
-    "cancelled": {"new", "paid", "confirmed"},  # восстановление
+    "new": {"confirmed", "shipped", "delivered", "cancelled"},
+    "awaiting_payment": {"confirmed", "cancelled"},
+    "paid": {"confirmed", "shipped", "delivered", "cancelled", "returned"},  # старые заказы
+    "confirmed": {"shipped", "delivered", "cancelled"},
+    "shipped": {"delivered", "cancelled", "returned"},
+    "delivered": {"returned", "shipped"},  # shipped — откат ошибочной отметки
+    "cancelled": {"new", "confirmed"},  # восстановление
     "returned": {"delivered"},  # откат ошибочного возврата
 }
 
 
-def update_status(db: Session, order: Order, new_status: str, only_from: str | None = None, require_from: set[str] | None = None) -> Order:
+def set_paid(db: Session, order: Order, paid: bool) -> Order:
+    """Отметка оплаты отдельно от статуса доставки."""
+    from datetime import datetime
+    order = db.query(Order).filter(Order.id == order.id).with_for_update().populate_existing().one()
+    prepaid = order.payment_method != PaymentMethod.COD
+    if paid:
+        if order.paid_at:
+            return order
+        order.paid_at = datetime.utcnow()
+        if order.status == OrderStatus.AWAITING_PAYMENT:
+            order.status = OrderStatus.CONFIRMED
+    else:
+        if not order.paid_at:
+            return order
+        if prepaid and order.status in (OrderStatus.SHIPPED, OrderStatus.DELIVERED):
+            raise HTTPException(status_code=400, detail="Заказ с предоплатой уже отправлен — снять оплату нельзя")
+        order.paid_at = None
+        if prepaid and order.status == OrderStatus.CONFIRMED:
+            order.status = OrderStatus.AWAITING_PAYMENT
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+def update_status(db: Session, order: Order, new_status: str, only_from: str | None = None, require_from: set[str] | None = None, reason: str | None = None) -> Order:
     try:
         OrderStatus(new_status)
     except ValueError:
@@ -286,18 +327,25 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
         return order
     if new_status not in ALLOWED_TRANSITIONS.get(old_status.value, set()):
         raise HTTPException(status_code=400, detail=f"Нельзя сменить статус: «{STATUS_RU.get(old_status.value, old_status.value)}» → «{STATUS_RU.get(new_status, new_status)}»")
-    if old_status == OrderStatus.CANCELLED and new_status in ("new", "confirmed") and order.payment_method != PaymentMethod.COD:
-        raise HTTPException(status_code=400, detail="Заказ с предоплатой (QR/карта) восстанавливается только в «Оплачен»")
+    prepaid = order.payment_method != PaymentMethod.COD
+    if prepaid and new_status == "new":
+        raise HTTPException(status_code=400, detail="Заказ с предоплатой восстанавливается в «Подтверждён» (после отметки оплаты)")
+    if prepaid and new_status in ("confirmed", "shipped", "delivered") and not order.paid_at:
+        raise HTTPException(status_code=400, detail="Заказ не оплачен — сначала отметьте «💰 Оплата получена»")
+    if reason and reason not in CANCEL_REASONS:
+        raise HTTPException(status_code=400, detail="Неизвестная причина отмены")
+    if (not prepaid and old_status == OrderStatus.SHIPPED and new_status in ("cancelled", "returned") and not reason):
+        raise HTTPException(status_code=400, detail="Укажите причину отказа при доставке")
     if old_status == OrderStatus.RETURNED and all(i.returned_quantity >= i.quantity for i in order.items):
         raise HTTPException(status_code=400, detail="Все позиции возвращены по отдельности — откат статуса ничего не вернёт. Оформите новый заказ.")
     restore_statuses = {OrderStatus.CANCELLED, OrderStatus.RETURNED}
     already_restored = old_status in restore_statuses
     will_restore = OrderStatus(new_status) in restore_statuses
 
+    from datetime import datetime
     if new_status == "delivered" and not order.delivered_at:
-        from datetime import datetime
         order.delivered_at = datetime.utcnow()
-    elif new_status not in ("delivered", "paid", "returned"):
+    elif new_status not in ("delivered", "returned"):
         # откат ошибочного "Доставлен" — срок возврата/обмена начнётся заново при реальной доставке
         order.delivered_at = None
 
@@ -346,9 +394,17 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
                 note=f"Заказ №{order.id} — {new_status}",
             )
 
+    if not prepaid:
+        if new_status == "delivered" and not order.paid_at:
+            order.paid_at = datetime.utcnow()  # курьер получил наличные
+        elif old_status == OrderStatus.DELIVERED and new_status == "shipped":
+            order.paid_at = None  # откат ошибочной доставки
+    if will_restore:
+        order.cancel_reason = reason
+    elif already_restored:
+        order.cancel_reason = None  # восстановлен — причина отмены больше не действует
+
     order.status = OrderStatus(new_status)
-    if order.payment_method == PaymentMethod.COD and old_status == OrderStatus.SHIPPED and will_restore and not (order.comment or "").startswith("[fake]"):
-        order.comment = ("[fake] " + (order.comment or ""))[:500]
     db.commit()
     db.refresh(order)
     return order

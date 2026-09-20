@@ -175,6 +175,8 @@ type Order = {
   delivery_address: string | null;
   comment: string | null;
   payment_method: string | null;
+  paid_at?: string | null;
+  cancel_reason?: string | null;
   source?: string;
   customer: { id: number; name: string | null; phone: string };
   items: { id: number; product_variant_id: number; quantity: number; price_at_order: number; variant: { id: number; size: string; color: string; title_ru: string; title_tj: string | null; catalog_number: string } | null }[];
@@ -2479,13 +2481,25 @@ function WarehouseTab({ products, suppliers, incomingMovements, authFetch, refre
 const ORDER_STATUS_LABELS: Record<string, string> = {
   new: "Новый",
   awaiting_payment: "Ожидает оплаты",
-  paid: "Оплачен",
   confirmed: "Подтверждён",
   shipped: "Отправлен",
   delivered: "Доставлен",
   cancelled: "Отменён",
   returned: "Возврат",
 };
+
+// причины отказа; фейк (вина клиента) — только первые три
+const CANCEL_REASON_LABELS: Record<string, string> = {
+  refused: "Отказался без причины",
+  no_answer: "Не берёт трубку / не открыл",
+  wrong_address: "Дал неверный адрес",
+  not_fit: "Не подошёл размер / брак",
+  store_fault: "Ошибка магазина / курьера",
+  customer_request: "Клиент попросил отменить",
+  other: "Другое",
+};
+const FAKE_REASONS = new Set(["refused", "no_answer", "wrong_address"]);
+const ASK_REASONS = ["refused", "no_answer", "wrong_address", "not_fit", "store_fault", "other"];
 
 function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
   const [couriers, setCouriers] = useState<any[]>([]);
@@ -2561,8 +2575,18 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
   const handleStatusChange = async (orderId: number, status: string) => {
-    const current = orders.find((x: any) => x.id === orderId)?.status;
+    const ord = orders.find((x: any) => x.id === orderId);
+    const current = ord?.status;
     const closed = ["cancelled", "returned"];
+    let reason: string | null = null;
+    if (ord?.payment_method === "cod" && current === "shipped" && closed.includes(status)) {
+      const list = ASK_REASONS.map((k, i) => `${i + 1} — ${CANCEL_REASON_LABELS[k]}${FAKE_REASONS.has(k) ? " (фейк)" : ""}`).join("\n");
+      const input = window.prompt(`Причина отказа по заказу №${orderId}:\n${list}\n\nВведите номер:`);
+      if (input === null) return;
+      const key = ASK_REASONS[Number(input) - 1];
+      if (!key) { alert("Неверный номер причины"); return; }
+      reason = key;
+    }
     if (current && closed.includes(current) && !closed.includes(status)) {
       if (!window.confirm(`Заказ №${orderId} отменён/возвращён. Восстановить его и снова списать товар со склада?`)) return;
     } else if (current && !closed.includes(current) && closed.includes(status)) {
@@ -2571,11 +2595,24 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
     const res = await authFetch(`${API}/orders/${orderId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, reason }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => null);
       window.alert(typeof err?.detail === "string" ? err.detail : "Не удалось изменить статус");
+    }
+    refreshOrders();
+  };
+  const handleMarkPaid = async (orderId: number, paid: boolean) => {
+    if (!paid && !window.confirm(`Снять отметку оплаты с заказа №${orderId}?`)) return;
+    const res = await authFetch(`${API}/orders/${orderId}/payment`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paid }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      window.alert(typeof err?.detail === "string" ? err.detail : "Не удалось изменить оплату");
     }
     refreshOrders();
   };
@@ -2724,15 +2761,35 @@ function OrdersTab({ t, orders, authFetch, refreshOrders, products }: any) {
           </div>
           {o.delivery_address && <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 10 }}>{o.delivery_address}</p>}
           {o.comment && <p style={{ color: "var(--accent)", fontSize: 13, marginBottom: 10 }}>💬 {o.comment}</p>}
-          {o.payment_method === "cod" && !["paid", "cancelled", "returned"].includes(o.status) && (
+          {o.payment_method === "cod" && !o.paid_at && !["cancelled", "returned"].includes(o.status) && (
             <div style={{ border: "2px solid #D97706", color: "#D97706", display: "inline-block", padding: "6px 12px", marginBottom: 10, fontSize: 15, fontWeight: 700 }}>
               ОПП {o.total} сом
             </div>
           )}
-          {(o.payment_method === "cod" ? o.status === "paid" : ["paid", "confirmed", "shipped", "delivered"].includes(o.status)) && (
+          {o.paid_at && (
             <div style={{ border: "2px solid #16A34A", color: "#16A34A", display: "inline-block", padding: "6px 12px", marginBottom: 10, fontSize: 15, fontWeight: 700 }}>
               ✅ ОПЛАЧЕНО
             </div>
+          )}
+          <div style={{ marginBottom: 10 }}>
+            {!o.paid_at && o.status !== "returned" && (
+              <button
+                onClick={() => handleMarkPaid(o.id, true)}
+                style={{ padding: "6px 12px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", fontSize: 12, cursor: "pointer" }}
+              >
+                💰 Оплата получена
+              </button>
+            )}
+            {o.paid_at && (
+              <span onClick={() => handleMarkPaid(o.id, false)} style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: 11, textDecoration: "underline" }}>
+                снять отметку оплаты
+              </span>
+            )}
+          </div>
+          {o.cancel_reason && ["cancelled", "returned"].includes(o.status) && (
+            <p style={{ fontSize: 13, marginBottom: 10, color: FAKE_REASONS.has(o.cancel_reason) ? "#E24B4A" : "var(--text-muted)" }}>
+              Причина: {CANCEL_REASON_LABELS[o.cancel_reason] || o.cancel_reason}{FAKE_REASONS.has(o.cancel_reason) ? " · ⚠️ фейк" : ""}
+            </p>
           )}
           <div style={{ borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)", padding: "10px 0", marginBottom: 10 }}>
             {o.items.map((item) => (

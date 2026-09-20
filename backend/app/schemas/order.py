@@ -67,6 +67,11 @@ class ExchangeVariantRequest(BaseModel):
 
 class OrderStatusUpdate(BaseModel):
     status: str
+    reason: str | None = None
+
+
+class OrderPaymentUpdate(BaseModel):
+    paid: bool
 
 
 class CustomerBrief(BaseModel):
@@ -89,6 +94,8 @@ class OrderOut(BaseModel):
     promo_code: str | None = None
     promo_percent: int | None = None
     created_at: UtcDateTime
+    paid_at: UtcDateTime | None = None
+    cancel_reason: str | None = None
     items: list[OrderItemOut]
     customer: CustomerBrief
 

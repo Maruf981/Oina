@@ -74,7 +74,7 @@ STATUS_LABELS_RU = {
 
 NEXT_STATUS_OPTIONS = {
     "new": [("✅ Подтвердить", "confirmed"), ("❌ Отменить", "cancelled")],
-    "awaiting_payment": [("💰 Оплачен", "paid"), ("❌ Отменить", "cancelled")],
+    "awaiting_payment": [("💰 Оплата получена", "paid"), ("❌ Отменить", "cancelled")],
     "paid": [("✅ Подтвердить", "confirmed"), ("❌ Отменить", "cancelled")],
     "confirmed": [("🚚 Отправить", "shipped"), ("❌ Отменить", "cancelled")],
     "shipped": [("📬 Доставлено", "delivered")],
@@ -177,15 +177,37 @@ async def cb_courier_delivered(callback: CallbackQuery):
     await callback.answer()
 
 
+COURIER_FAIL_REASONS = [
+    ("refused", "Отказался без причины"),
+    ("no_answer", "Не берёт трубку / не открыл"),
+    ("wrong_address", "Неверный адрес"),
+    ("not_fit", "Не подошёл размер / брак"),
+    ("store_fault", "Не успел / моя проблема"),
+    ("other", "Другое"),
+]
+
+
 @dp.callback_query(F.data.startswith("courier_failed:"))
 async def cb_courier_failed(callback: CallbackQuery):
     order_id = int(callback.data.split(":")[1])
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=label, callback_data=f"courier_failreason:{order_id}:{code}")]
+        for code, label in COURIER_FAIL_REASONS
+    ])
+    await callback.message.edit_reply_markup(reply_markup=keyboard)
+    await callback.answer("Выберите причину")
+
+
+@dp.callback_query(F.data.startswith("courier_failreason:"))
+async def cb_courier_failreason(callback: CallbackQuery):
+    _, order_id_str, reason = callback.data.split(":")
+    order_id = int(order_id_str)
     async with httpx.AsyncClient(timeout=15) as client:
         try:
             res = await client.post(
                 f"{API_BASE_URL}/orders/{order_id}/courier-status",
                 headers={"X-Bot-Secret": BOT_INTERNAL_SECRET},
-                json={"telegram_id": callback.from_user.id, "status": "failed"},
+                json={"telegram_id": callback.from_user.id, "status": "failed", "reason": reason},
             )
             ok = res.status_code == 200
         except Exception:
