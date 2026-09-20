@@ -10,7 +10,12 @@
   margin-left: calc(50% - 50vw);
   margin-top: 5rem;
   padding: 0 4rem;
+  position: relative;
+  overflow: hidden;
 }
+/* облако точек на фоне футера — под текстом, клики не перехватывает */
+.ft-particles { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.ft > *:not(.ft-particles) { position: relative; z-index: 1; }
 
 .ft-top {
   display: grid; grid-template-columns: 1fr 1fr; gap: 3rem;

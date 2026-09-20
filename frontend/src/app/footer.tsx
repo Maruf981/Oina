@@ -1,6 +1,7 @@
 "use client";
 import "./site-footer.css";
 import { SocialLinks } from "./social-links";
+import { FooterParticles } from "./footer-particles";
 
 import { useRouter } from "next/navigation";
 import { translations, Lang } from "./translations";
@@ -18,6 +19,7 @@ export function Footer({ lang }: { lang: Lang }) {
 
   return (
     <footer className="ft">
+      <FooterParticles />
       <div className="ft-top">
         <div className="ft-brand">
           <img className="ft-logo" src="/logo.png" alt="Oina.tj" onClick={() => router.push("/")} />
