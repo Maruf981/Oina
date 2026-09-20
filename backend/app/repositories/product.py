@@ -201,6 +201,9 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
     for key, value in product_data.items():
         setattr(product, key, value)
 
+    # блокируем все варианты заранее и строго по id (как заказы) — иначе возможна взаимная блокировка
+    for v in sorted(product.variants, key=lambda v: v.id):
+        get_variant_locked(db, v.id)
     existing_by_key = {(v.size, v.color): v for v in product.variants}
     incoming_keys = {(v.size, v.color) for v in data.variants}
     existing_suffixes = []

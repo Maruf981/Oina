@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_customer, get_current_admin, verify_bot_secret
 from app.core.security import hash_password, verify_password, create_access_token, create_admin_access_token
 from app.models.customer import Customer
+from app.core.phone import phone_variants
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, CustomerOut, UpdateProfileRequest, ChangePasswordRequest, DeleteAccountRequest, LinkTelegramRequest, VerifyResetCodeRequest, SilentLinkTelegramRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -13,12 +14,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 def find_customer_by_phone(db: Session, phone: str) -> Customer | None:
     """Ищет клиента по номеру в любом из форматов: +992XXXXXXXXX или XXXXXXXXX."""
-    variants = [phone]
-    if phone.startswith("+992"):
-        variants.append(phone[4:])
-    else:
-        variants.append(f"+992{phone}")
-    return db.query(Customer).filter(Customer.phone.in_(variants)).first()
+    return db.query(Customer).filter(Customer.phone.in_(phone_variants(phone))).first()
 
 
 @router.post("/register", response_model=TokenResponse)
@@ -120,7 +116,7 @@ def link_telegram_silent(data: SilentLinkTelegramRequest, db: Session = Depends(
     первом сообщении (после того как клиент поделился контактом), без генерации кода.
     Нужна только чтобы бэкенд знал, куда слать уведомления о статусе заказа.
     """
-    customer = db.query(Customer).filter(Customer.phone == data.phone).first()
+    customer = find_customer_by_phone(db, data.phone)
     if not customer:
         return {"linked": False}
     customer.telegram_id = data.telegram_id
@@ -138,7 +134,7 @@ def link_telegram(data: LinkTelegramRequest, db: Session = Depends(get_db), _: b
     import random
     from datetime import datetime, timedelta
 
-    customer = db.query(Customer).filter(Customer.phone == data.phone).first()
+    customer = find_customer_by_phone(db, data.phone)
     if not customer:
         raise HTTPException(status_code=404, detail="Клиент с таким номером не найден")
 
@@ -162,7 +158,7 @@ def verify_reset_code(data: VerifyResetCodeRequest, db: Session = Depends(get_db
     # SELECT ... FOR UPDATE — блокирует строку клиента на время проверки, чтобы
     # параллельные запросы (перебор кода в несколько потоков) сериализовались,
     # а не читали одно и то же значение reset_code_attempts до чужого commit.
-    customer = db.query(Customer).filter(Customer.phone == data.phone).with_for_update().first()
+    customer = db.query(Customer).filter(Customer.phone.in_(phone_variants(data.phone))).with_for_update().first()
     if not customer or not customer.reset_code or not customer.reset_code_expires:
         raise HTTPException(status_code=400, detail="Код не запрошен или устарел")
     if customer.reset_code_expires < datetime.utcnow():

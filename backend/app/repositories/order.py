@@ -11,7 +11,8 @@ from app.schemas.order import OrderCreate
 
 
 def get_or_create_customer(db: Session, name: str, phone: str) -> Customer:
-    customer = db.query(Customer).filter(Customer.phone == phone).first()
+    from app.core.phone import phone_variants
+    customer = db.query(Customer).filter(Customer.phone.in_(phone_variants(phone))).first()
     if customer:
         return customer
     customer = Customer(name=name, phone=phone)
@@ -30,7 +31,7 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
             raise HTTPException(status_code=401, detail="Оплата при получении доступна только авторизованным клиентам")
         customer = current or get_or_create_customer(db, data.customer_name, data.customer_phone)
     else:
-        customer = get_or_create_customer(db, data.customer_name, data.customer_phone)
+        customer = current or get_or_create_customer(db, data.customer_name, data.customer_phone)
 
     if data.promo_code:
         if not current and not admin:
@@ -63,13 +64,22 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
     order_items = [(v, q, price_with_promo(v.product, promo_percent)) for v, q in order_items]
     total = sum(price * q for _, q, price in order_items)
 
+    order_comment = data.comment
+    if current and not admin:
+        from app.core.phone import phone_core
+        if phone_core(data.customer_phone) != phone_core(current.phone):
+            recipient = f"Получатель: {data.customer_name}, {data.customer_phone}"
+            order_comment = f"{recipient} · {order_comment}" if order_comment else recipient
+    if order_comment:
+        order_comment = order_comment[:500]
+
     order = Order(
         customer_id=customer.id,
         status=OrderStatus.NEW if data.payment_method == "cod" else OrderStatus.AWAITING_PAYMENT,
         source="phone" if admin else "site",
         payment_method=PaymentMethod(data.payment_method),
         delivery_address=data.delivery_address,
-        comment=data.comment,
+        comment=order_comment,
         is_dushanbe=data.is_dushanbe,
         total=total,
         promo_code_id=promo.id if promo else None,
@@ -204,6 +214,7 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     )
 
     order = item.order
+    old_total = float(order.total)
     same_product = new_variant.product_id == old_variant.product_id
     # тот же товар (другой размер/цвет) — клиент уже заплатил, цену не меняем
     new_price = item.price_at_order if same_product else price_with_promo(new_variant.product, order.promo_percent)
@@ -223,6 +234,10 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
 
     order = item.order
     order.total = sum(float(i.price_at_order) * (i.quantity - i.returned_quantity) for i in order.items)
+    diff = round(float(order.total) - old_total, 2)
+    if diff and order.payment_method and order.payment_method.value != "cod" and order.status.value != "awaiting_payment":
+        note = f"Обмен: {'доплата клиента' if diff > 0 else 'вернуть клиенту'} {abs(diff):g} смн"
+        order.comment = (f"{order.comment} · {note}" if order.comment else note)[:500]
 
     db.commit()
     db.refresh(item)

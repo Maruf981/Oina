@@ -1,10 +1,11 @@
 from app.core.deps import verify_bot_secret
+from app.core.phone import phone_core, phone_variants
 
 
 def _owner_ok(order, phone, telegram_id) -> bool:
     """Заказ показываем/меняем только владельцу: телефон совпадает И пишущий боту Telegram привязан к этому клиенту."""
     c = order.customer if order else None
-    return bool(c and c.phone == phone and c.telegram_id and telegram_id and int(c.telegram_id) == int(telegram_id))
+    return bool(c and phone_core(phone) and phone_core(c.phone) == phone_core(phone) and c.telegram_id and telegram_id and int(c.telegram_id) == int(telegram_id))
 
 
 from app.schemas.order import OrderAdminOut
@@ -50,7 +51,7 @@ def lookup_orders_by_phone(phone: str, telegram_id: int = 0, db: Session = Depen
     Намеренно не требует авторизации, но ограничен последними 5 заказами.
     """
     from app.models.order import Order
-    customer = db.query(Customer).filter(Customer.phone == phone).first()
+    customer = db.query(Customer).filter(Customer.phone.in_(phone_variants(phone))).first()
     if not customer or not customer.telegram_id or customer.telegram_id != telegram_id:
         return []
     return (
@@ -66,7 +67,7 @@ def lookup_orders_by_phone(phone: str, telegram_id: int = 0, db: Session = Depen
 def create_order(data: OrderCreate, background_tasks: BackgroundTasks, request: Request, db: Session = Depends(get_db), current: Customer | None = Depends(get_current_customer_optional)):
     ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "")).split(",")[0].strip()
     _order_rate_limit(f"ip:{ip}", 5, 600)
-    _order_rate_limit(f"phone:{data.customer_phone}", 5, 3600)
+    _order_rate_limit(f"phone:{phone_core(data.customer_phone)}", 5, 3600)
     order = order_repo.create_order(db, data, current)
     items_text = "\n".join(
         f"— {item.variant.product.title_ru} ({item.variant.color}, {item.variant.size}) x{item.quantity}"
@@ -332,6 +333,7 @@ def assign_courier(
         f"Клиент: {order.customer.name or 'Без имени'} ({order.customer.phone})\n"
         f"Адрес: {order.delivery_address or '—'}\n"
         f"Сумма: {order.total} смн\n"
+        f"{('💬 ' + order.comment + chr(10)) if order.comment else ''}"
         f"{items_text}"
     )
     reply_markup = {
