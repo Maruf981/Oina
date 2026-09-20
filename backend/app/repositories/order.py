@@ -33,9 +33,9 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
         customer = get_or_create_customer(db, data.customer_name, data.customer_phone)
 
     if data.promo_code:
-        if not current:
+        if not current and not admin:
             raise HTTPException(status_code=401, detail="Промокод доступен только авторизованным клиентам")
-        customer = current
+        customer = current or customer
 
     variant_ids = [i.product_variant_id for i in data.items]
     if not variant_ids or len(variant_ids) != len(set(variant_ids)):
@@ -102,7 +102,7 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
     return order
 
 
-def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | None = None) -> OrderItem:
+def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | None = None, require_status: set[str] | None = None) -> OrderItem:
     # блокируем заказ: одновременные возврат/обмен/отмена идут строго по очереди
     db.query(Order).filter(Order.id == order_id).with_for_update().populate_existing().first()
     item = (
@@ -114,6 +114,8 @@ def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | 
     if not item:
         raise HTTPException(status_code=404, detail="Order item not found")
 
+    if require_status and item.order.status.value not in require_status:
+        raise HTTPException(status_code=400, detail="Статус заказа уже изменился — возврат через бота недоступен, обратитесь в поддержку")
     remaining = item.quantity - item.returned_quantity
     if remaining <= 0:
         raise HTTPException(status_code=400, detail="Item already fully returned")
@@ -136,6 +138,7 @@ def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | 
         movement_type="return",
         quantity=quantity,
         order_id=order_id,
+        cost_price_at_time=item.cost_at_order,
         note=f"Возврат — заказ №{order_id}, позиция №{item_id}, кол-во {quantity}",
     )
 
@@ -185,6 +188,7 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
         movement_type="return",
         quantity=remaining,
         order_id=order_id,
+        cost_price_at_time=item.cost_at_order,
         note=f"Обмен — заказ №{order_id}, позиция №{item_id}: получен обратно старый вариант",
     )
 
@@ -195,6 +199,7 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
         movement_type="sale",
         quantity=-remaining,
         order_id=order_id,
+        cost_price_at_time=new_variant.product.cost_price,
         note=f"Обмен — заказ №{order_id}, позиция №{item_id}: выдан новый вариант",
     )
 
@@ -224,7 +229,23 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     return item
 
 
-def update_status(db: Session, order: Order, new_status: str, only_from: str | None = None) -> Order:
+STATUS_RU = {
+    "new": "Новый", "awaiting_payment": "Ожидает оплаты", "paid": "Оплачен", "confirmed": "Подтверждён",
+    "shipped": "Отправлен", "delivered": "Доставлен", "cancelled": "Отменён", "returned": "Возврат",
+}
+ALLOWED_TRANSITIONS = {
+    "new": {"confirmed", "paid", "shipped", "delivered", "cancelled"},
+    "awaiting_payment": {"paid", "cancelled"},
+    "paid": {"confirmed", "shipped", "delivered", "cancelled", "returned"},
+    "confirmed": {"paid", "shipped", "delivered", "cancelled"},
+    "shipped": {"paid", "delivered", "cancelled", "returned"},
+    "delivered": {"paid", "returned", "shipped"},  # shipped — откат ошибочной отметки
+    "cancelled": {"new", "awaiting_payment", "paid", "confirmed"},  # восстановление
+    "returned": {"delivered"},  # откат ошибочного возврата
+}
+
+
+def update_status(db: Session, order: Order, new_status: str, only_from: str | None = None, require_from: set[str] | None = None) -> Order:
     try:
         OrderStatus(new_status)
     except ValueError:
@@ -234,8 +255,12 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
     if only_from and order.status.value != only_from:
         return order
     old_status = order.status
+    if require_from and old_status.value not in require_from:
+        raise HTTPException(status_code=400, detail="Статус заказа уже изменился — обновите и попробуйте снова")
     if old_status == OrderStatus(new_status):
         return order
+    if new_status not in ALLOWED_TRANSITIONS.get(old_status.value, set()):
+        raise HTTPException(status_code=400, detail=f"Нельзя сменить статус: «{STATUS_RU.get(old_status.value, old_status.value)}» → «{STATUS_RU.get(new_status, new_status)}»")
     restore_statuses = {OrderStatus.CANCELLED, OrderStatus.RETURNED}
     already_restored = old_status in restore_statuses
     will_restore = OrderStatus(new_status) in restore_statuses
@@ -245,9 +270,22 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
     if new_status == "delivered" and not order.delivered_at:
         from datetime import datetime
         order.delivered_at = datetime.utcnow()
+    elif new_status not in ("delivered", "paid", "returned"):
+        # откат ошибочного "Доставлен" — срок возврата/обмена начнётся заново при реальной доставке
+        order.delivered_at = None
 
     if already_restored and not will_restore:
         # заказ восстановлен из отмены/возврата — снова списываем товар со склада
+        if order.promo_code_id:
+            from app.models.promo_code import PromoCode
+            from app.repositories.promo_code import count_uses
+            promo = db.query(PromoCode).filter(PromoCode.id == order.promo_code_id).with_for_update().first()
+            if promo and (
+                (promo.max_uses is not None and count_uses(db, promo.id) >= promo.max_uses)
+                or count_uses(db, promo.id, order.customer_id) >= promo.per_customer_limit
+            ):
+                db.rollback()
+                raise HTTPException(status_code=400, detail=f"Нельзя восстановить: лимит промокода {promo.code} уже исчерпан")
         need: dict[int, int] = {}
         for i in order.items:
             left = i.quantity - i.returned_quantity
@@ -277,6 +315,7 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
                 movement_type="return",
                 quantity=remaining,
                 order_id=order.id,
+                cost_price_at_time=item.cost_at_order,
                 note=f"Заказ №{order.id} — {new_status}",
             )
 

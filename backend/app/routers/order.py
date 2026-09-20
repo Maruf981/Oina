@@ -8,7 +8,7 @@ def _owner_ok(order, phone, telegram_id) -> bool:
 
 
 from app.schemas.order import OrderAdminOut
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, Request
 from app.core.telegram_notify import send_admin_notification, send_customer_notification, send_admin_bot_message
 from sqlalchemy.orm import Session
 
@@ -19,6 +19,21 @@ from app.repositories import order as order_repo
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderItemOut, ReturnItemRequest, ExchangeRequest, ExchangeVariantRequest
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+
+import time as _time
+from collections import defaultdict as _defaultdict, deque as _deque
+_order_hits: dict = _defaultdict(_deque)
+
+
+def _order_rate_limit(key: str, limit: int, window: int) -> None:
+    from fastapi import HTTPException
+    now = _time.monotonic()
+    q = _order_hits[key]
+    while q and now - q[0] > window:
+        q.popleft()
+    if len(q) >= limit:
+        raise HTTPException(status_code=429, detail="Слишком много заказов подряд. Попробуйте позже или позвоните нам.")
+    q.append(now)
 
 
 @router.get("/my", response_model=list[OrderOut])
@@ -48,7 +63,10 @@ def lookup_orders_by_phone(phone: str, telegram_id: int = 0, db: Session = Depen
 
 
 @router.post("/", response_model=OrderOut)
-def create_order(data: OrderCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current: Customer | None = Depends(get_current_customer_optional)):
+def create_order(data: OrderCreate, background_tasks: BackgroundTasks, request: Request, db: Session = Depends(get_db), current: Customer | None = Depends(get_current_customer_optional)):
+    ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "")).split(",")[0].strip()
+    _order_rate_limit(f"ip:{ip}", 5, 600)
+    _order_rate_limit(f"phone:{data.customer_phone}", 5, 3600)
     order = order_repo.create_order(db, data, current)
     items_text = "\n".join(
         f"— {item.variant.product.title_ru} ({item.variant.color}, {item.variant.size}) x{item.quantity}"
@@ -137,7 +155,7 @@ def cancel_order_by_customer(
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
     if order.status not in ("new", "awaiting_payment", "paid", "confirmed"):
         raise HTTPException(status_code=400, detail="Заказ уже отправлен, отмена через бота недоступна — обратитесь в поддержку")
-    updated = order_repo.update_status(db, order, "cancelled")
+    updated = order_repo.update_status(db, order, "cancelled", require_from={"new", "awaiting_payment", "paid", "confirmed"})
     text = f"❌ Отменён клиентом через бота: Заказ №{updated.id} — {updated.total} смн"
     background_tasks.add_task(send_admin_notification, text)
     return updated
@@ -161,7 +179,7 @@ def return_item_by_customer(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not _owner_ok(order, data.phone, data.telegram_id):
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
-    if order.status == "delivered":
+    if order.delivered_at and order.status in ("delivered", "paid"):
         from datetime import datetime, timedelta
         if order.is_dushanbe:
             raise HTTPException(status_code=400, detail="В Душанбе товар проверяется при получении — после принятия возврат не производится. Для обмена размера/цвета (24 часа) воспользуйтесь пунктом «Обмен».")
@@ -183,7 +201,7 @@ def return_item_by_customer(
         return item
     if order.status not in ("new", "awaiting_payment", "paid", "confirmed"):
         raise HTTPException(status_code=400, detail="Заказ уже в пути или закрыт — возврат через бота недоступен, обратитесь в поддержку")
-    result = order_repo.return_order_item(db, order_id, item_id, quantity=data.quantity)
+    result = order_repo.return_order_item(db, order_id, item_id, quantity=data.quantity, require_status={"new", "awaiting_payment", "paid", "confirmed"})
     text = f"↩️ Возврат товара клиентом через бота: Заказ №{order_id}, позиция №{item_id}, кол-во {data.quantity or 'всё'}"
     background_tasks.add_task(send_admin_notification, text)
     return result
@@ -210,7 +228,7 @@ def request_exchange(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not _owner_ok(order, data.phone, data.telegram_id):
         raise HTTPException(status_code=404, detail="Заказ не найден или номер телефона не совпадает")
-    if order.status != "delivered" or not order.delivered_at:
+    if order.status not in ("delivered", "paid") or not order.delivered_at:
         raise HTTPException(status_code=400, detail="Обмен доступен только для доставленных заказов")
 
     window_hours = 24 if order.is_dushanbe else 48

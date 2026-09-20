@@ -24,7 +24,11 @@ def create_incoming(
     db: Session = Depends(get_db),
     _: bool = Depends(get_current_admin),
 ):
-    return movement_repo.create_incoming(db, data)
+    from fastapi import HTTPException
+    try:
+        return movement_repo.create_incoming(db, data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/outgoing", response_model=StockMovementOut)

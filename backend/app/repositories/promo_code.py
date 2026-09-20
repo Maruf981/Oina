@@ -31,7 +31,7 @@ def normalize_code(code: str | None) -> str:
 def count_uses(db: Session, promo_id: int, customer_id: int | None = None) -> int:
     q = db.query(func.count(Order.id)).filter(
         Order.promo_code_id == promo_id,
-        Order.status != OrderStatus.CANCELLED,
+        Order.status.notin_([OrderStatus.CANCELLED, OrderStatus.RETURNED]),
     )
     if customer_id is not None:
         q = q.filter(Order.customer_id == customer_id)

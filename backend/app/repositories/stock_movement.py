@@ -45,6 +45,11 @@ def create_incoming(db: Session, data) -> StockMovement:
     variant = get_variant_locked(db, data.product_variant_id)
     if not variant:
         raise ValueError("Variant not found")
+    if not data.quantity or data.quantity <= 0:
+        raise ValueError("Количество должно быть больше 0")
+    if data.cost_price_at_time:
+        # себестоимость товара = цена последней закупки
+        variant.product.cost_price = data.cost_price_at_time
     movement = record_movement(
         db,
         variant_id=data.product_variant_id,
@@ -79,6 +84,8 @@ def create_outgoing(db: Session, data) -> StockMovement:
     variant = get_variant_locked(db, data.product_variant_id)
     if not variant:
         raise ValueError("Variant not found")
+    if not data.quantity or data.quantity <= 0:
+        raise ValueError("Количество должно быть больше 0")
     qty = abs(data.quantity)
     if variant.stock < qty:
         raise ValueError(f"Недостаточно остатка (доступно: {variant.stock})")

@@ -3387,6 +3387,7 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
   const [address, setAddress] = useState("");
   const [comment, setComment] = useState("");
   const [payment, setPayment] = useState("cod");
+  const [promo, setPromo] = useState("");
   const [isDushanbe, setIsDushanbe] = useState(true);
   const [items, setItems] = useState<any[]>([empty]);
   const [error, setError] = useState("");
@@ -3397,7 +3398,7 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
   const list = (products || []).filter((p: any) => p.is_active !== false);
   const updateItem = (i: number, patch: any) => setItems(items.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
 
-  const reset = () => { setName(""); setPhone(""); setAddress(""); setComment(""); setPayment("cod"); setIsDushanbe(true); setItems([empty]); setError(""); };
+  const reset = () => { setName(""); setPhone(""); setAddress(""); setComment(""); setPromo(""); setPayment("cod"); setIsDushanbe(true); setItems([empty]); setError(""); };
 
   const submit = async () => {
     setError("");
@@ -3415,6 +3416,7 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
         comment: comment.trim() || null,
         payment_method: payment,
         is_dushanbe: isDushanbe,
+        promo_code: promo.trim() || null,
         items: valid.map((it) => ({ product_variant_id: Number(it.variantId), quantity: Number(it.quantity) })),
       }),
     });
@@ -3438,6 +3440,7 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
       <input style={inp} placeholder="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} />
       <input style={inp} placeholder="Адрес доставки" value={address} onChange={(e) => setAddress(e.target.value)} />
       <input style={inp} placeholder="Комментарий (необязательно)" value={comment} onChange={(e) => setComment(e.target.value)} />
+      <input style={inp} placeholder="Промокод (необязательно)" value={promo} onChange={(e) => setPromo(e.target.value)} />
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <select style={inp} value={isDushanbe ? "1" : "0"} onChange={(e) => { const d = e.target.value === "1"; setIsDushanbe(d); if (!d && payment === "cod") setPayment("qr"); }}>
           <option value="1">Душанбе</option>
