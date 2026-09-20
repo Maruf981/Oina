@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_admin, get_current_admin_optional
 from app.repositories import product as product_repo
-from app.schemas.product import ProductCreate, ProductOut
+from app.schemas.product import ProductCreate, ProductOut, ProductPage
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -77,6 +77,35 @@ def list_products(
         ids=parsed_ids,
         limit=limit,
     )
+
+
+@router.get("/page", response_model=ProductPage)
+def list_products_page(
+    category_id: int | None = None,
+    search: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    size: str | None = None,
+    color: str | None = None,
+    recommended_only: bool = False,
+    sort: str | None = None,
+    material: str | None = None,
+    season: str | None = None,
+    brand_only: bool = False,
+    in_stock_only: bool = False,
+    on_sale_only: bool = False,
+    offset: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+):
+    """Каталог по страницам для главной: товары в наличии первыми, total — для «Показано X из Y»."""
+    items, total = product_repo.get_all(
+        db, category_id=category_id, search=search, min_price=min_price, max_price=max_price,
+        size=size, color=color, recommended_only=recommended_only, sort=sort, material=material,
+        season=season, brand_only=brand_only, in_stock_only=in_stock_only, on_sale_only=on_sale_only,
+        offset=max(0, offset), limit=max(1, min(limit, 200)), stock_first=True, with_total=True,
+    )
+    return {"items": items, "total": total}
 
 
 @router.get("/admin/low-stock")

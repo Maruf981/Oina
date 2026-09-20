@@ -26,7 +26,10 @@ def get_all(
     on_sale_only: bool = False,
     ids: list[int] | None = None,
     limit: int | None = None,
-) -> list[Product]:
+    offset: int | None = None,
+    stock_first: bool = False,
+    with_total: bool = False,
+):
     query = db.query(Product).filter(Product.is_active == True, Product.is_archived == False, ~Product.category.has(is_archived=True))
     if ids is not None:
         query = query.filter(Product.id.in_(ids))
@@ -77,16 +80,23 @@ def get_all(
                 )
             )
         )
+    total = query.count() if with_total else None
+    sort_by: list = []
+    if stock_first:
+        # товары "нет в наличии" — в конец (раньше это делал браузер по всему списку)
+        from sqlalchemy import exists
+        has_stock = exists().where(ProductVariant.product_id == Product.id, ProductVariant.stock > 0)
+        sort_by.append(case((has_stock, 0), else_=1))
     if sort == "price_asc":
-        query = query.order_by(current_price_sql(Product).asc())
+        sort_by.append(current_price_sql(Product).asc())
     elif sort == "price_desc":
-        query = query.order_by(current_price_sql(Product).desc())
+        sort_by.append(current_price_sql(Product).desc())
     elif sort == "newest":
-        query = query.order_by(Product.created_at.desc())
+        sort_by.append(Product.created_at.desc())
     elif sort == "rating":
-        query = query.order_by(Product.avg_rating.desc().nullslast())
+        sort_by.append(Product.avg_rating.desc().nullslast())
     elif sort == "discount":
-        query = query.order_by(case((discount_active_sql(Product), Product.discount_percent), else_=None).desc().nullslast())
+        sort_by.append(case((discount_active_sql(Product), Product.discount_percent), else_=None).desc().nullslast())
     elif sort == "popularity":
         from sqlalchemy import func
         from app.models.order import Order, OrderItem, OrderStatus
@@ -103,14 +113,23 @@ def get_all(
             .subquery()
         )
         query = query.outerjoin(sold_subq, sold_subq.c.pid == Product.id)
-        query = query.order_by(func.coalesce(sold_subq.c.sold, 0).desc())
+        sort_by.append(func.coalesce(sold_subq.c.sold, 0).desc())
 
+    if sort_by:
+        # id в конце — стабильный порядок, чтобы страницы не пересекались
+        query = query.order_by(*sort_by, Product.id.asc())
+    elif offset is not None:
+        query = query.order_by(Product.id.asc())
+    if offset and ids is None:
+        query = query.offset(offset)
     if limit is not None and ids is None:
         query = query.limit(limit)
     results = query.all()
     if ids is not None and sort is None:
         order = {pid: i for i, pid in enumerate(ids)}
         results.sort(key=lambda p: order.get(p.id, len(ids)))
+    if with_total:
+        return results, total
     return results
 
 

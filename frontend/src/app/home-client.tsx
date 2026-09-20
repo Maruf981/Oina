@@ -304,6 +304,10 @@ function HomeInner() {
       .catch(() => setBanners([]));
   }, []);
   const [products, setProducts] = useState<Product[]>([]);
+  const [productsTotal, setProductsTotal] = useState(0);
+  const catalogParamsRef = useRef("");      // фильтры текущего списка — для подгрузки следующих страниц
+  const firstCatalogLoadRef = useRef(true); // первая загрузка восстанавливает прокрутку (сколько было открыто)
+  const loadingMoreRef = useRef(false);
   const [hits, setHits] = useState<typeof products>([]);
   useEffect(() => {
     fetch(`${API_URL}/products/?sort=popularity&limit=10`)
@@ -615,11 +619,17 @@ function HomeInner() {
       }
       setProductsLoading(true);
       setProductsError(false);
-      fetch(`${API_URL}/products/?${params.toString()}`, { signal: controller.signal })
+      const paramsStr = params.toString();
+      catalogParamsRef.current = paramsStr;
+      // сервер отдаёт по 20; при возврате на главную — сразу столько, сколько было открыто
+      const firstLimit = firstCatalogLoadRef.current ? Math.min(Math.max(visibleCount, 20), 200) : 20;
+      firstCatalogLoadRef.current = false;
+      fetch(`${API_URL}/products/page?${paramsStr}${paramsStr ? "&" : ""}offset=0&limit=${firstLimit}`, { signal: controller.signal })
         .then((res) => res.json())
         .then((data) => {
-          setProducts(data);
-          setVisibleCount(20);
+          setProducts(data.items ?? []);
+          setProductsTotal(data.total ?? 0);
+          setVisibleCount((data.items ?? []).length);
           setProductsLoading(false);
         })
         .catch((err) => {
@@ -717,7 +727,7 @@ function HomeInner() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          setVisibleCount((prev) => prev + 20);
+          loadMoreFnRef.current();
         }
       },
       { rootMargin: "150px" }
@@ -725,6 +735,29 @@ function HomeInner() {
     observer.observe(el);
     return () => observer.disconnect();
   }, [products]);
+
+  // следующая страница каталога (по 20) — вызывается, когда низ списка появился на экране
+  const loadMoreFnRef = useRef<() => void>(() => {});
+  loadMoreFnRef.current = () => {
+    if (loadingMoreRef.current || productsLoading || productsError) return;
+    if (products.length >= productsTotal) return;
+    const paramsStr = catalogParamsRef.current;
+    loadingMoreRef.current = true;
+    fetch(`${API_URL}/products/page?${paramsStr}${paramsStr ? "&" : ""}offset=${products.length}&limit=20`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (paramsStr !== catalogParamsRef.current) return; // фильтры сменились — ответ устарел
+        setProducts((prev) => {
+          const seen = new Set(prev.map((p) => p.id));
+          const next = [...prev, ...(data.items ?? []).filter((p: Product) => !seen.has(p.id))];
+          setVisibleCount(next.length);
+          return next;
+        });
+        setProductsTotal(data.total ?? 0);
+      })
+      .catch(() => {})
+      .finally(() => { loadingMoreRef.current = false; });
+  };
 
   const visibleCountRef = useRef(visibleCount);
   useEffect(() => {
@@ -911,7 +944,7 @@ function HomeInner() {
         <span className="coll-rule" />
         <h2 className="sec-title">{lang === "ru" ? "Все товары" : "Ҳамаи молҳо"}</h2>
         <span className="sec-count">
-          {lang === "ru" ? "Показано" : "Нишон дода шуд"} {Math.min(visibleCount, products.length)} {lang === "ru" ? "из" : "аз"} {products.length}
+          {lang === "ru" ? "Показано" : "Нишон дода шуд"} {products.length} {lang === "ru" ? "из" : "аз"} {productsTotal}
         </span>
         <nav className="sec-sort">
           {[
@@ -955,10 +988,7 @@ function HomeInner() {
               {t.noProducts}
             </div>
           )}
-          {!productsLoading && !productsError && [...products].sort((a, b) => {
-            const stock = (x: typeof a) => (x.variants ? x.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0);
-            return Number(stock(a) === 0) - Number(stock(b) === 0);
-          }).slice(0, visibleCount).map((p, idx) => (
+          {!productsLoading && !productsError && products.map((p, idx) => (
             <Fragment key={p.id}>
             
             {renderCard(p, "grid")}

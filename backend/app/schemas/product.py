@@ -110,3 +110,7 @@ class ProductOut(ProductBase):
 
     class Config:
         from_attributes = True
+
+class ProductPage(BaseModel):
+    items: list[ProductOut]
+    total: int
