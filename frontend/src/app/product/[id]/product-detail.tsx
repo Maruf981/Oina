@@ -170,6 +170,42 @@ export default function ProductDetailClient() {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState(0);
   useEffect(() => { document.querySelector(".pd-gallery")?.scrollTo({ left: 0, behavior: "auto" }); }, [selectedColor]);
+  // возврат на прежнее место после «назад» со страницы доставки
+  useEffect(() => {
+    if (!product) return;
+    let s: { id: string; y: number } | null = null;
+    try { s = JSON.parse(sessionStorage.getItem("pd-restore") || "null"); } catch {}
+    if (!s || s.id !== String(product.id)) return;
+    if (openAcc !== "delivery") toggleAcc("delivery");
+    const y = s.y;
+    const prev = history.scrollRestoration;
+    history.scrollRestoration = "manual";
+    const start = performance.now();
+    let raf = 0, done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      cancelAnimationFrame(raf);
+      sessionStorage.removeItem("pd-restore");
+      history.scrollRestoration = prev;
+      window.removeEventListener("wheel", finish);
+      window.removeEventListener("touchstart", finish);
+    };
+    const tick = () => {
+      window.scrollTo(0, y);
+      if (performance.now() - start < 1500) raf = requestAnimationFrame(tick);
+      else finish();
+    };
+    window.addEventListener("wheel", finish, { passive: true });
+    window.addEventListener("touchstart", finish, { passive: true });
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("wheel", finish);
+      window.removeEventListener("touchstart", finish);
+      history.scrollRestoration = prev;
+    };
+  }, [product]);
   const [lightbox, setLightbox] = useState<number | null>(null);
   useEffect(() => {
     if (lightbox === null) return;
@@ -675,7 +711,7 @@ export default function ProductDetailClient() {
                 {openAcc === "delivery" && (
                   <div className="pd-acc-body">
                     <p>{deliveryText}.</p>
-                    <p><span className="pd-link" onClick={() => router.push("/delivery")}>{tr("Подробнее о доставке и оплате", "Маълумоти бештар")}</span></p>
+                    <p><span className="pd-link" onClick={() => { sessionStorage.setItem("pd-restore", JSON.stringify({ id: String(product?.id), y: window.scrollY })); router.push("/delivery"); }}>{tr("Подробнее о доставке и оплате", "Маълумоти бештар")}</span></p>
                   </div>
                 )}
               </div>
