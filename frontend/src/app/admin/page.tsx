@@ -1068,20 +1068,19 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
         <input type="number" placeholder={t.price} value={form.price} onChange={(e) => updateField("price", e.target.value)} style={inputStyle} />
-        <select value={form.category_id} onChange={(e) => updateField("category_id", Number(e.target.value))} style={inputStyle}>
+        <select value={form.category_id} onChange={(e) => updateField("category_id", e.target.value ? Number(e.target.value) : "")} style={inputStyle}>
+          <option value="">Выберите категорию</option>
           {categories.filter((c: Category) => !c.parent_id && !c.is_archived).map((parent: Category) => {
             const children = categories.filter((c: Category) => c.parent_id === parent.id && !c.is_archived);
             if (children.length === 0) {
               return <option key={parent.id} value={parent.id}>{parent.name}</option>;
             }
-            return (
-              <optgroup key={parent.id} label={parent.name}>
-                <option value={parent.id}>{parent.name} (общее)</option>
-                {children.map((child: Category) => (
-                  <option key={child.id} value={child.id}>{child.name}</option>
-                ))}
-              </optgroup>
-            );
+            return [
+              <option key={parent.id} value={parent.id}>{parent.name}</option>,
+              ...children.map((child: Category) => (
+                <option key={child.id} value={child.id}>{"\u00A0\u00A0\u00A0— "}{child.name}</option>
+              )),
+            ];
           })}
         </select>
       </div>
