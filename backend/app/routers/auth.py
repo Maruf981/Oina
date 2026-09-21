@@ -74,7 +74,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(customer)
 
-    token = create_access_token(customer.id)
+    token = create_access_token(customer.id, customer.token_version or 0)
     return TokenResponse(access_token=token)
 
 
@@ -86,7 +86,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     if not verify_password(data.password, customer.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = create_access_token(customer.id)
+    token = create_access_token(customer.id, customer.token_version or 0)
     return TokenResponse(access_token=token)
 
 
@@ -124,6 +124,7 @@ def change_password(
     if not current.password_hash or not verify_password(data.old_password, current.password_hash):
         raise HTTPException(status_code=401, detail="Invalid current password")
     current.password_hash = hash_password(data.new_password)
+    current.token_version = (current.token_version or 0) + 1  # выйти на всех устройствах
     db.commit()
     return {"ok": True}
 
@@ -142,6 +143,7 @@ def delete_account(
     current.address = None
     current.avatar_url = None
     current.telegram_id = None
+    current.token_version = (current.token_version or 0) + 1
     db.commit()
     return {"ok": True}
 @router.post("/link-telegram-silent")
@@ -211,6 +213,7 @@ def verify_reset_code(data: VerifyResetCodeRequest, db: Session = Depends(get_db
         raise HTTPException(status_code=400, detail=f"Неверный код. Осталось попыток: {remaining}")
 
     customer.password_hash = hash_password(data.new_password)
+    customer.token_version = (customer.token_version or 0) + 1  # сброс пароля выключает старые входы
     customer.reset_code = None
     customer.reset_code_expires = None
     customer.reset_code_attempts = 0

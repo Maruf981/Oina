@@ -14,9 +14,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
-def create_access_token(customer_id: int) -> str:
+def create_access_token(customer_id: int, token_version: int = 0) -> str:
     expire = datetime.utcnow() + timedelta(minutes=settings.CUSTOMER_JWT_EXPIRE_MINUTES)
-    payload = {"sub": str(customer_id), "exp": expire}
+    payload = {"sub": str(customer_id), "exp": expire, "tv": token_version}
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
 
@@ -26,6 +26,14 @@ def decode_access_token(token: str) -> int | None:
         return int(payload["sub"])
     except Exception:
         return None
+
+
+def access_token_version(token: str) -> int:
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        return int(payload.get("tv", 0))
+    except Exception:
+        return -1
 
 
 def create_admin_access_token(token_version: int) -> str:

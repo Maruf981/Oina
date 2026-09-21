@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import decode_access_token, decode_admin_token
+from app.core.security import decode_access_token, decode_admin_token, access_token_version
 from app.core.config import settings
 from app.models.customer import Customer
 
@@ -37,6 +37,8 @@ def get_current_customer(
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=401, detail="Customer not found")
+    if access_token_version(token) != (customer.token_version or 0):
+        raise HTTPException(status_code=401, detail="Session expired, please log in again")
 
     return customer
 
@@ -51,7 +53,10 @@ def get_current_customer_optional(
     customer_id = decode_access_token(token)
     if not customer_id:
         return None
-    return db.query(Customer).filter(Customer.id == customer_id).first()
+    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if customer and access_token_version(token) != (customer.token_version or 0):
+        return None
+    return customer
 
 
 def get_current_admin(
