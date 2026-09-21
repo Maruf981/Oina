@@ -153,6 +153,8 @@ def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | 
         raise HTTPException(status_code=400, detail="Item already fully returned")
     if item.order.status in (OrderStatus.CANCELLED, OrderStatus.RETURNED):
         raise HTTPException(status_code=400, detail="Заказ отменён или возвращён — товар уже вернулся на склад")
+    if item.order.status == OrderStatus.DELIVERED and item.order.is_dushanbe:
+        raise HTTPException(status_code=400, detail="В Душанбе после получения возврата нет — только обмен (кнопка «Изменить» у товара)")
 
     if quantity is None:
         quantity = remaining
@@ -335,6 +337,10 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
         raise HTTPException(status_code=400, detail="Заказ с предоплатой восстанавливается в «Подтверждён» (после отметки оплаты)")
     if prepaid and new_status in ("confirmed", "shipped", "delivered") and not order.paid_at:
         raise HTTPException(status_code=400, detail="Заказ не оплачен — сначала отметьте «💰 Оплата получена»")
+    if new_status == "shipped" and old_status != OrderStatus.DELIVERED and order.is_dushanbe and not order.courier_id:
+        raise HTTPException(status_code=400, detail="Сначала назначьте доставщика — потом ставьте «Отправлен»")
+    if old_status == OrderStatus.DELIVERED and new_status == "returned" and order.is_dushanbe:
+        raise HTTPException(status_code=400, detail="В Душанбе после получения возврата нет — только обмен (кнопка «Изменить» у товара)")
     if reason and reason not in CANCEL_REASONS:
         raise HTTPException(status_code=400, detail="Неизвестная причина отмены")
     if (not prepaid and old_status == OrderStatus.SHIPPED and new_status in ("cancelled", "returned") and not reason):

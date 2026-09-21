@@ -110,6 +110,7 @@ class OrderItemAdminOut(OrderItemOut):
 
 class OrderAdminOut(OrderOut):
     source: str = "site"
+    courier_id: int | None = None
     items: list[OrderItemAdminOut]
 
 

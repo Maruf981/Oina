@@ -2487,6 +2487,29 @@ const ASK_REASONS = ["refused", "no_answer", "wrong_address", "not_fit", "store_
 
 const PAY_LABELS: Record<string, string> = { cod: "Наличные", qr: "QR", card: "Карта" };
 
+// Какие статусы можно выбрать в списке — те же правила, что на сервере
+const STATUS_NEXT: Record<string, string[]> = {
+  new: ["confirmed", "shipped", "delivered", "cancelled"],
+  awaiting_payment: ["confirmed", "cancelled"],
+  paid: ["confirmed", "shipped", "delivered", "cancelled", "returned"],
+  confirmed: ["shipped", "delivered", "cancelled"],
+  shipped: ["delivered", "cancelled", "returned"],
+  delivered: ["returned", "shipped"],
+  cancelled: ["new", "confirmed"],
+  returned: ["delivered"],
+};
+function allowedStatuses(o: any): string[] {
+  const s: string = o.status;
+  const prepaid = o.payment_method !== "cod";
+  let next = STATUS_NEXT[s] || [];
+  if (prepaid) next = next.filter((x) => x !== "new");
+  if (prepaid && !o.paid_at) next = next.filter((x) => !["confirmed", "shipped", "delivered"].includes(x));
+  if (s === "delivered" && o.is_dushanbe !== false) next = next.filter((x) => x !== "returned");
+  if (s === "returned" && (o.items || []).every((i: any) => (i.returned_quantity ?? 0) >= i.quantity)) next = [];
+  return [s, ...next];
+}
+const statusLabel = (v: string) => ORDER_STATUS_LABELS[v] || (v === "paid" ? "Оплачен (старый)" : v);
+
 function escapeHtml(v: any): string {
   return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 }
@@ -2632,6 +2655,13 @@ function OrdersTab({ t, authFetch, products }: any) {
     const ord = pageData.items.find((x: any) => x.id === orderId);
     const current = ord?.status;
     const closed = ["cancelled", "returned"];
+    if (current === "delivered" && status === "shipped") {
+      if (!window.confirm(`Заказ №${orderId}: снять отметку «Доставлен»?\nИспользуйте только если ошиблись.`)) { refreshOrders(); return; }
+    } else if (status === "shipped" && (ord as any)?.is_dushanbe !== false && !(ord as any)?.courier_id) {
+      window.alert("Сначала назначьте доставщика — потом ставьте «Отправлен»");
+      refreshOrders();
+      return;
+    }
     let reason: string | null = null;
     if (ord?.payment_method === "cod" && current === "shipped" && closed.includes(status)) {
       const list = ASK_REASONS.map((k, i) => `${i + 1} — ${CANCEL_REASON_LABELS[k]}${FAKE_REASONS.has(k) ? " (фейк)" : ""}`).join("\n");
@@ -2855,7 +2885,7 @@ function OrdersTab({ t, authFetch, products }: any) {
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ color: "var(--text-muted)", textDecoration: (item as any).is_returned ? "line-through" : "none" }}>{item.price_at_order} смн</span>
-                  {!(item as any).is_returned && (
+                  {!(item as any).is_returned && !(o.status === "delivered" && (o as any).is_dushanbe !== false) && (
                     <span onClick={() => handleReturnItem(o.id, item.id, item.quantity, (item as any).returned_quantity ?? 0)} style={{ cursor: "pointer", color: "#E24B4A", fontSize: 11, textDecoration: "underline" }}>Возврат</span>
                   )}
                   {!(item as any).is_returned && (
@@ -2912,27 +2942,21 @@ function OrdersTab({ t, authFetch, products }: any) {
             onChange={(e) => handleStatusChange(o.id, e.target.value)}
             style={{ padding: 8, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
           >
-            {Object.entries(ORDER_STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
+            {allowedStatuses(o).map((v) => (
+              <option key={v} value={v}>{statusLabel(v)}</option>
             ))}
           </select>
           <div style={{ marginTop: 10 }}>
-            {(o as any).courier_id ? (
-              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                Доставщик: {couriers.find((c: any) => c.id === (o as any).courier_id)?.name || "—"}
-              </span>
-            ) : (
-              <select
-                value=""
-                onChange={(e) => { setAssigningOrderId(o.id); handleAssignCourier(o.id, e.target.value); }}
-                style={{ padding: 8, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12 }}
-              >
-                <option value="">— Назначить доставщика —</option>
-                {couriers.filter((c: any) => !c.is_archived).map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.name}{!c.telegram_id ? " (Telegram не подключён)" : ""}</option>
-                ))}
-              </select>
-            )}
+            <select
+              value={(o as any).courier_id ?? ""}
+              onChange={(e) => { setAssigningOrderId(o.id); handleAssignCourier(o.id, e.target.value); }}
+              style={{ padding: 8, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 12 }}
+            >
+              <option value="">— Назначить доставщика —</option>
+              {couriers.filter((c: any) => !c.is_archived || c.id === (o as any).courier_id).map((c: any) => (
+                <option key={c.id} value={c.id}>🚚 {c.name}{!c.telegram_id ? " (Telegram не подключён)" : ""}</option>
+              ))}
+            </select>
             {assigningOrderId === o.id && courierError && (
               <p style={{ color: "#E24B4A", fontSize: 12, marginTop: 6 }}>{courierError}</p>
             )}
