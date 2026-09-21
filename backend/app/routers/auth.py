@@ -12,6 +12,41 @@ from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, Custo
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+# ---------- защита от перебора пароля админки и PIN финансов ----------
+import hmac as _hmac
+import time as _time
+from collections import defaultdict as _defaultdict, deque as _deque
+from fastapi import Request
+
+_fails: dict = _defaultdict(_deque)
+_LOCK_SECONDS = 15 * 60
+
+
+def _client_ip(request: Request) -> str:
+    # Render дописывает настоящий IP клиента последним в X-Forwarded-For
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[-1].strip()
+    return request.client.host if request.client else ""
+
+
+def _check_locked(keys: list[str]) -> None:
+    now = _time.monotonic()
+    for k in keys:
+        q = _fails[k]
+        while q and now - q[0] > _LOCK_SECONDS:
+            q.popleft()
+        limit = 5 if ":ip:" in k else 20  # 5 ошибок с одного IP, 20 всего
+        if len(q) >= limit:
+            raise HTTPException(status_code=429, detail="Слишком много неверных попыток. Подождите 15 минут.")
+
+
+def _fail(keys: list[str]) -> None:
+    now = _time.monotonic()
+    for k in keys:
+        _fails[k].append(now)
+
+
 def find_customer_by_phone(db: Session, phone: str) -> Customer | None:
     """Ищет клиента по номеру в любом из форматов: +992XXXXXXXXX или XXXXXXXXX."""
     return db.query(Customer).filter(Customer.phone.in_(phone_variants(phone))).first()
@@ -185,8 +220,11 @@ def verify_reset_code(data: VerifyResetCodeRequest, db: Session = Depends(get_db
 
 
 @router.post("/admin-login")
-def admin_login(data: LoginRequest, db: Session = Depends(get_db)):
-    if data.password != settings.ADMIN_PASSWORD:
+def admin_login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    keys = [f"admin:ip:{_client_ip(request)}", "admin:all"]
+    _check_locked(keys)
+    if not _hmac.compare_digest(data.password.encode(), settings.ADMIN_PASSWORD.encode()):
+        _fail(keys)
         raise HTTPException(status_code=401, detail="Invalid admin password")
     from app.repositories.admin_settings import get_current_version
     token = create_admin_access_token(get_current_version(db))
@@ -205,8 +243,11 @@ def revoke_admin_sessions(db: Session = Depends(get_db), _: bool = Depends(get_c
     return {"ok": True, "new_token_version": new_version}
 
 @router.post("/verify-finance-pin")
-def verify_finance_pin(data: dict, _: bool = Depends(get_current_admin)):
+def verify_finance_pin(data: dict, request: Request, _: bool = Depends(get_current_admin)):
+    keys = [f"pin:ip:{_client_ip(request)}", "pin:all"]
+    _check_locked(keys)
     pin = str(data.get("pin", ""))
-    if pin != settings.FINANCE_PIN:
+    if not _hmac.compare_digest(pin.encode(), str(settings.FINANCE_PIN).encode()):
+        _fail(keys)
         raise HTTPException(status_code=401, detail="Invalid PIN")
     return {"ok": True}
