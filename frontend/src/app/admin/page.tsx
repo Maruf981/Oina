@@ -2885,10 +2885,10 @@ function OrdersTab({ t, authFetch, products }: any) {
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ color: "var(--text-muted)", textDecoration: (item as any).is_returned ? "line-through" : "none" }}>{item.price_at_order} смн</span>
-                  {!(item as any).is_returned && !(o.status === "delivered" && (o as any).is_dushanbe !== false) && (
+                  {!(item as any).is_returned && !["cancelled", "returned"].includes(o.status) && !(o.status === "delivered" && (o as any).is_dushanbe !== false) && (
                     <span onClick={() => handleReturnItem(o.id, item.id, item.quantity, (item as any).returned_quantity ?? 0)} style={{ cursor: "pointer", color: "#E24B4A", fontSize: 11, textDecoration: "underline" }}>Возврат</span>
                   )}
-                  {!(item as any).is_returned && (
+                  {!(item as any).is_returned && !["cancelled", "returned"].includes(o.status) && (
                     <span onClick={() => handleStartExchange(item.id)} style={{ cursor: "pointer", color: "var(--accent)", fontSize: 11, textDecoration: "underline" }}>Изменить</span>
                   )}
                 </span>
