@@ -13,7 +13,7 @@ export function SocialLinks() {
               </svg>
             </a>
             <a
-              href="https://www.instagram.com/oina._tj"
+              href="https://www.instagram.com/t.oina.tj/"
               target="_blank"
               rel="noopener noreferrer"
               style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)", display: "flex", alignItems: "center", justifyContent: "center" }}
