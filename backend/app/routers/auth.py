@@ -69,7 +69,7 @@ def update_me(
     if data.name is not None:
         current.name = data.name
     if data.phone is not None:
-        existing = db.query(Customer).filter(Customer.phone == data.phone, Customer.id != current.id).first()
+        existing = db.query(Customer).filter(Customer.phone.in_(phone_variants(data.phone)), Customer.id != current.id).first()
         if existing:
             raise HTTPException(status_code=400, detail="Phone already in use")
         current.phone = data.phone
