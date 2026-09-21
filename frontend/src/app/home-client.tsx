@@ -1,4 +1,5 @@
 "use client";
+import WaterVideo from "../components/WaterVideo";
 import { cld } from "../lib/cld";
 import { DualSlider, type DualSlide } from "./dual-slider";
 import { SeasonCountdown } from "./season-countdown";
@@ -1318,6 +1319,15 @@ function HeroSlider({ banners }: { banners: Banner[] }) {
     const timer = setInterval(() => setIndex((i) => (i + 1) % slides.length), 10000);
     return () => clearInterval(timer);
   }, [slides.length]);
+  const [leaving, setLeaving] = useState<number | null>(null);
+  const prevRef = useRef(index);
+  useEffect(() => {
+    if (prevRef.current === index) return;
+    setLeaving(prevRef.current);
+    prevRef.current = index;
+    const t = setTimeout(() => setLeaving(null), 1200);
+    return () => clearTimeout(t);
+  }, [index]);
 
   if (slides.length === 0) return null;
 
@@ -1329,7 +1339,7 @@ function HeroSlider({ banners }: { banners: Banner[] }) {
       {slides.map((b, i) => (
         <div key={b.id} className={`hero-slide${i === current ? " is-active" : ""}`} aria-hidden={i !== current}>
           {isVideo(b.image_url!) ? (
-            <video src={b.image_url!} autoPlay muted loop playsInline preload="auto" />
+            <WaterVideo src={b.image_url!} />
           ) : (
             <img src={cld(b.image_url!, 2000)} alt="" />
           )}
@@ -1340,9 +1350,9 @@ function HeroSlider({ banners }: { banners: Banner[] }) {
       <div className="hero-content">
         <div className="hero-texts">
           {slides.map((b, i) => (
-            <div key={b.id} className={`hero-text${i === current ? " is-active" : ""}`}>
+            <div key={b.id} className={`hero-text${i === current ? " is-active" : i === leaving ? " is-leaving" : ""}`}>
               {b.subtitle && <div className="hero-eyebrow">{b.subtitle}</div>}
-              <h1 className="hero-title">{b.title}</h1>
+              <h1 className="hero-title">{(b.title || "").split(" ").map((w, j) => <span key={j} className="hw" style={{ "--i": j } as React.CSSProperties}>{w}</span>)}</h1>
             </div>
           ))}
         </div>
