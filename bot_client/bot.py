@@ -909,6 +909,29 @@ async def cb_confirm(callback: CallbackQuery):
             await callback.message.answer(f"⚠️ {detail}")
 
 
+# ---------- лимит на ИИ: каждое сообщение — платный запрос к Anthropic ----------
+import time as _time
+from collections import defaultdict as _defaultdict, deque as _deque
+
+AI_LIMIT_PER_USER = 20     # сообщений в час от одного человека
+AI_LIMIT_TOTAL = 300       # сообщений в час от всех вместе (потолок расходов)
+AI_MAX_MESSAGE_CHARS = 1000
+_ai_hits: dict = _defaultdict(_deque)
+
+
+def _ai_allowed(uid: int) -> bool:
+    now = _time.monotonic()
+    for key, limit in ((f"u:{uid}", AI_LIMIT_PER_USER), ("all", AI_LIMIT_TOTAL)):
+        q = _ai_hits[key]
+        while q and now - q[0] > 3600:
+            q.popleft()
+        if len(q) >= limit:
+            return False
+    _ai_hits[f"u:{uid}"].append(now)
+    _ai_hits["all"].append(now)
+    return True
+
+
 @dp.message(F.text)
 async def text_handler(message: Message):
     uid = message.from_user.id
@@ -1091,8 +1114,11 @@ async def text_handler(message: Message):
         await message.answer("Пожалуйста, воспользуйтесь кнопками выше, чтобы продолжить, или напишите /start, чтобы начать заново.")
         return
 
+    if not _ai_allowed(uid):
+        await message.answer("Вы отправили много сообщений. Попробуйте через час или позвоните нам.")
+        return
     await bot.send_chat_action(message.chat.id, "typing")
-    reply = await ask_claude(uid, message.text)
+    reply = await ask_claude(uid, message.text[:AI_MAX_MESSAGE_CHARS])
     formatted_reply = reply.replace("**", "*")
     try:
         await message.answer(formatted_reply, parse_mode="Markdown")
