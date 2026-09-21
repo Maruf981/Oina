@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_admin, get_current_admin_optional
 from app.repositories import product as product_repo
-from app.schemas.product import ProductCreate, ProductOut, ProductPage
+from app.schemas.product import ProductCreate, ProductOut, ProductPage, ProductPublicOut
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -34,7 +34,7 @@ def restore_product(product_id: int, db: Session = Depends(get_db), _: bool = De
     product.is_active = False
     db.commit()
     return {"status": "restored"}
-@router.get("/", response_model=list[ProductOut])
+@router.get("/", response_model=list[ProductPublicOut])
 def list_products(
     category_id: int | None = None,
     search: str | None = None,
@@ -127,7 +127,7 @@ def low_stock_products(threshold: int = 3, db: Session = Depends(get_db), _: boo
         }
         for v in variants
     ]
-@router.get("/{product_id}", response_model=ProductOut)
+@router.get("/{product_id}", response_model=ProductPublicOut)
 def get_product(product_id: int, db: Session = Depends(get_db), is_admin: bool = Depends(get_current_admin_optional)):
     product = product_repo.get_by_id(db, product_id)
     if not product:

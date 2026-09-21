@@ -111,6 +111,12 @@ class ProductOut(ProductBase):
     class Config:
         from_attributes = True
 
+class ProductPublicOut(ProductOut):
+    """Для витрины: себестоимость и поставщик наружу не отдаются."""
+    cost_price: float | None = Field(default=None, exclude=True)
+    supplier_id: int | None = Field(default=None, exclude=True)
+
+
 class ProductPage(BaseModel):
-    items: list[ProductOut]
+    items: list[ProductPublicOut]
     total: int

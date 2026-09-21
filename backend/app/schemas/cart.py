@@ -1,9 +1,9 @@
 from pydantic import BaseModel
-from app.schemas.product import ProductVariantOut, ProductOut
+from app.schemas.product import ProductVariantOut, ProductPublicOut
 
 
 class CartItemVariantOut(ProductVariantOut):
-    product: ProductOut
+    product: ProductPublicOut
 
     class Config:
         from_attributes = True
