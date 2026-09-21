@@ -516,7 +516,7 @@ async def start_handler(message: Message):
 async def contact_handler(message: Message):
     contact = message.contact
     uid = message.from_user.id
-    if contact.user_id and contact.user_id != uid:
+    if contact.user_id != uid:  # контакт без user_id (визитка чужого номера) тоже отклоняем
         # прислан контакт другого человека, а не свой — игнорируем
         await message.answer("Пожалуйста, поделитесь именно своим номером через кнопку.")
         return

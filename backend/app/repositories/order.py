@@ -97,6 +97,7 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
         customer_id=customer.id,
         status=OrderStatus.NEW if data.payment_method == "cod" else OrderStatus.AWAITING_PAYMENT,
         source="phone" if admin else "site",
+        via_account=bool(current) and not admin,  # гостевые и телефонные заказы в аккаунте не показываются
         payment_method=PaymentMethod(data.payment_method),
         delivery_address=data.delivery_address,
         comment=order_comment,

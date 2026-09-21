@@ -40,7 +40,7 @@ def _order_rate_limit(key: str, limit: int, window: int) -> None:
 @router.get("/my", response_model=list[OrderOut])
 def list_my_orders(current: Customer = Depends(get_current_customer), db: Session = Depends(get_db)):
     from app.models.order import Order
-    return db.query(Order).filter(Order.customer_id == current.id).order_by(Order.created_at.desc()).all()
+    return db.query(Order).filter(Order.customer_id == current.id, Order.via_account == True).order_by(Order.created_at.desc()).all()
 
 
 @router.get("/lookup", response_model=list[OrderOut])
