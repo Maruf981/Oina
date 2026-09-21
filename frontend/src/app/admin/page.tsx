@@ -2491,10 +2491,10 @@ function escapeHtml(v: any): string {
   return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 }
 
-const LABEL_W = 55;       // ширина наклейки, мм
-const LABEL_H = 40;       // высота наклейки, мм
-const LABEL_SHIFT = 3;    // сдвиг вправо, мм
-const MAX_ITEMS = 3;      // сколько товаров влезает на наклейку
+const LABEL_W = 75;       // ширина наклейки, мм
+const LABEL_H = 60;       // высота наклейки, мм
+const LABEL_SHIFT = 0;    // сдвиг вправо, мм (подстрой, если печать съезжает)
+const MAX_ITEMS = 5;      // сколько товаров влезает на наклейку
 
 function printOrders(orders: Order[]) {
   const list = orders.filter((o) => !["cancelled", "returned"].includes(o.status));
@@ -2530,21 +2530,21 @@ function printOrders(orders: Order[]) {
   const w = window.open("", "_blank");
   if (!w) { alert("Браузер заблокировал окно печати — разреши всплывающие окна для сайта"); return; }
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Заказы ${list.map((o) => "№" + o.id).join(", ")}</title><style>
-    @page { margin: 0; }
+    @page { size: ${LABEL_W}mm ${LABEL_H}mm; margin: 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
     body { font-family: Arial, Helvetica, sans-serif; color: #000; }
-    .label { width: ${LABEL_W}mm; height: ${LABEL_H}mm; padding: 1.8mm 2mm 1.8mm ${2 + LABEL_SHIFT}mm; display: flex; flex-direction: column; overflow: hidden; page-break-after: always; break-after: page; }
+    .label { width: ${LABEL_W}mm; height: ${LABEL_H}mm; padding: 2.5mm 2.5mm 2.5mm ${2.5 + LABEL_SHIFT}mm; display: flex; flex-direction: column; overflow: hidden; page-break-after: always; break-after: page; }
     .label:last-child { page-break-after: auto; break-after: auto; }
     .head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 0.3mm solid #000; padding-bottom: 0.5mm; margin-bottom: 0.7mm; }
-    .no { font-size: 11pt; font-weight: 800; }
-    .meta { font-size: 6.5pt; }
-    .name { font-size: 8pt; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .phone { font-size: 10.5pt; font-weight: 800; line-height: 1.1; }
-    .addr { font-size: 7pt; line-height: 1.15; margin-top: 0.3mm; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .no { font-size: 14pt; font-weight: 800; }
+    .meta { font-size: 8pt; }
+    .name { font-size: 10pt; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .phone { font-size: 13pt; font-weight: 800; line-height: 1.1; }
+    .addr { font-size: 8.5pt; line-height: 1.2; margin-top: 0.5mm; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
     .items { margin-top: 0.8mm; border-top: 0.2mm solid #000; }
-    .item { font-size: 7pt; line-height: 1.2; padding: 0.3mm 0; border-bottom: 0.2mm solid #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .pay { margin-top: auto; border: 0.5mm solid #000; text-align: center; padding: 0.6mm; font-size: 9pt; font-weight: 800; }
+    .item { font-size: 8.5pt; line-height: 1.25; padding: 0.5mm 0; border-bottom: 0.2mm solid #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pay { margin-top: auto; border: 0.5mm solid #000; text-align: center; padding: 1mm; font-size: 12pt; font-weight: 800; }
   </style></head><body>${labels}</body></html>`);
   w.document.close();
   w.focus();
