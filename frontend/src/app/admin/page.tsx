@@ -2485,6 +2485,72 @@ const CANCEL_REASON_LABELS: Record<string, string> = {
 const FAKE_REASONS = new Set(["refused", "no_answer", "wrong_address"]);
 const ASK_REASONS = ["refused", "no_answer", "wrong_address", "not_fit", "store_fault", "other"];
 
+const PAY_LABELS: Record<string, string> = { cod: "Наличные", qr: "QR", card: "Карта" };
+
+function escapeHtml(v: any): string {
+  return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+}
+
+const LABEL_W = 55;       // ширина наклейки, мм
+const LABEL_H = 40;       // высота наклейки, мм
+const LABEL_SHIFT = 3;    // сдвиг вправо, мм
+const MAX_ITEMS = 3;      // сколько товаров влезает на наклейку
+
+function printOrders(orders: Order[]) {
+  const list = orders.filter((o) => !["cancelled", "returned"].includes(o.status));
+  if (list.length === 0) { alert("Нечего печатать: отменённые и возвращённые заказы не печатаются"); return; }
+
+  const labels = list.map((o) => {
+    const pay = o.paid_at
+      ? "ОПЛАЧЕНО"
+      : o.payment_method === "cod"
+        ? `ОПП ${escapeHtml(o.total)} сом`
+        : `НЕ ОПЛАЧЕН · ${escapeHtml(PAY_LABELS[o.payment_method || ""] || o.payment_method || "")}`;
+    const city = (o as any).is_dushanbe === false ? "Регион" : "Душанбе";
+    const date = new Date(o.created_at).toLocaleDateString("ru-RU");
+    const addr = [o.delivery_address, o.comment].filter(Boolean).map(escapeHtml).join(" · ");
+
+    const rows = o.items
+      .map((i: any) => ({ ...i, left: i.quantity - (i.returned_quantity ?? 0) }))
+      .filter((i: any) => i.left > 0)
+      .map((i: any) => `<div class="item"><b>${i.left}×</b> ${escapeHtml(i.variant ? i.variant.title_ru : "Товар удалён")}${i.variant ? ` · ${escapeHtml(i.variant.color)}, ${escapeHtml(i.variant.size)} · арт. ${escapeHtml(i.variant.catalog_number)}` : ""}</div>`);
+    const shown = rows.slice(0, MAX_ITEMS).join("");
+    const more = rows.length > MAX_ITEMS ? `<div class="item"><b>+ ещё ${rows.length - MAX_ITEMS}</b></div>` : "";
+
+    return `<section class="label">
+      <div class="head"><span class="no">№${o.id}</span><span class="meta">${date} · ${city}${o.source === "phone" ? " · тел." : ""}</span></div>
+      <div class="name">${escapeHtml(o.customer?.name || "Без имени")}</div>
+      <div class="phone">${escapeHtml(o.customer?.phone)}</div>
+      ${addr ? `<div class="addr">${addr}</div>` : ""}
+      <div class="items">${shown}${more}</div>
+      <div class="pay">${pay}</div>
+    </section>`;
+  }).join("");
+
+  const w = window.open("", "_blank");
+  if (!w) { alert("Браузер заблокировал окно печати — разреши всплывающие окна для сайта"); return; }
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Заказы ${list.map((o) => "№" + o.id).join(", ")}</title><style>
+    @page { margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #000; }
+    .label { width: ${LABEL_W}mm; height: ${LABEL_H}mm; padding: 1.8mm 2mm 1.8mm ${2 + LABEL_SHIFT}mm; display: flex; flex-direction: column; overflow: hidden; page-break-after: always; break-after: page; }
+    .label:last-child { page-break-after: auto; break-after: auto; }
+    .head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 0.3mm solid #000; padding-bottom: 0.5mm; margin-bottom: 0.7mm; }
+    .no { font-size: 11pt; font-weight: 800; }
+    .meta { font-size: 6.5pt; }
+    .name { font-size: 8pt; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .phone { font-size: 10.5pt; font-weight: 800; line-height: 1.1; }
+    .addr { font-size: 7pt; line-height: 1.15; margin-top: 0.3mm; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .items { margin-top: 0.8mm; border-top: 0.2mm solid #000; }
+    .item { font-size: 7pt; line-height: 1.2; padding: 0.3mm 0; border-bottom: 0.2mm solid #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pay { margin-top: auto; border: 0.5mm solid #000; text-align: center; padding: 0.6mm; font-size: 9pt; font-weight: 800; }
+  </style></head><body>${labels}</body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
+}
+
 function OrdersTab({ t, authFetch, products }: any) {
   const [pageData, setPageData] = useState<{ items: Order[]; total: number }>({ items: [], total: 0 });
   const [reloadKey, setReloadKey] = useState(0);
@@ -2492,6 +2558,7 @@ function OrdersTab({ t, authFetch, products }: any) {
   const [couriers, setCouriers] = useState<any[]>([]);
   const [assigningOrderId, setAssigningOrderId] = useState<number | null>(null);
   const [courierError, setCourierError] = useState("");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   useEffect(() => {
     authFetch(`${API}/employees/`)
@@ -2703,11 +2770,35 @@ function OrdersTab({ t, authFetch, products }: any) {
       <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
         Найдено: {pageData.total}
       </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <button
+          onClick={() => setSelectedIds(pagedOrders.length > 0 && pagedOrders.every((o) => selectedIds.includes(o.id)) ? [] : pagedOrders.map((o) => o.id))}
+          style={{ padding: "8px 16px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--line)", borderRadius: 0, fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+        >
+          {pagedOrders.length > 0 && pagedOrders.every((o) => selectedIds.includes(o.id)) ? "Снять выбор" : "Выбрать все на странице"}
+        </button>
+        <button
+          disabled={!pagedOrders.some((o) => selectedIds.includes(o.id))}
+          onClick={() => printOrders(pagedOrders.filter((o) => selectedIds.includes(o.id)))}
+          style={{ ...{ padding: "8px 16px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--line)", borderRadius: 0, fontFamily: "var(--font-label)", fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }, opacity: pagedOrders.some((o) => selectedIds.includes(o.id)) ? 1 : 0.5 }}
+        >
+          🖨 Печать выбранных ({pagedOrders.filter((o) => selectedIds.includes(o.id)).length})
+        </button>
+      </div>
       {pagedOrders.length === 0 && <p style={{ color: "var(--text-muted)" }}>{t.noOrders}</p>}
       {pagedOrders.map((o: Order) => (
         <div key={o.id} style={{ border: "1px solid var(--line)", padding: 20, marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span className="product-title" style={{ fontSize: 16 }}>Заказ №{o.id}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(o.id)}
+                onChange={() => setSelectedIds((ids) => ids.includes(o.id) ? ids.filter((x) => x !== o.id) : [...ids, o.id])}
+                style={{ cursor: "pointer" }}
+              />
+              <span className="product-title" style={{ fontSize: 16 }}>Заказ №{o.id}</span>
+              <button onClick={() => printOrders([o])} style={{ padding: "4px 10px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", borderRadius: 0, fontSize: 12, cursor: "pointer" }}>🖨 Печать</button>
+            </span>
             {o.source === "phone" && (<span style={{ border: "1px solid var(--line)", padding: "2px 8px", fontSize: 12 }}>📞 По телефону</span>)}
             <span className="price">{o.total} смн</span>
           </div>
