@@ -10,12 +10,12 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const search = typeof params.search === "string" ? params.search : undefined;
   if (search) {
     const title = `Поиск: ${search}`;
-    const description = `Результаты поиска "${search}" в интернет-магазине Oina.tj.`;
+    const description = `Результаты поиска "${search}" в интернет-магазине T.oina.tj.`;
     return {
       title,
       description,
-      openGraph: { title: `${title} — Oina.tj`, description },
-      twitter: { title: `${title} — Oina.tj`, description },
+      openGraph: { title: `${title} — T.oina.tj`, description },
+      twitter: { title: `${title} — T.oina.tj`, description },
     };
   }
   return {};

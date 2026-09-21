@@ -19,22 +19,22 @@ import Script from "next/script";
 
 export const metadata: Metadata = {
   title: {
-    default: "Oina.tj — Интернет-магазин одежды в Таджикистане",
-    template: "%s — Oina.tj",
+    default: "T.oina.tj — Интернет-магазин одежды в Таджикистане",
+    template: "%s — T.oina.tj",
   },
-  description: "Интернет-магазин одежды Oina.tj в Таджикистане. Женская, мужская и детская одежда с доставкой по Душанбе и всей стране.",
+  description: "Интернет-магазин одежды T.oina.tj в Таджикистане. Женская, мужская и детская одежда с доставкой по Душанбе и всей стране.",
   keywords: ["одежда", "магазин одежды", "Таджикистан", "Душанбе", "интернет-магазин", "Oina"],
   openGraph: {
-    title: "Oina.tj — Интернет-магазин одежды в Таджикистане",
+    title: "T.oina.tj — Интернет-магазин одежды в Таджикистане",
     description: "Женская, мужская и детская одежда с доставкой по Душанбе и всей стране.",
     type: "website",
     locale: "ru_RU",
-    siteName: "Oina.tj",
+    siteName: "T.oina.tj",
   },
   manifest: "/manifest.json",
   twitter: {
     card: "summary_large_image",
-    title: "Oina.tj — Интернет-магазин одежды в Таджикистане",
+    title: "T.oina.tj — Интернет-магазин одежды в Таджикистане",
     description: "Женская, мужская и детская одежда с доставкой по Душанбе и всей стране.",
   },
 };

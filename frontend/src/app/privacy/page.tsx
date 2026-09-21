@@ -33,7 +33,7 @@ export default function PrivacyPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 24, color: "var(--text-muted)", fontSize: 14, lineHeight: 1.7 }}>
             <p>
               Мы уважаем вашу конфиденциальность и обязуемся защищать личные данные, которые вы
-              предоставляете при использовании сайта Oina.tj.
+              предоставляете при использовании сайта T.oina.tj.
             </p>
             <section>
               <h2 style={{ fontSize: 16, marginBottom: 8, color: "var(--text)" }}>Какие данные мы собираем</h2>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 24, color: "var(--text-muted)", fontSize: 14, lineHeight: 1.7 }}>
             <p>
               Мо махфияти шуморо эҳтиром мекунем ва ӯҳдадор мешавем, ки маълумотхои шахсии шуморо,
-              ҳангоми истифодаи сомонаи Oina.tj пешниход менамоед, ҳифз кунем.
+              ҳангоми истифодаи сомонаи T.oina.tj пешниход менамоед, ҳифз кунем.
             </p>
             <section>
               <h2 style={{ fontSize: 16, marginBottom: 8, color: "var(--text)" }}>Кадом маълумотро мо ҷамъ меорем</h2>

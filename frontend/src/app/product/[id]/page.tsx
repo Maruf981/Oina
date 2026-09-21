@@ -12,13 +12,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const res = await fetch(`${API_URL}/products/${id}`, { cache: "no-store" });
     if (!res.ok) {
-      return { title: "Товар не найден — Oina.tj" };
+      return { title: "Товар не найден — T.oina.tj" };
     }
     const product = await res.json();
-    const title = `${product.title_ru} — Oina.tj`;
+    const title = `${product.title_ru} — T.oina.tj`;
     const description =
       product.description_ru?.slice(0, 160) ||
-      `Купить ${product.title_ru} в интернет-магазине Oina.tj. Артикул ${product.catalog_number}. Цена ${product.current_price ?? product.price} смн.`;
+      `Купить ${product.title_ru} в интернет-магазине T.oina.tj. Артикул ${product.catalog_number}. Цена ${product.current_price ?? product.price} смн.`;
     const imageUrl = product.images?.[0]?.url;
 
     return {
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       },
     };
   } catch {
-    return { title: "Oina.tj" };
+    return { title: "T.oina.tj" };
   }
 }
 

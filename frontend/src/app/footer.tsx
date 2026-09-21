@@ -67,7 +67,7 @@ export function Footer({ lang }: { lang: Lang }) {
       </div>
 
       <div className="ft-bottom">
-        <span>© {new Date().getFullYear()} Oina.tj — {t.footerRights}</span>
+        <span>© {new Date().getFullYear()} T.oina.tj — {t.footerRights}</span>
       </div>
     </footer>
   );

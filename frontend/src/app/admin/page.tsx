@@ -3324,7 +3324,7 @@ function TemplatesTab({ products, authFetch }: any) {
               <div style={{ border: "1px solid var(--line)", background: "var(--surface)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px" }}>
                   <div style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>oina.tj</span>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>T.oina.tj</span>
                 </div>
                 <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", overflow: "hidden" }}>
                   <img src={data.post_image_url} alt="post" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
@@ -3353,7 +3353,7 @@ function TemplatesTab({ products, authFetch }: any) {
               <div style={{ border: "1px solid var(--line)", background: "var(--surface)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, padding: 8 }}>
                   <div style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, fontWeight: 600 }}>oina.tj</span>
+                  <span style={{ fontSize: 11, fontWeight: 600 }}>T.oina.tj</span>
                 </div>
                 <div style={{ position: "relative", width: "100%", aspectRatio: "9 / 16", overflow: "hidden" }}>
                   <img src={data.story_image_url} alt="story" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
