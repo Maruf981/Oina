@@ -4,7 +4,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.routers import category, product, upload, order, auth, supplier, telegram_auth, favorite, cart, review, stock_movement, expense, employee, home_banner, dual_slide, social_preview, support, bot_conversation, promo_code
 
-app = FastAPI(title=settings.PROJECT_NAME)
+import os
+
+# на Render (переменная RENDER ставится автоматически) документация API скрыта, локально — открыта
+_ON_RENDER = bool(os.getenv("RENDER"))
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    docs_url=None if _ON_RENDER else "/docs",
+    redoc_url=None if _ON_RENDER else "/redoc",
+    openapi_url=None if _ON_RENDER else "/openapi.json",
+)
 
 app.add_middleware(
     CORSMiddleware,
