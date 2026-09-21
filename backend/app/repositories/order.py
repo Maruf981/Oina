@@ -213,6 +213,8 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     new_variant = locked[new_variant_id]
     if not new_variant:
         raise HTTPException(status_code=404, detail="Новый вариант товара не найден")
+    if new_variant.product_id != old_variant.product_id and (not new_variant.product.is_active or new_variant.product.is_archived):
+        raise HTTPException(status_code=400, detail=f"Товар «{new_variant.product.title_ru}» снят с продажи — выберите другой")
 
     if new_variant.stock < remaining:
         raise HTTPException(status_code=400, detail=f"Недостаточно остатка нового варианта (доступно: {new_variant.stock})")
