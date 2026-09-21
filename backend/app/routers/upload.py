@@ -170,9 +170,21 @@ async def upload_avatar(
     db: Session = Depends(get_db),
     current: Customer = Depends(get_current_customer),
 ):
+    if not (file.content_type or "").startswith("image/"):
+        raise HTTPException(status_code=400, detail="Можно загрузить только фото")
+    file.file.seek(0, 2)
+    size = file.file.tell()
+    file.file.seek(0)
+    if size > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Фото больше 5 МБ")
+    # одно имя на клиента: новое фото заменяет старое, место в Cloudinary не копится
     result = cloudinary.uploader.upload(
         file.file,
         folder="oina/avatars",
+        public_id=f"customer_{current.id}",
+        overwrite=True,
+        invalidate=True,
+        resource_type="image",
     )
     current.avatar_url = result["secure_url"]
     db.commit()
