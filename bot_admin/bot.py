@@ -95,6 +95,49 @@ def build_status_keyboard(order_id: int, current_status: str) -> InlineKeyboardM
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+CANCEL_REASON_BUTTONS = [
+    ("refused", "Отказался без причины ⚠️"),
+    ("no_answer", "Не берёт трубку / не открыл ⚠️"),
+    ("wrong_address", "Дал неверный адрес ⚠️"),
+    ("not_fit", "Размер / брак"),
+    ("store_fault", "Ошибка магазина / курьера"),
+    ("customer_request", "Клиент попросил отменить"),
+    ("other", "Другое"),
+]
+
+
+def build_reason_keyboard(order_id: int) -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton(text=label, callback_data=f"cancelreason:{order_id}:{key}")] for key, label in CANCEL_REASON_BUTTONS]
+    rows.append([InlineKeyboardButton(text="⬅️ Не отменять", callback_data=f"cancelabort:{order_id}")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def apply_status(callback, order_id: int, new_status: str, reason: str | None = None):
+    try:
+        token = await get_admin_token()
+        async with httpx.AsyncClient(timeout=20) as client:
+            res = await client.patch(
+                f"{API_BASE_URL}/orders/{order_id}/status",
+                json={"status": new_status, "reason": reason},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+    except httpx.TimeoutException:
+        await callback.answer("Сервер долго не отвечает. Попробуйте ещё раз.", show_alert=True)
+        return
+    if res.status_code == 200:
+        label = STATUS_LABELS_RU.get(new_status, new_status)
+        extra = f" ({dict(CANCEL_REASON_BUTTONS).get(reason, reason)})" if reason else ""
+        await callback.message.edit_text((callback.message.text or "") + f"\n\n✅ Статус изменён на: {label}{extra}")
+        await callback.answer("Готово")
+    else:
+        try:
+            detail = res.json().get("detail")
+        except Exception:
+            detail = None
+        msg = detail if isinstance(detail, str) else "Не удалось изменить статус. Попробуйте позже."
+        await callback.answer(msg[:200], show_alert=True)
+
+
 def is_admin(user_id: int) -> bool:
     return user_id == ADMIN_TELEGRAM_ID
 
@@ -296,24 +339,29 @@ async def cb_set_status(callback: CallbackQuery):
         return
     _, order_id_str, new_status = callback.data.split(":")
     order_id = int(order_id_str)
-    try:
-        token = await get_admin_token()
-        async with httpx.AsyncClient(timeout=20) as client:
-            res = await client.patch(
-                f"{API_BASE_URL}/orders/{order_id}/status",
-                json={"status": new_status},
-                headers={"Authorization": f"Bearer {token}"},
-            )
-    except httpx.TimeoutException:
-        await callback.answer("Сервер долго не отвечает. Попробуйте ещё раз.", show_alert=True)
+    if new_status == "cancelled":
+        await callback.message.edit_reply_markup(reply_markup=build_reason_keyboard(order_id))
+        await callback.answer("Выберите причину отмены")
         return
-    if res.status_code == 200:
-        label = STATUS_LABELS_RU.get(new_status, new_status)
-        new_text = (callback.message.text or "") + f"\n\n✅ Статус изменён на: {label}"
-        await callback.message.edit_text(new_text)
-        await callback.answer("Готово")
-    else:
-        await callback.answer("Не удалось изменить статус. Попробуйте позже.", show_alert=True)
+    await apply_status(callback, order_id, new_status)
+
+
+@dp.callback_query(F.data.startswith("cancelreason:"))
+async def cb_cancel_reason(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    _, order_id_str, reason = callback.data.split(":")
+    await apply_status(callback, int(order_id_str), "cancelled", reason)
+
+
+@dp.callback_query(F.data.startswith("cancelabort:"))
+async def cb_cancel_abort(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.answer("Не отменён. Откройте «🛒 Новые заказы» заново.")
 
 
 @dp.message(F.text == "📋 Мои черновики")

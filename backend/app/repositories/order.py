@@ -343,8 +343,8 @@ def update_status(db: Session, order: Order, new_status: str, only_from: str | N
         raise HTTPException(status_code=400, detail="В Душанбе после получения возврата нет — только обмен (кнопка «Изменить» у товара)")
     if reason and reason not in CANCEL_REASONS:
         raise HTTPException(status_code=400, detail="Неизвестная причина отмены")
-    if (not prepaid and old_status == OrderStatus.SHIPPED and new_status in ("cancelled", "returned") and not reason):
-        raise HTTPException(status_code=400, detail="Укажите причину отказа при доставке")
+    if (not prepaid and old_status not in (OrderStatus.CANCELLED, OrderStatus.RETURNED) and new_status in ("cancelled", "returned") and not reason):
+        raise HTTPException(status_code=400, detail="Укажите причину отмены")
     if old_status == OrderStatus.RETURNED and all(i.returned_quantity >= i.quantity for i in order.items):
         raise HTTPException(status_code=400, detail="Все позиции возвращены по отдельности — откат статуса ничего не вернёт. Оформите новый заказ.")
     restore_statuses = {OrderStatus.CANCELLED, OrderStatus.RETURNED}

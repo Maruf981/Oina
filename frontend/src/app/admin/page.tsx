@@ -2483,7 +2483,7 @@ const CANCEL_REASON_LABELS: Record<string, string> = {
   other: "Другое",
 };
 const FAKE_REASONS = new Set(["refused", "no_answer", "wrong_address"]);
-const ASK_REASONS = ["refused", "no_answer", "wrong_address", "not_fit", "store_fault", "other"];
+const ASK_REASONS = ["refused", "no_answer", "wrong_address", "not_fit", "store_fault", "customer_request", "other"];
 
 const PAY_LABELS: Record<string, string> = { cod: "Наличные", qr: "QR", card: "Карта" };
 
@@ -2663,7 +2663,7 @@ function OrdersTab({ t, authFetch, products }: any) {
       return;
     }
     let reason: string | null = null;
-    if (ord?.payment_method === "cod" && current === "shipped" && closed.includes(status)) {
+    if (ord?.payment_method === "cod" && current && !closed.includes(current) && closed.includes(status)) {
       const list = ASK_REASONS.map((k, i) => `${i + 1} — ${CANCEL_REASON_LABELS[k]}${FAKE_REASONS.has(k) ? " (фейк)" : ""}`).join("\n");
       const input = window.prompt(`Причина отказа по заказу №${orderId}:\n${list}\n\nВведите номер:`);
       if (input === null) return;
@@ -2673,7 +2673,7 @@ function OrdersTab({ t, authFetch, products }: any) {
     }
     if (current && closed.includes(current) && !closed.includes(status)) {
       if (!window.confirm(`Заказ №${orderId} отменён/возвращён. Восстановить его и снова списать товар со склада?`)) return;
-    } else if (current && !closed.includes(current) && closed.includes(status)) {
+    } else if (current && !closed.includes(current) && closed.includes(status) && !reason) {
       if (!window.confirm(`Заказ №${orderId}: ${status === "cancelled" ? "отменить" : "оформить возврат"} и вернуть товар на склад?`)) return;
     }
     const res = await authFetch(`${API}/orders/${orderId}/status`, {
