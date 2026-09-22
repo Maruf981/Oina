@@ -506,3 +506,86 @@ def finance_summary(db: Session, period: str | None = None, supplier_id: int | N
         "missing_cost": int(sum(int(m) for *_, m in rows)),
         "by_supplier": by_supplier,
     }
+
+
+def finance_sales(db: Session, period: str | None = None, date_from: str | None = None,
+                  date_to: str | None = None, supplier_id: int | None = None,
+                  mode: str = "lines", search: str | None = None, limit: int = 50, offset: int = 0):
+    """Список продаж постранично (позиции или по товарам) + итоги по всему фильтру."""
+    from datetime import datetime, timedelta
+    from sqlalchemy import func, case, or_, cast, distinct, String as SAString
+    from app.models.product import Product
+    excluded = [OrderStatus.CANCELLED, OrderStatus.RETURNED]
+    qty = OrderItem.quantity - OrderItem.returned_quantity
+    sup = func.coalesce(OrderItem.supplier_id, Product.supplier_id)
+    has_cost = OrderItem.cost_at_order.isnot(None)
+    revenue = OrderItem.price_at_order * qty
+    cost_sum = func.coalesce(OrderItem.cost_at_order, 0) * qty
+    missing_qty = case((has_cost, 0), else_=qty)
+
+    def base(*cols):
+        q = (db.query(*cols).select_from(OrderItem)
+             .join(Order, Order.id == OrderItem.order_id)
+             .join(ProductVariant, ProductVariant.id == OrderItem.product_variant_id)
+             .join(Product, Product.id == ProductVariant.product_id)
+             .filter(Order.status.notin_(excluded), qty > 0))
+        if date_from or date_to:
+            if date_from:
+                q = q.filter(Order.created_at >= datetime.fromisoformat(date_from))
+            if date_to:
+                q = q.filter(Order.created_at < datetime.fromisoformat(date_to) + timedelta(days=1))
+        else:
+            since, until = period_range(period)
+            if since:
+                q = q.filter(Order.created_at >= since)
+            if until:
+                q = q.filter(Order.created_at < until)
+        if supplier_id is not None:
+            q = q.filter(sup == supplier_id)
+        term = (search or "").strip().lstrip("#")
+        if term:
+            like = f"%{term}%"
+            q = q.filter(or_(Product.title_ru.ilike(like), Product.catalog_number.ilike(like),
+                             cast(Order.id, SAString).ilike(like)))
+        return q
+
+    t = base(func.coalesce(func.sum(qty), 0), func.coalesce(func.sum(revenue), 0),
+             func.coalesce(func.sum(case((has_cost, cost_sum), else_=0)), 0),
+             func.coalesce(func.sum(case((has_cost, revenue), else_=0)), 0),
+             func.count(distinct(Order.id)), func.coalesce(func.sum(missing_qty), 0)).one()
+    totals = {"qty": int(t[0]), "revenue": float(t[1]), "cost": float(t[2]),
+              "costed_revenue": float(t[3]), "orders": int(t[4]), "missing": int(t[5])}
+    totals["profit"] = totals["costed_revenue"] - totals["cost"]
+
+    items = []
+    if mode == "products":
+        g = (base(Product.id, Product.title_ru, Product.catalog_number, func.min(sup),
+                  func.count(distinct(Order.id)), func.sum(qty), func.sum(revenue),
+                  func.sum(cost_sum), func.sum(missing_qty))
+             .group_by(Product.id, Product.title_ru, Product.catalog_number))
+        total = g.count()
+        for pid, title, cat, sid, orders, n, rev, cst, miss in g.order_by(func.sum(revenue).desc()).offset(offset).limit(limit).all():
+            n, rev, cst, miss = int(n), float(rev), float(cst), int(miss)
+            items.append({"product_id": pid, "title": title, "catalog_number": cat, "supplier_id": sid,
+                          "orders": int(orders), "qty": n, "price": rev / n if n else 0,
+                          "cost": None if miss else (cst / n if n else 0), "revenue": rev,
+                          "cost_total": cst, "profit": None if miss else rev - cst})
+    else:
+        lq = base(OrderItem, Order, ProductVariant, Product, qty.label("q"), sup.label("sid"))
+        total = lq.count()
+        for item, order, variant, product, n, sid in lq.order_by(Order.created_at.desc(), OrderItem.id).offset(offset).limit(limit).all():
+            n = int(n)
+            price = float(item.price_at_order)
+            cost = float(item.cost_at_order) if item.cost_at_order is not None else None
+            rev = price * n
+            cst = cost * n if cost is not None else 0.0
+            items.append({"item_id": item.id, "order_id": order.id,
+                          "date": order.created_at.isoformat() if order.created_at else None,
+                          "status": order.status.value if order.status else None, "source": order.source,
+                          "payment_method": order.payment_method.value if order.payment_method else None,
+                          "paid": order.paid_at is not None, "promo_percent": order.promo_percent,
+                          "product_id": product.id, "title": product.title_ru, "catalog_number": product.catalog_number,
+                          "color": variant.color, "size": variant.size, "supplier_id": sid, "qty": n,
+                          "price": price, "cost": cost, "revenue": rev, "cost_total": cst,
+                          "profit": (rev - cst) if cost is not None else None})
+    return {"items": items, "total": total, "totals": totals}

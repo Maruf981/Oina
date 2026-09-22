@@ -128,6 +128,16 @@ def finance(period: str | None = None, supplier_id: int | None = None, db: Sessi
     return order_repo.finance_summary(db, period, supplier_id)
 
 
+@router.get("/finance/sales")
+def finance_sales(period: str | None = None, date_from: str | None = None, date_to: str | None = None,
+                  supplier_id: int | None = None, mode: str = "lines", search: str | None = None,
+                  limit: int = 50, offset: int = 0,
+                  db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    return order_repo.finance_sales(db, period, date_from, date_to, supplier_id, mode, search,
+                                    max(1, min(limit, 200)), max(0, offset))
+
+
+
 @router.get("/stats/summary")
 def order_stats(db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     from datetime import datetime, timedelta

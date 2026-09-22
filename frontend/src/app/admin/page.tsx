@@ -2091,6 +2091,7 @@ function FinanceTab({ products, suppliers, authFetch }: any) {
         </tbody>
       </table>
       </div>
+      <SalesList authFetch={authFetch} period={periodFilter} supplierId={supplierFilter} suppliers={suppliers} />
     </div>
   );
 }
@@ -3623,6 +3624,191 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
         <button style={btn} disabled={saving} onClick={submit}>{saving ? "Сохраняю..." : "Создать заказ"}</button>
         <button style={btn} onClick={() => { reset(); setOpen(false); }}>Отмена</button>
       </div>
+    </div>
+  );
+}
+
+function SalesList({ authFetch, period, supplierId, suppliers }: any) {
+  const PAGE = 50;
+  const [items, setItems] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [T, setT] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [mode, setMode] = useState<"lines" | "products">("lines");
+  const [search, setSearch] = useState("");
+  const [q, setQ] = useState("");
+  const reqId = useRef(0);
+
+  useEffect(() => { const t = setTimeout(() => setQ(search.trim()), 400); return () => clearTimeout(t); }, [search]);
+
+  const params = (offset: number, limit: number, m: string = mode) => {
+    const p = new URLSearchParams({ mode: m, offset: String(offset), limit: String(limit) });
+    if (from || to) { if (from) p.set("date_from", from); if (to) p.set("date_to", to); }
+    else p.set("period", period);
+    if (supplierId !== "") p.set("supplier_id", String(supplierId));
+    if (q) p.set("search", q);
+    return p;
+  };
+
+  const load = (offset: number) => {
+    const id = ++reqId.current;
+    if (offset === 0) setItems([]);
+    setLoading(true);
+    authFetch(`${API}/orders/finance/sales?${params(offset, PAGE)}`)
+      .then((r: any) => (r.ok ? r.json() : null))
+      .then((d: any) => {
+        if (id !== reqId.current) return;
+        const list = Array.isArray(d?.items) ? d.items : [];
+        setItems((prev) => (offset === 0 ? list : [...prev, ...list]));
+        setTotal(d?.total ?? 0);
+        setT(d?.totals ?? null);
+      })
+      .catch(() => { if (id === reqId.current && offset === 0) { setTotal(0); setT(null); } })
+      .finally(() => { if (id === reqId.current) setLoading(false); });
+  };
+  useEffect(() => { load(0); }, [period, supplierId, from, to, mode, q]);
+
+  const supName = (id: any) => (suppliers || []).find((s: any) => s.id === id)?.name ?? "—";
+  const pct = (a: number, b: number) => (b > 0 ? `${((a / b) * 100).toFixed(1)}%` : "—");
+  const money = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v)} смн`);
+  const variant = (r: any) => [r.color, r.size].filter(Boolean).join(", ");
+  const statusRu: Record<string, string> = { new: "Новый", awaiting_payment: "Ждёт оплаты", paid: "Оплачен", confirmed: "Подтверждён", shipped: "В пути", delivered: "Доставлен" };
+  const payRu: Record<string, string> = { card: "Карта", qr: "QR", cod: "Наличные" };
+  const t = T ?? { qty: 0, revenue: 0, cost: 0, profit: 0, costed_revenue: 0, orders: 0, missing: 0 };
+
+  const exportCsv = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const all: any[] = [];
+      for (let off = 0; ; off += 200) {
+        const r = await authFetch(`${API}/orders/finance/sales?${params(off, 200, "lines")}`);
+        if (!r.ok) break;
+        const d = await r.json();
+        const list = Array.isArray(d?.items) ? d.items : [];
+        all.push(...list);
+        if (list.length < 200) break;
+      }
+      const head = ["Дата", "Заказ", "Товар", "Артикул", "Вариант", "Поставщик", "Шт", "Цена", "Себест. ед.", "Сумма", "Себест. сумма", "Прибыль", "Маржа %", "Наценка %", "Промо %", "Оплата", "Оплачен", "Источник"];
+      const lines = all.map((r) => [
+        r.date ? new Date(r.date).toLocaleDateString("ru-RU") : "", r.order_id, r.title, r.catalog_number ?? "", variant(r), supName(r.supplier_id),
+        r.qty, r.price, r.cost ?? "", r.revenue, r.cost == null ? "" : r.cost_total, r.profit ?? "",
+        r.cost == null || !r.revenue ? "" : ((r.profit / r.revenue) * 100).toFixed(1),
+        r.cost ? ((r.profit / r.cost_total) * 100).toFixed(1) : "",
+        r.promo_percent ?? "", payRu[r.payment_method] ?? "", r.paid ? "да" : "нет", r.source === "phone" ? "Телефон" : "Сайт",
+      ]);
+      const csv = [head, ...lines].map((l) => l.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+      const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+      const a = document.createElement("a"); a.href = url; a.download = `oina-sales-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    } finally { setExporting(false); }
+  };
+
+  const inp = { padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 } as const;
+  const th = { textAlign: "left" as const, padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)", whiteSpace: "nowrap" as const, fontWeight: 400 };
+  const td = { padding: "8px", whiteSpace: "nowrap" as const };
+  const btn = (on: boolean) => ({ padding: "9px 16px", background: on ? "var(--text)" : "transparent", color: on ? "var(--bg)" : "var(--text)", border: `1px solid ${on ? "var(--text)" : "var(--line)"}`, fontFamily: "var(--font-label)", fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase" as const, cursor: "pointer" });
+  const card = (label: string, value: string, color?: string) => (
+    <div style={{ border: "1px solid var(--line)", padding: 14 }}>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>{label}</div>
+      <div className="price" style={{ fontSize: 17, color }}>{value}</div>
+    </div>
+  );
+  const profitColor = (v: number | null) => (v == null ? "var(--text-muted)" : v >= 0 ? "#4CAF50" : "#E24B4A");
+
+  return (
+    <div style={{ marginTop: 34 }}>
+      <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 14 }}>Продажи</div>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>с</span>
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} style={inp} />
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>по</span>
+        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} style={inp} />
+        {(from || to) && <span onClick={() => { setFrom(""); setTo(""); }} style={{ fontSize: 12, textDecoration: "underline", cursor: "pointer", color: "var(--text-muted)" }}>сбросить даты</span>}
+        <input placeholder="Поиск: товар, артикул, № заказа" value={search} onChange={(e) => setSearch(e.target.value)} style={{ ...inp, flex: 1, minWidth: 180 }} />
+        <button style={btn(mode === "lines")} onClick={() => setMode("lines")}>Позиции</button>
+        <button style={btn(mode === "products")} onClick={() => setMode("products")}>По товарам</button>
+        <button style={btn(false)} onClick={exportCsv} disabled={!total || exporting}>{exporting ? "…" : "CSV"}</button>
+      </div>
+      {!(from || to) && <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>Период — из фильтра выше. Укажите даты, чтобы задать свой.</div>}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 16 }}>
+        {card("Продано, шт", String(t.qty))}
+        {card("Выручка", money(t.revenue))}
+        {card("Себестоимость", money(t.cost))}
+        {card("Валовая прибыль", money(t.profit), profitColor(t.profit))}
+        {card("Маржа", pct(t.profit, t.costed_revenue))}
+        {card("Наценка", pct(t.profit, t.cost))}
+        {card("Заказов", String(t.orders))}
+        {card("Средний чек", t.orders ? money(t.revenue / t.orders) : "—")}
+      </div>
+      {t.missing > 0 && <div style={{ fontSize: 12, color: "#E24B4A", marginBottom: 12 }}>Без себестоимости: {t.missing} шт — они в выручке, но не в прибыли/марже.</div>}
+
+      {items.length === 0 ? (
+        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{loading ? "Загрузка…" : "Продаж за этот период нет"}</p>
+      ) : (
+        <>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--line)" }}>
+                  {mode === "lines" ? (
+                    <><th style={th}>Дата</th><th style={th}>Заказ</th><th style={th}>Товар</th><th style={th}>Поставщик</th><th style={th}>Шт</th><th style={th}>Цена</th><th style={th}>Себест. ед.</th><th style={th}>Сумма</th><th style={th}>Себест.</th><th style={th}>Прибыль</th><th style={th}>Маржа</th><th style={th}>Наценка</th><th style={th}>Промо</th><th style={th}>Оплата</th></>
+                  ) : (
+                    <><th style={th}>Товар</th><th style={th}>Поставщик</th><th style={th}>Заказов</th><th style={th}>Шт</th><th style={th}>Ср. цена</th><th style={th}>Себест. ед.</th><th style={th}>Выручка</th><th style={th}>Себест.</th><th style={th}>Прибыль</th><th style={th}>Маржа</th><th style={th}>Наценка</th></>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {mode === "lines" ? items.map((r) => (
+                  <tr key={r.item_id} style={{ borderBottom: "1px solid var(--line)" }}>
+                    <td style={td}>{r.date ? new Date(r.date).toLocaleDateString("ru-RU") : "—"}</td>
+                    <td style={td}>#{r.order_id}{r.source === "phone" && <span style={{ color: "var(--text-muted)" }}> · тел.</span>}</td>
+                    <td style={{ ...td, whiteSpace: "normal", minWidth: 180 }}>{r.title}<div style={{ fontSize: 11, color: "var(--text-muted)" }}>{[r.catalog_number, variant(r)].filter(Boolean).join(" · ")}</div></td>
+                    <td style={td}>{supName(r.supplier_id)}</td>
+                    <td style={td}>{r.qty}</td>
+                    <td style={td}>{money(r.price)}</td>
+                    <td style={{ ...td, color: "var(--text-muted)" }}>{money(r.cost)}</td>
+                    <td style={td}>{money(r.revenue)}</td>
+                    <td style={{ ...td, color: "var(--text-muted)" }}>{r.cost == null ? "—" : money(r.cost_total)}</td>
+                    <td style={{ ...td, color: profitColor(r.profit) }}>{money(r.profit)}</td>
+                    <td style={td}>{r.cost == null ? "—" : pct(r.profit, r.revenue)}</td>
+                    <td style={td}>{r.cost == null ? "—" : pct(r.profit, r.cost_total)}</td>
+                    <td style={td}>{r.promo_percent ? `${r.promo_percent}%` : "—"}</td>
+                    <td style={td}>{payRu[r.payment_method] ?? "—"}<span style={{ color: r.paid ? "#4CAF50" : "var(--text-muted)" }}> · {r.paid ? "оплачен" : statusRu[r.status] ?? r.status}</span></td>
+                  </tr>
+                )) : items.map((r) => (
+                  <tr key={r.product_id} style={{ borderBottom: "1px solid var(--line)" }}>
+                    <td style={{ ...td, whiteSpace: "normal", minWidth: 180 }}>{r.title}<div style={{ fontSize: 11, color: "var(--text-muted)" }}>{r.catalog_number}</div></td>
+                    <td style={td}>{supName(r.supplier_id)}</td>
+                    <td style={td}>{r.orders}</td>
+                    <td style={td}>{r.qty}</td>
+                    <td style={td}>{money(r.price)}</td>
+                    <td style={{ ...td, color: "var(--text-muted)" }}>{money(r.cost)}</td>
+                    <td style={td}>{money(r.revenue)}</td>
+                    <td style={{ ...td, color: "var(--text-muted)" }}>{r.cost == null ? "—" : money(r.cost_total)}</td>
+                    <td style={{ ...td, color: profitColor(r.profit) }}>{money(r.profit)}</td>
+                    <td style={td}>{r.cost == null ? "—" : pct(r.profit, r.revenue)}</td>
+                    <td style={td}>{r.cost == null ? "—" : pct(r.profit, r.cost_total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 14 }}>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Показано {items.length} из {total}</span>
+            {items.length < total && (
+              <button style={btn(false)} disabled={loading} onClick={() => load(items.length)}>
+                {loading ? "Загрузка…" : `Показать ещё ${Math.min(PAGE, total - items.length)}`}
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
