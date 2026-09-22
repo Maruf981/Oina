@@ -1,4 +1,5 @@
 "use client";
+import { FooterParticles } from "./footer-particles";
 import { cld } from "../lib/cld";
 import "./site-header.css";
 
@@ -472,7 +473,8 @@ function SiteHeaderInner() {
             })}
           </nav>
 
-          <div className="mm-rule" />
+          <div className="mm-bottom">
+          <FooterParticles />
 
           <nav className="mm-small">
             <span onClick={() => { setMenuOpen(false); router.push("/favorites"); }}>{tr("Избранное", "Интихобҳо")} ({favoritesCount})</span>
@@ -490,6 +492,7 @@ function SiteHeaderInner() {
               <span onClick={toggleTheme}>{theme === "dark" ? tr("Светлая тема", "Мавзӯи равшан") : tr("Тёмная тема", "Мавзӯи торик")}</span>
             </div>
             <div className="mm-social"><SocialLinks /></div>
+          </div>
           </div>
         </div>
       )}
