@@ -6,3 +6,11 @@ export function cld(url: string | null | undefined, width = 1000): string {
   if (/\/image\/upload\/[^/]*(f_auto|q_auto)/.test(url)) return url;
   return url.replace("/image/upload/", `/image/upload/f_auto,q_auto,c_limit,w_${width}/`);
 }
+
+// Сжатие видео Cloudinary при отдаче: авто-формат/кодек/качество + ограничение ширины.
+export function cldVideo(url: string | null | undefined, width = 720): string {
+  if (!url) return "";
+  if (!url.includes("res.cloudinary.com") || !url.includes("/video/upload/")) return url;
+  if (/\/video\/upload\/[^/]*(f_auto|q_auto)/.test(url)) return url;
+  return url.replace("/video/upload/", `/video/upload/f_auto,q_auto,vc_auto,c_limit,w_${width}/`);
+}

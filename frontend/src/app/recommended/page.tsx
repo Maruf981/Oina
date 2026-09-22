@@ -1,6 +1,6 @@
 "use client";
 
-import { cld } from "../../lib/cld";
+import { cld, cldVideo } from "../../lib/cld";
 import "../hero.css";
 import "../product-card.css";
 import "../cart/cart.css";
@@ -342,7 +342,7 @@ function CardMedia({ images, alt }: { images: { url: string; media_type?: string
       {images.map((img, i) => (
         <div key={img.url + i} className={`pc-slide${i === active ? " is-active" : ""}`}>
           {img.media_type === "video" ? (
-            <video src={img.url} muted loop playsInline autoPlay={i === active} />
+            <video src={cldVideo(img.url)} muted loop playsInline autoPlay={i === active} />
           ) : (
             <img src={cld(img.url, 800)} alt={alt} loading={i === 0 ? "eager" : "lazy"} decoding="async" draggable={false} />
           )}

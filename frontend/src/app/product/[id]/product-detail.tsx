@@ -1,6 +1,6 @@
 "use client";
 
-import { cld } from "../../../lib/cld";
+import { cld, cldVideo } from "../../../lib/cld";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useCart } from "../../cart-context";
@@ -489,7 +489,7 @@ export default function ProductDetailClient() {
                     return (
                       <div className="pc-slides"><div className="pc-slide is-active">
                         {isV(first) ? (
-                          <video src={first.url} muted loop autoPlay playsInline />
+                          <video src={cldVideo(first.url)} muted loop autoPlay playsInline />
                         ) : (
                           <img src={cld(first.url, 800)} alt={localized(p.title_ru, p.title_tj)} loading="lazy" />
                         )}
@@ -529,7 +529,7 @@ export default function ProductDetailClient() {
               <div key={img.id} className={`pd-shot${idx === 0 ? " pd-shot--main" : ""}`}>
                 {isVid(img) ? (
                   <>
-                    <video src={img.url} autoPlay muted={mainVideoMuted} loop playsInline onClick={() => setLightbox(idx)} />
+                    <video src={cldVideo(img.url, 1080)} autoPlay muted={mainVideoMuted} loop playsInline onClick={() => setLightbox(idx)} />
                     <button className="pd-sound" onClick={() => setMainVideoMuted((m) => !m)}>
                       {mainVideoMuted ? tr("Включить звук", "Садо") : tr("Выключить звук", "Бесадо")}
                     </button>
@@ -553,7 +553,7 @@ export default function ProductDetailClient() {
               }}
             >
               {isVid(orderedImages[lightbox]) ? (
-                <video className="pd-lb-media" src={orderedImages[lightbox].url} controls autoPlay playsInline onClick={(e) => e.stopPropagation()} />
+                <video className="pd-lb-media" src={cldVideo(orderedImages[lightbox].url, 1920)} controls autoPlay playsInline onClick={(e) => e.stopPropagation()} />
               ) : (
                 <img className="pd-lb-media" src={cld(orderedImages[lightbox].url, 2400)} alt={localized(product.title_ru, product.title_tj)} onClick={(e) => e.stopPropagation()} />
               )}

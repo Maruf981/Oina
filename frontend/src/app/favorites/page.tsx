@@ -1,6 +1,6 @@
 "use client";
 
-import { cld } from "../../lib/cld";
+import { cld, cldVideo } from "../../lib/cld";
 import "../hero.css";
 import "../product-card.css";
 import "../cart/cart.css";
@@ -186,7 +186,7 @@ export default function FavoritesPage() {
                     {photo && (
                       <div className="pc-slides">
                         <div className="pc-slide is-active">
-                          {isVid(photo) ? <video src={photo.url} muted loop autoPlay playsInline /> : <img src={cld(photo.url, 800)} alt={title} loading="lazy" />}
+                          {isVid(photo) ? <video src={cldVideo(photo.url)} muted loop autoPlay playsInline /> : <img src={cld(photo.url, 800)} alt={title} loading="lazy" />}
                         </div>
                       </div>
                     )}

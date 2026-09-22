@@ -1,6 +1,6 @@
 "use client";
 import WaterVideo from "../components/WaterVideo";
-import { cld } from "../lib/cld";
+import { cld, cldVideo } from "../lib/cld";
 import { DualSlider, type DualSlide } from "./dual-slider";
 import { SeasonCountdown } from "./season-countdown";
 import { BestsellersRow } from "./bestsellers-row";
@@ -1224,7 +1224,7 @@ function CardMedia({ images, alt }: { images: { url: string; media_type?: string
       {images.map((img, i) => (
         <div key={img.url + i} className={`pc-slide${i === active ? " is-active" : ""}`}>
           {img.media_type === "video" ? (
-            <video src={img.url} muted loop playsInline autoPlay={i === active} />
+            <video src={cldVideo(img.url)} muted loop playsInline autoPlay={i === active} />
           ) : (
             <img src={cld(img.url, 800)} alt={alt} loading={i === 0 ? "eager" : "lazy"} decoding="async" draggable={false} />
           )}
@@ -1254,7 +1254,7 @@ function AutoSlideImage({ images, onClick, alt }: { images: { url: string; media
       {isVideo ? (
         <video
           key={current.url}
-          src={current.url}
+          src={cldVideo(current.url)}
           autoPlay
           muted={muted}
           loop
