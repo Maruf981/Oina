@@ -61,7 +61,7 @@ export function Footer({ lang }: { lang: Lang }) {
             <b className={lang === "ru" ? "is-on" : ""}>Русский</b> / <b className={lang === "tj" ? "is-on" : ""}>Тоҷикӣ</b>
           </span>
           <span onClick={toggleTheme}>
-            {theme === "dark" ? tr("Светлая тема", "Мавзӯи равшан") : tr("Тёмная тема", "Мавзӯи торик")}
+            {theme === "dark" ? tr("Светлая тема", "Реҷаи равшан") : tr("Тёмная тема", "Реҷаи торик")}
           </span>
         </div>
       </div>

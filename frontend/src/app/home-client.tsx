@@ -1009,6 +1009,11 @@ function HomeInner() {
                   <span className="sec-link" onClick={() => document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{lang === "ru" ? "Смотреть коллекцию →" : "Дидани коллексия →"}</span>
                 </div>
                 <DualSlider slides={dualSlides} router={router} lang={lang} />
+                <div style={{ height: 1, background: "var(--line)", marginTop: "2.5rem", width: "100vw", marginLeft: "calc(50% - 50vw)" }} />
+                <div className="sec-head" style={{ paddingTop: "2.5rem", paddingBottom: "1rem" }}>
+                  <span className="coll-rule" />
+                  <h2 className="sec-title">{lang === "ru" ? "Ещё для вас" : "Боз ҳам барои Шумо"}</h2>
+                </div>
               </div>
             )}
             </Fragment>

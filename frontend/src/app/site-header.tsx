@@ -489,7 +489,7 @@ function SiteHeaderInner() {
           <div className="mm-foot">
             <div className="mm-toggles">
               <span onClick={toggleLang}><b className={lang === "ru" ? "is-on" : ""}>RU</b> / <b className={lang === "tj" ? "is-on" : ""}>TJ</b></span>
-              <span onClick={toggleTheme}>{theme === "dark" ? tr("Светлая тема", "Мавзӯи равшан") : tr("Тёмная тема", "Мавзӯи торик")}</span>
+              <span onClick={toggleTheme}>{theme === "dark" ? tr("Светлая тема", "Реҷаи равшан") : tr("Тёмная тема", "Реҷаи торик")}</span>
             </div>
             <div className="mm-social"><SocialLinks /></div>
           </div>
