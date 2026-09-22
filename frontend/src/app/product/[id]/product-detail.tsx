@@ -65,6 +65,13 @@ type Product = {
   season_tj: string | null;
   pattern_ru: string | null;
   pattern_tj: string | null;
+  brand: string | null;
+  product_type_ru: string | null;
+  product_type_tj: string | null;
+  fit_ru: string | null;
+  fit_tj: string | null;
+  style_ru: string | null;
+  style_tj: string | null;
   country_of_origin_ru: string | null;
   country_of_origin_tj: string | null;
   care_instructions_ru: string | null;
@@ -454,8 +461,12 @@ export default function ProductDetailClient() {
   const orderedImages = selectedColor
     ? [...product.images.filter((i) => i.color === selectedColor), ...product.images.filter((i) => i.color !== selectedColor)]
     : product.images;
-  const hasMaterial = !!(product.material_ru || product.season_ru || product.pattern_ru || product.country_of_origin_ru || product.care_instructions_ru);
+  const hasMaterial = !!(product.material_ru || product.season_ru || product.pattern_ru || product.brand || product.product_type_ru || product.fit_ru || product.style_ru || product.country_of_origin_ru || product.care_instructions_ru);
   const specRows: { label: string; value: string }[] = [
+    { label: tr("Бренд", "Бренд"), value: product.brand ?? "" },
+    { label: tr("Тип", "Намуд"), value: product.product_type_ru ? localized(product.product_type_ru, product.product_type_tj) : "" },
+    { label: tr("Фасон", "Фасон"), value: product.fit_ru ? localized(product.fit_ru, product.fit_tj) : "" },
+    { label: tr("Стиль", "Услуб"), value: product.style_ru ? localized(product.style_ru, product.style_tj) : "" },
     { label: tr("Материал", "Матоъ"), value: product.material_ru ? localized(product.material_ru, product.material_tj) : "" },
     { label: tr("Сезон", "Мавсим"), value: product.season_ru ? localized(product.season_ru, product.season_tj) : "" },
     { label: tr("Рисунок", "Акс"), value: product.pattern_ru ? localized(product.pattern_ru, product.pattern_tj) : "" },

@@ -67,6 +67,13 @@ class ProductBase(BaseModel):
     season_tj: str | None = None
     pattern_ru: str | None = None
     pattern_tj: str | None = None
+    brand: str | None = None
+    product_type_ru: str | None = None
+    product_type_tj: str | None = None
+    fit_ru: str | None = None
+    fit_tj: str | None = None
+    style_ru: str | None = None
+    style_tj: str | None = None
     is_active: bool = True
     is_featured: bool = False
     is_new: bool = False

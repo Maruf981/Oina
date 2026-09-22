@@ -512,7 +512,7 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
 
   if (selectedProduct || creatingProduct) {
     return (
-      <ProductForm
+      <ProductForm products={products}
         t={t}
         product={selectedProduct}
         categories={categories}
@@ -802,7 +802,7 @@ function ProductsTab({ t, view, products, categories, suppliers, refreshSupplier
     </div>
   );
 }
-function ProductForm({ t, product, categories, suppliers, refreshSuppliers, authFetch, onClose, onCreated }: any) {
+function ProductForm({ t, product, products, categories, suppliers, refreshSuppliers, authFetch, onClose, onCreated }: any) {
   const [form, setForm] = useState({
     category_id: product?.category_id ?? categories[0]?.id ?? 1,
     title_ru: product?.title_ru ?? "",
@@ -822,6 +822,13 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
     season_tj: product?.season_tj ?? "",
     pattern_ru: product?.pattern_ru ?? "",
     pattern_tj: product?.pattern_tj ?? "",
+    brand: product?.brand ?? "",
+    product_type_ru: product?.product_type_ru ?? "",
+    product_type_tj: product?.product_type_tj ?? "",
+    fit_ru: product?.fit_ru ?? "",
+    fit_tj: product?.fit_tj ?? "",
+    style_ru: product?.style_ru ?? "",
+    style_tj: product?.style_tj ?? "",
     badgeType: (product?.discount_percent ? "discount" : product?.is_new ? "new" : product?.is_featured ? "featured" : "none") as "none" | "featured" | "new" | "discount",
     is_brand: product?.is_brand ?? false,
     is_recommended: product?.is_recommended ?? false,
@@ -1146,6 +1153,21 @@ function ProductForm({ t, product, categories, suppliers, refreshSuppliers, auth
         <input placeholder="Рисунок (RU)" value={form.pattern_ru} onChange={(e) => updateField("pattern_ru", e.target.value)} style={inputStyle} />
         <input placeholder="Рисунок (TJ)" value={form.pattern_tj} onChange={(e) => updateField("pattern_tj", e.target.value)} style={inputStyle} />
       </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14, marginBottom: 14 }}>
+        <input placeholder="Бренд" list="dl-brand" value={form.brand} onChange={(e) => updateField("brand" as any, e.target.value)} style={inputStyle} />
+      </div>
+      {[["product_type", "Тип"], ["fit", "Фасон"], ["style", "Стиль"]].map(([k, label]) => (
+        <div key={k} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <input placeholder={`${label} (RU)`} list={`dl-${k}_ru`} value={(form as any)[`${k}_ru`]} onChange={(e) => updateField(`${k}_ru` as any, e.target.value)} style={inputStyle} />
+          <input placeholder={`${label} (TJ)`} list={`dl-${k}_tj`} value={(form as any)[`${k}_tj`]} onChange={(e) => updateField(`${k}_tj` as any, e.target.value)} style={inputStyle} />
+        </div>
+      ))}
+      {["brand", "product_type_ru", "product_type_tj", "fit_ru", "fit_tj", "style_ru", "style_tj"].map((f) => (
+        <datalist key={f} id={`dl-${f}`}>
+          {Array.from(new Set((products ?? []).map((p: any) => p[f]).filter(Boolean))).map((v: any) => <option key={v} value={v} />)}
+        </datalist>
+      ))}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 24 }}>
         <textarea placeholder={`${t.description} (RU)`} value={form.description_ru} onChange={(e) => updateField("description_ru", e.target.value)} rows={3} style={inputStyle} />

@@ -216,6 +216,9 @@ def update(db: Session, product: Product, data: ProductCreate) -> Product:
         product_data["season_tj"] = translate_to_tj(product_data.get("season_ru"))
     if not product_data.get("pattern_tj"):
         product_data["pattern_tj"] = translate_to_tj(product_data.get("pattern_ru"))
+    for _f in ("product_type", "fit", "style"):
+        if not product_data.get(f"{_f}_tj"):
+            product_data[f"{_f}_tj"] = translate_to_tj(product_data.get(f"{_f}_ru"))
 
     for key, value in product_data.items():
         setattr(product, key, value)
@@ -315,6 +318,9 @@ def create(db: Session, data: ProductCreate) -> Product:
         base_product_data["season_tj"] = translate_to_tj(base_product_data.get("season_ru"))
     if not base_product_data.get("pattern_tj"):
         base_product_data["pattern_tj"] = translate_to_tj(base_product_data.get("pattern_ru"))
+    for _f in ("product_type", "fit", "style"):
+        if not base_product_data.get(f"{_f}_tj"):
+            base_product_data[f"{_f}_tj"] = translate_to_tj(base_product_data.get(f"{_f}_ru"))
 
     max_retries = 3
     for attempt in range(max_retries):
