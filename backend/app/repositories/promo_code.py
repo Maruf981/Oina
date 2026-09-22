@@ -16,6 +16,10 @@ _hits: dict[int, deque] = defaultdict(deque)
 
 def _rate_limit(customer_id: int, limit: int = 10, window: int = 60) -> None:
     now = time.monotonic()
+    # чистим память: забываем клиентов, которые давно не вводили промокод
+    if len(_hits) > 1000:
+        for cid in [c for c, dq in _hits.items() if not dq or now - dq[-1] > window]:
+            del _hits[cid]
     q = _hits[customer_id]
     while q and now - q[0] > window:
         q.popleft()
