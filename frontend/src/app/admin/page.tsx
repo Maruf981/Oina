@@ -2036,51 +2036,6 @@ function FinanceTab({ products, suppliers, authFetch }: any) {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, marginBottom: 24, alignItems: "center", flexWrap: "wrap" }}>
-        <select
-          value={periodFilter}
-          onChange={(e) => setPeriodFilter(e.target.value as "all" | "today" | "week" | "month")}
-          style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
-        >
-          <option value="all">Период: всё время</option>
-          <option value="today">Период: сегодня</option>
-          <option value="week">Период: эта неделя</option>
-          <option value="month">Период: этот месяц</option>
-        </select>
-        <select
-          value={supplierFilter}
-          onChange={(e) => setSupplierFilter(e.target.value ? Number(e.target.value) : "")}
-          style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
-        >
-          <option value="">Все поставщики</option>
-          {supplierList.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-          Заказов учтено: {fin?.orders_count ?? 0} (без отменённых/возвратов) · Списания: {Math.round(writeoffCost)} смн
-          {missingCost > 0 && <span style={{ color: "#E24B4A" }}> · без себестоимости: {missingCost} шт</span>}
-        </span>
-      </div>
-      <div className="finance-summary-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 30 }}>
-        <div style={{ border: "1px solid var(--line)", padding: 20 }}>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Выручка</div>
-          <div className="price" style={{ fontSize: 22 }}>{totalRevenue.toFixed(0)} смн</div>
-        </div>
-        <div style={{ border: "1px solid var(--line)", padding: 20 }}>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Себестоимость проданного</div>
-          <div className="price" style={{ fontSize: 22, color: "var(--text-muted)" }}>{totalCost.toFixed(0)} смн</div>
-        </div>
-        <div style={{ border: "1px solid var(--line)", padding: 20 }}>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Расходы</div>
-          <div className="price" style={{ fontSize: 22, color: "var(--text-muted)" }}>{totalExpenses.toFixed(0)} смн</div>
-        </div>
-        <div style={{ border: "1px solid var(--accent)", padding: 20 }}>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Прибыль</div>
-          <div className="price" style={{ fontSize: 22, color: totalProfit >= 0 ? "#4CAF50" : "#E24B4A" }}>{totalProfit.toFixed(0)} смн</div>
-        </div>
-      </div>
-      <BatchFinance authFetch={authFetch} />
       <div style={{ marginBottom: 30 }}>
         <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 14 }}>
           Расходы
@@ -2133,11 +2088,54 @@ function FinanceTab({ products, suppliers, authFetch }: any) {
           </div>
         )}
       </div>
-
+      <div style={{ display: "flex", gap: 12, marginBottom: 24, alignItems: "center", flexWrap: "wrap" }}>
+        <select
+          value={periodFilter}
+          onChange={(e) => setPeriodFilter(e.target.value as "all" | "today" | "week" | "month")}
+          style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
+        >
+          <option value="all">Период: всё время</option>
+          <option value="today">Период: сегодня</option>
+          <option value="week">Период: эта неделя</option>
+          <option value="month">Период: этот месяц</option>
+        </select>
+        <select
+          value={supplierFilter}
+          onChange={(e) => setSupplierFilter(e.target.value ? Number(e.target.value) : "")}
+          style={{ padding: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", fontSize: 13 }}
+        >
+          <option value="">Все поставщики</option>
+          {supplierList.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+          Заказов учтено: {fin?.orders_count ?? 0} (без отменённых/возвратов) · Списания: {Math.round(writeoffCost)} смн
+          {missingCost > 0 && <span style={{ color: "#E24B4A" }}> · без себестоимости: {missingCost} шт</span>}
+        </span>
+      </div>
+      <div className="finance-summary-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 30 }}>
+        <div style={{ border: "1px solid var(--line)", padding: 20 }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Выручка</div>
+          <div className="price" style={{ fontSize: 22 }}>{totalRevenue.toFixed(0)} смн</div>
+        </div>
+        <div style={{ border: "1px solid var(--line)", padding: 20 }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Себестоимость проданного</div>
+          <div className="price" style={{ fontSize: 22, color: "var(--text-muted)" }}>{totalCost.toFixed(0)} смн</div>
+        </div>
+        <div style={{ border: "1px solid var(--line)", padding: 20 }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Расходы</div>
+          <div className="price" style={{ fontSize: 22, color: "var(--text-muted)" }}>{totalExpenses.toFixed(0)} смн</div>
+        </div>
+        <div style={{ border: "1px solid var(--accent)", padding: 20 }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Прибыль</div>
+          <div className="price" style={{ fontSize: 22, color: totalProfit >= 0 ? "#4CAF50" : "#E24B4A" }}>{totalProfit.toFixed(0)} смн</div>
+        </div>
+      </div>
       <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 14 }}>
         По поставщикам
       </div>
-    <div style={{ overflowX: "auto" }}>
+    <div style={{ overflowX: "auto", marginBottom: 30 }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ borderBottom: "1px solid var(--line)" }}>
@@ -2159,6 +2157,7 @@ function FinanceTab({ products, suppliers, authFetch }: any) {
         </tbody>
       </table>
       </div>
+      <BatchFinance authFetch={authFetch} />
       <SalesList authFetch={authFetch} period={periodFilter} supplierId={supplierFilter} suppliers={suppliers} />
     </div>
   );
@@ -2169,6 +2168,9 @@ function BatchFinance({ authFetch }: any) {
   const [batch, setBatch] = useState("");
   const [sold, setSold] = useState<any>(null);
   const [stock, setStock] = useState<any>(null);
+  const [showItems, setShowItems] = useState(false);
+  const [items, setItems] = useState<any[] | null>(null);
+  const [share, setShare] = useState("");
 
   useEffect(() => {
     authFetch(`${API}/orders/finance/batches`)
@@ -2188,10 +2190,26 @@ function BatchFinance({ authFetch }: any) {
       .then((r: any) => (r.ok ? r.json() : null)).then((d: any) => setSold(d?.totals ?? null)).catch(() => setSold(null));
     authFetch(`${API}/orders/finance/batch-stock?${new URLSearchParams({ batch })}`)
       .then((r: any) => (r.ok ? r.json() : null)).then(setStock).catch(() => setStock(null));
+    setItems(null);
+    try { setShare(localStorage.getItem(`oina-batch-share:${batch}`) ?? ""); } catch { setShare(""); }
   }, [batch]);
+
+  useEffect(() => {
+    if (!batch || !showItems || items) return;
+    authFetch(`${API}/orders/finance/batch-products?${new URLSearchParams({ batch })}`)
+      .then((r: any) => (r.ok ? r.json() : null)).then((d: any) => setItems(d?.items ?? [])).catch(() => setItems([]));
+  }, [batch, showItems, items]);
+
+  const changeShare = (v: string) => {
+    const clean = v.replace(/[^0-9]/g, "").slice(0, 3);
+    setShare(clean);
+    try { localStorage.setItem(`oina-batch-share:${batch}`, clean); } catch {}
+  };
+  const sharePct = Math.min(100, Number(share || 0));
 
   const money = (v: any) => `${Math.round(Number(v ?? 0))} смн`;
   const profitColor = (v: any) => (Number(v ?? 0) >= 0 ? "#4CAF50" : "#E24B4A");
+  const pct = (profit: any, cost: any) => (Number(cost) > 0 ? `${Math.round((Number(profit) / Number(cost)) * 100)}%` : "—");
   const card = (label: string, value: any, color?: string, accent?: boolean) => (
     <div style={{ border: `1px solid ${accent ? "var(--accent)" : "var(--line)"}`, padding: 20 }}>
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>{label}</div>
@@ -2216,13 +2234,113 @@ function BatchFinance({ authFetch }: any) {
           Продано: {sold?.qty ?? 0} шт · На складе: {stock?.qty ?? 0} шт
           {missing > 0 && <span style={{ color: "#E24B4A" }}> · без себестоимости: {missing} шт</span>}
         </span>
+        <span style={{ fontSize: 13, color: "var(--text-muted)", marginLeft: "auto" }}>
+          Наценка: <b style={{ color: "var(--text)" }}>{pct(sold?.profit, sold?.cost)}</b> продано ·{" "}
+          <b style={{ color: "var(--text)" }}>{pct(stock?.expected_profit, stock?.expected_cost)}</b> остаток
+        </span>
+        <label style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 8 }}>
+          Доля партнёра с выручки, %
+          <input
+            value={share}
+            onChange={(e) => changeShare(e.target.value)}
+            placeholder="0"
+            inputMode="numeric"
+            style={{ width: 60, padding: "6px 8px", border: "1px solid var(--line)", borderRadius: 0, background: "var(--bg)", color: "var(--text)" }}
+          />
+        </label>
       </div>
-      <div className="finance-summary-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+      <div className="finance-summary-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${sharePct > 0 ? 5 : 4}, 1fr)`, gap: 16 }}>
         {card("Выручка (продано)", sold?.revenue)}
         {card("Чистая прибыль", sold?.profit, profitColor(sold?.profit), true)}
         {card("Ожидаемая выручка", stock?.expected_revenue, "var(--text-muted)")}
         {card("Ожидаемая прибыль", stock?.expected_profit, profitColor(stock?.expected_profit))}
+        {sharePct > 0 && (
+          <div style={{ border: "1px solid var(--line)", padding: 20 }}>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Партнёру ({sharePct}%)</div>
+            <div className="price" style={{ fontSize: 22 }}>{money((sold?.revenue ?? 0) * sharePct / 100)}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>ещё с остатка: {money((stock?.expected_revenue ?? 0) * sharePct / 100)}</div>
+          </div>
+        )}
       </div>
+
+      <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginTop: 16 }}>
+        <button
+          onClick={() => setShowItems((v) => !v)}
+          style={{ padding: "8px 16px", border: "1px solid var(--line)", borderRadius: 0, background: "var(--bg)", color: "var(--text)", cursor: "pointer" }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--text)")}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--line)")}
+        >
+          {showItems ? "Скрыть товары" : "Показать товары"}
+        </button>
+      </div>
+
+      {showItems && (
+        <div style={{ overflowX: "auto", marginTop: 16 }}>
+          {!items ? (
+            <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Загрузка…</div>
+          ) : items.length === 0 ? (
+            <div style={{ fontSize: 13, color: "var(--text-muted)" }}>В этой партии нет товаров</div>
+          ) : (() => {
+            const th = { textAlign: "left" as const, padding: "10px 8px", color: "var(--text-muted)", fontFamily: "var(--font-label)", whiteSpace: "nowrap" as const };
+            const td = { padding: "8px", verticalAlign: "top" as const };
+            const sum = (k: string) => items.reduce((a, r) => a + Number(r[k] ?? 0), 0);
+            const pm = (v: any) => (v === null || v === undefined ? <span style={{ color: "#E24B4A" }}>нет себест.</span> : <span style={{ color: profitColor(v) }}>{money(v)}</span>);
+            return (
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--line)" }}>
+                    <th style={th}>Товар</th>
+                    <th style={th}>Цена / себест.</th>
+                    <th style={th}>Продано</th>
+                    <th style={th}>Выручка</th>
+                    <th style={th}>Прибыль</th>
+                    <th style={th}>Остаток</th>
+                    <th style={th}>Ожид. выручка</th>
+                    <th style={th}>Ожид. прибыль</th>
+                    {sharePct > 0 && <th style={th}>Партнёру ({sharePct}%)</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((r) => (
+                    <tr key={r.product_id} style={{ borderBottom: "1px solid var(--line)" }}>
+                      <td style={td}>
+                        <div>{r.title}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                          #{r.catalog_number}
+                          {r.archived && " · в архиве"}
+                          {r.current_batch !== batch && batch !== "__none__" && ` · сейчас в партии: ${r.current_batch ?? "—"}`}
+                        </div>
+                      </td>
+                      <td style={td}>{money(r.price)}<div style={{ fontSize: 11, color: "var(--text-muted)" }}>{r.cost_price == null ? "—" : `${money(r.cost_price)} · +${pct(r.price - r.cost_price, r.cost_price)}`}</div></td>
+                      <td style={td}>{r.sold_qty} шт</td>
+                      <td style={td}>{money(r.sold_revenue)}</td>
+                      <td style={td}>{r.sold_qty ? pm(r.sold_profit) : "—"}</td>
+                      <td style={td}>
+                        {r.stock_qty} шт
+                        {r.stock_detail && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{r.stock_detail}</div>}
+                      </td>
+                      <td style={{ ...td, color: "var(--text-muted)" }}>{money(r.expected_revenue)}</td>
+                      <td style={td}>{r.stock_qty ? pm(r.expected_profit) : "—"}</td>
+                      {sharePct > 0 && <td style={td}>{money(r.sold_revenue * sharePct / 100)}</td>}
+                    </tr>
+                  ))}
+                  <tr style={{ fontWeight: 600 }}>
+                    <td style={td}>Итого ({items.length})</td>
+                    <td style={td}></td>
+                    <td style={td}>{sum("sold_qty")} шт</td>
+                    <td style={td}>{money(sum("sold_revenue"))}</td>
+                    <td style={td}>{pm(sum("sold_profit"))}</td>
+                    <td style={td}>{sum("stock_qty")} шт</td>
+                    <td style={td}>{money(sum("expected_revenue"))}</td>
+                    <td style={td}>{pm(sum("expected_profit"))}</td>
+                    {sharePct > 0 && <td style={td}>{money(sum("sold_revenue") * sharePct / 100)}</td>}
+                  </tr>
+                </tbody>
+              </table>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }

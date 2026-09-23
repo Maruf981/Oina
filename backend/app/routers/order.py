@@ -531,3 +531,8 @@ def finance_batches(db: Session = Depends(get_db), _: bool = Depends(get_current
 @router.get("/finance/batch-stock")
 def finance_batch_stock(batch: str | None = None, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     return order_repo.batch_stock(db, batch)
+
+
+@router.get("/finance/batch-products")
+def finance_batch_products(batch: str, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    return order_repo.batch_products(db, batch)

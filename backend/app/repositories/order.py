@@ -630,3 +630,66 @@ def batch_stock(db: Session, batch: str | None = None):
             cost += float(p.cost_price) * n
     return {"qty": qty, "expected_revenue": rev, "expected_cost": cost,
             "expected_profit": costed_rev - cost, "missing_cost": missing}
+
+
+def batch_products(db: Session, batch: str):
+    """Все товары партии: что продано (по заказам этой партии) и что осталось на складе."""
+    from sqlalchemy import func
+    from sqlalchemy.orm import selectinload
+    from app.models.product import Product
+    excluded = [OrderStatus.CANCELLED, OrderStatus.RETURNED]
+    qty = OrderItem.quantity - OrderItem.returned_quantity
+    is_none = batch == "__none__"
+    item_f = OrderItem.batch.is_(None) if is_none else OrderItem.batch == batch
+    prod_f = Product.batch.is_(None) if is_none else Product.batch == batch
+
+    sold = {}
+    rows = (db.query(ProductVariant.product_id, func.sum(qty), func.sum(OrderItem.price_at_order * qty),
+                     func.sum(func.coalesce(OrderItem.cost_at_order, 0) * qty))
+            .select_from(OrderItem)
+            .join(Order, Order.id == OrderItem.order_id)
+            .join(ProductVariant, ProductVariant.id == OrderItem.product_variant_id)
+            .filter(Order.status.notin_(excluded), qty > 0, item_f)
+            .group_by(ProductVariant.product_id).all())
+    for pid, n, rev, cst in rows:
+        sold[pid] = (int(n), float(rev), float(cst))
+
+    missing_rows = (db.query(ProductVariant.product_id, func.sum(qty))
+                    .select_from(OrderItem)
+                    .join(Order, Order.id == OrderItem.order_id)
+                    .join(ProductVariant, ProductVariant.id == OrderItem.product_variant_id)
+                    .filter(Order.status.notin_(excluded), qty > 0, item_f, OrderItem.cost_at_order.is_(None))
+                    .group_by(ProductVariant.product_id).all())
+    sold_missing = {pid: int(n) for pid, n in missing_rows}
+
+    in_stock = {p.id: p for p in db.query(Product).options(selectinload(Product.variants))
+                .filter(Product.is_archived.is_(False), prod_f).all()}
+    extra_ids = set(sold) - set(in_stock)
+    products = dict(in_stock)
+    if extra_ids:
+        for p in db.query(Product).options(selectinload(Product.variants)).filter(Product.id.in_(extra_ids)).all():
+            products[p.id] = p
+
+    items = []
+    for pid, p in products.items():
+        s_qty, s_rev, s_cost = sold.get(pid, (0, 0.0, 0.0))
+        s_miss = sold_missing.get(pid, 0)
+        counts_stock = pid in in_stock
+        variants = [v for v in p.variants if v.stock > 0] if counts_stock else []
+        st_qty = sum(v.stock for v in variants)
+        price = float(p.current_price)
+        cost = float(p.cost_price) if p.cost_price is not None else None
+        exp_rev = price * st_qty
+        items.append({
+            "product_id": pid, "title": p.title_ru, "catalog_number": p.catalog_number,
+            "archived": p.is_archived, "current_batch": p.batch,
+            "sold_qty": s_qty, "sold_revenue": s_rev, "sold_cost": s_cost,
+            "sold_profit": None if s_miss else s_rev - s_cost,
+            "stock_qty": st_qty,
+            "stock_detail": ", ".join(f"{v.color or ''} {v.size or ''}".strip() + f": {v.stock}" for v in variants),
+            "price": price, "cost_price": cost,
+            "expected_revenue": exp_rev,
+            "expected_profit": None if (cost is None and st_qty) else exp_rev - (cost or 0) * st_qty,
+        })
+    items.sort(key=lambda r: (-r["sold_revenue"], -r["stock_qty"], r["title"] or ""))
+    return {"items": items}
