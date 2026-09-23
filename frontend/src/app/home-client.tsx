@@ -1,4 +1,5 @@
 "use client";
+import { ScrollSegments } from "./scroll-segments";
 import WaterVideo from "../components/WaterVideo";
 import { cld, cldVideo } from "../lib/cld";
 import { DualSlider, type DualSlide } from "./dual-slider";
@@ -1314,9 +1315,12 @@ function AutoSlideImage({ images, onClick, alt }: { images: { url: string; media
 
 export default function HomeClient() {
   return (
+    <>
+      <ScrollSegments />
     <Suspense fallback={null}>
       <HomeInner />
     </Suspense>
+    </>
   );
 }
 
