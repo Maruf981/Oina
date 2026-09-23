@@ -154,3 +154,21 @@
     padding: 1.5rem 0;
   }
 }
+
+/* Счётчик карточек — крупная белая цифра в правом нижнем углу полосы */
+.bs-count {
+  position: absolute;
+  z-index: 2;
+  right: calc(var(--bs-inset) - 2rem);
+  top: calc(.5rem + var(--bs-photo-h) - var(--bs-inset));
+  transform: translateY(-100%);
+  font-family: var(--font-display);
+  font-size: 100px;
+  line-height: .8;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+@media (max-width: 768px) {
+  .bs-count { top: auto; bottom: 1rem; right: 1rem; transform: none; font-size: 72px; }
+}

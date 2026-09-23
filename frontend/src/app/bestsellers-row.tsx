@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import "./bestsellers-row.css";
 
 type Props<T extends { id: number | string }> = {
@@ -11,6 +11,26 @@ type Props<T extends { id: number | string }> = {
 
 export function BestsellersRow<T extends { id: number | string }>({ items, lang, onAll, renderItem }: Props<T>) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const total = items.length;
+  const [idx, setIdx] = useState(1);
+
+  // счётчик карточек: 1 … total по мере прокрутки
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const update = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      const n = max > 0 ? Math.round((el.scrollLeft / max) * (total - 1)) + 1 : 1;
+      setIdx(Math.min(total, Math.max(1, n)));
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [total]);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -76,6 +96,7 @@ export function BestsellersRow<T extends { id: number | string }>({ items, lang,
         <h2 className="sec-title bs-title">{ru ? "Хиты продаж" : "Хитҳои фурӯш"}</h2>
         <p className="bs-sub">{ru ? "Самые популярные вещи сезона" : "Маъмултарин либосҳои мавсим"}</p>
         <button type="button" className="bs-all" onClick={onAll}>{ru ? "Смотреть все" : "Дидани ҳама"}</button>
+        {total > 0 && <span className="bs-count">{idx}</span>}
       </div>
       <div className="bs-track" ref={trackRef} data-lenis-prevent>
         {items.map((p) => (
