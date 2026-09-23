@@ -64,29 +64,32 @@ def build_caption_base(product: Product) -> list[str]:
     return lines
 
 
-def _order_block(product: Product) -> list[str]:
-    return ["", f"📩 Заказ: {SITE}", f"📞 Телефон: {PHONE}"]
+def _order_block() -> list[str]:
+    return [
+        "",
+        "📩 Заказ:",
+        f"📞 Телефон: {PHONE}",
+        f"🌐 Сайт: {SITE}",
+        f"📢 Telegram: {TELEGRAM_CHANNEL}",
+        f"📸 Instagram: {INSTAGRAM_LINK}",
+        f"🎵 TikTok: {TIKTOK_LINK}",
+    ]
+
+
+def build_caption(product: Product) -> str:
+    return "\n".join(build_caption_base(product) + _order_block())
 
 
 def build_caption_instagram(product: Product) -> str:
-    lines = build_caption_base(product) + _order_block(product)
-    lines.append(f"📢 Telegram: {TELEGRAM_CHANNEL}")
-    lines.append(f"🎵 TikTok: {TIKTOK_LINK}")
-    return "\n".join(lines)
+    return build_caption(product)
 
 
 def build_caption_tiktok(product: Product) -> str:
-    lines = build_caption_base(product) + _order_block(product)
-    lines.append(f"📢 Telegram: {TELEGRAM_CHANNEL}")
-    lines.append(f"📸 Instagram: {INSTAGRAM_LINK}")
-    return "\n".join(lines)
+    return build_caption(product)
 
 
 def build_caption_telegram(product: Product) -> str:
-    lines = build_caption_base(product) + _order_block(product)
-    lines.append(f"📸 Instagram: {INSTAGRAM_LINK}")
-    lines.append(f"🎵 TikTok: {TIKTOK_LINK}")
-    return "\n".join(lines)
+    return build_caption(product)
 
 
 @router.get("/{product_id}")
