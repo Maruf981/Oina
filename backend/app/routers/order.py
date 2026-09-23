@@ -123,18 +123,18 @@ def list_orders_page(page: int = 1, page_size: int = 20, q: str | None = None, s
 
 
 @router.get("/finance")
-def finance(period: str | None = None, supplier_id: int | None = None, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+def finance(period: str | None = None, supplier_id: int | None = None, batch: str | None = None, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     """Выручка и себестоимость проданного — считается в базе, без загрузки всех заказов."""
-    return order_repo.finance_summary(db, period, supplier_id)
+    return order_repo.finance_summary(db, period, supplier_id, batch)
 
 
 @router.get("/finance/sales")
-def finance_sales(period: str | None = None, date_from: str | None = None, date_to: str | None = None,
+def finance_sales(period: str | None = None, batch: str | None = None, date_from: str | None = None, date_to: str | None = None,
                   supplier_id: int | None = None, mode: str = "lines", search: str | None = None,
                   limit: int = 50, offset: int = 0,
                   db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     return order_repo.finance_sales(db, period, date_from, date_to, supplier_id, mode, search,
-                                    max(1, min(limit, 200)), max(0, offset))
+                                    max(1, min(limit, 200)), max(0, offset), batch=batch)
 
 
 
@@ -521,3 +521,13 @@ def change_order_status(
         background_tasks.add_task(send_customer_notification, updated.customer.telegram_id, customer_text)
 
     return updated
+
+
+@router.get("/finance/batches")
+def finance_batches(db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    return order_repo.finance_batches(db)
+
+
+@router.get("/finance/batch-stock")
+def finance_batch_stock(batch: str | None = None, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    return order_repo.batch_stock(db, batch)

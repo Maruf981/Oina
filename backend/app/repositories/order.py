@@ -117,6 +117,7 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
             quantity=quantity,
             price_at_order=price,
             cost_at_order=variant.product.cost_price,
+            batch=variant.product.batch,
             supplier_id=variant.product.supplier_id,
         ))
         variant.stock -= quantity
@@ -253,7 +254,7 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
         item.quantity = item.returned_quantity
         item.is_returned = True
         new_item = OrderItem(product_variant_id=new_variant_id, quantity=remaining,
-                             price_at_order=new_price, cost_at_order=new_variant.product.cost_price,
+                             price_at_order=new_price, cost_at_order=new_variant.product.cost_price, batch=new_variant.product.batch,
                              returned_quantity=0, is_returned=False, supplier_id=new_variant.product.supplier_id)
         order.items.append(new_item)
         item = new_item
@@ -261,6 +262,7 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
         item.product_variant_id = new_variant_id
         item.price_at_order = new_price
         item.cost_at_order = new_variant.product.cost_price
+        item.batch = new_variant.product.batch
         item.supplier_id = new_variant.product.supplier_id
 
     order = item.order
@@ -471,7 +473,7 @@ def admin_orders_page(db: Session, page: int = 1, page_size: int = 20, q: str | 
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
-def finance_summary(db: Session, period: str | None = None, supplier_id: int | None = None):
+def finance_summary(db: Session, period: str | None = None, supplier_id: int | None = None, batch: str | None = None):
     from sqlalchemy import func, case
     from app.models.product import Product
     excluded = [OrderStatus.CANCELLED, OrderStatus.RETURNED]
@@ -497,6 +499,8 @@ def finance_summary(db: Session, period: str | None = None, supplier_id: int | N
         oq = oq.filter(Order.created_at < until)
     if supplier_id is not None:
         q = q.filter(sup == supplier_id)
+    if batch is not None:
+        q = q.filter(OrderItem.batch.is_(None) if batch == "__none__" else OrderItem.batch == batch)
     rows = q.group_by(sup).all()
     by_supplier = [{"supplier_id": sid, "revenue": float(rev), "cost": float(cost)} for sid, rev, cost, _ in rows]
     return {
@@ -510,7 +514,8 @@ def finance_summary(db: Session, period: str | None = None, supplier_id: int | N
 
 def finance_sales(db: Session, period: str | None = None, date_from: str | None = None,
                   date_to: str | None = None, supplier_id: int | None = None,
-                  mode: str = "lines", search: str | None = None, limit: int = 50, offset: int = 0):
+                  mode: str = "lines", search: str | None = None, limit: int = 50, offset: int = 0,
+                  batch: str | None = None):
     """Список продаж постранично (позиции или по товарам) + итоги по всему фильтру."""
     from datetime import datetime, timedelta
     from sqlalchemy import func, case, or_, cast, distinct, String as SAString
@@ -542,6 +547,8 @@ def finance_sales(db: Session, period: str | None = None, date_from: str | None 
                 q = q.filter(Order.created_at < until)
         if supplier_id is not None:
             q = q.filter(sup == supplier_id)
+        if batch is not None:
+            q = q.filter(OrderItem.batch.is_(None) if batch == "__none__" else OrderItem.batch == batch)
         term = (search or "").strip().lstrip("#")
         if term:
             like = f"%{term}%"
@@ -589,3 +596,37 @@ def finance_sales(db: Session, period: str | None = None, date_from: str | None 
                           "price": price, "cost": cost, "revenue": rev, "cost_total": cst,
                           "profit": (rev - cst) if cost is not None else None})
     return {"items": items, "total": total, "totals": totals}
+
+
+def finance_batches(db: Session):
+    """Все партии + партия последнего созданного товара (для автозаполнения формы)."""
+    from app.models.product import Product
+    names = {r[0] for r in db.query(Product.batch).filter(Product.batch.isnot(None)).distinct()}
+    names |= {r[0] for r in db.query(OrderItem.batch).filter(OrderItem.batch.isnot(None)).distinct()}
+    last = (db.query(Product.batch).filter(Product.batch.isnot(None), Product.batch != "")
+            .order_by(Product.id.desc()).first())
+    return {"batches": sorted(n for n in names if n), "last": last[0] if last else None}
+
+
+def batch_stock(db: Session, batch: str | None = None):
+    """Ожидаемая выручка/прибыль по текущему остатку (остаток x текущая цена)."""
+    from sqlalchemy.orm import selectinload
+    from app.models.product import Product
+    q = db.query(Product).options(selectinload(Product.variants)).filter(Product.is_archived.is_(False))
+    if batch is not None:
+        q = q.filter(Product.batch.is_(None) if batch == "__none__" else Product.batch == batch)
+    qty, rev, costed_rev, cost, missing = 0, 0.0, 0.0, 0.0, 0
+    for p in q.all():
+        n = sum(v.stock for v in p.variants if v.stock > 0)
+        if not n:
+            continue
+        r = float(p.current_price) * n
+        qty += n
+        rev += r
+        if p.cost_price is None:
+            missing += n
+        else:
+            costed_rev += r
+            cost += float(p.cost_price) * n
+    return {"qty": qty, "expected_revenue": rev, "expected_cost": cost,
+            "expected_profit": costed_rev - cost, "missing_cost": missing}

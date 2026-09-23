@@ -60,6 +60,7 @@ class OrderItem(Base):
     is_returned: Mapped[bool] = mapped_column(default=False, server_default='false')
     returned_quantity: Mapped[int] = mapped_column(default=0, server_default='0')
     cost_at_order: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    batch: Mapped[str | None] = mapped_column(String(60), nullable=True)
     supplier_id: Mapped[int | None] = mapped_column(ForeignKey("suppliers.id"), nullable=True)
 
     order: Mapped["Order"] = relationship(back_populates="items")

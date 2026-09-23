@@ -57,6 +57,7 @@ class ProductBase(BaseModel):
     description_tj: str | None = None
     price: float
     cost_price: float | None = None
+    batch: str | None = None
     material_ru: str | None = None
     material_tj: str | None = None
     country_of_origin_ru: str | None = None
@@ -121,6 +122,7 @@ class ProductOut(ProductBase):
 class ProductPublicOut(ProductOut):
     """Для витрины: себестоимость и поставщик наружу не отдаются."""
     cost_price: float | None = Field(default=None, exclude=True)
+    batch: str | None = Field(default=None, exclude=True)
     supplier_id: int | None = Field(default=None, exclude=True)
 
 

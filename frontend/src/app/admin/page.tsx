@@ -811,6 +811,7 @@ function ProductForm({ t, product, products, categories, suppliers, refreshSuppl
     description_tj: product?.description_tj ?? "",
     price: product?.price ?? "",
     cost_price: product?.cost_price ?? "",
+    batch: product?.batch ?? "",
     supplier_id: product?.supplier_id ?? "",
     material_ru: product?.material_ru ?? "",
     material_tj: product?.material_tj ?? "",
@@ -913,6 +914,17 @@ function ProductForm({ t, product, products, categories, suppliers, refreshSuppl
     );
   };
 
+  const [batchList, setBatchList] = useState<string[]>([]);
+  useEffect(() => {
+    authFetch(`${API}/orders/finance/batches`)
+      .then((r: any) => (r.ok ? r.json() : null))
+      .then((d: any) => {
+        setBatchList(d?.batches ?? []);
+        if (!product && d?.last) setForm((f: any) => (f.batch ? f : { ...f, batch: d.last }));
+      })
+      .catch(() => {});
+  }, []);
+
   const handleSave = async () => {
     if (!form.title_ru.trim()) {
       alert("Заполните название товара (RU)");
@@ -946,6 +958,7 @@ function ProductForm({ t, product, products, categories, suppliers, refreshSuppl
         ...restForm,
         price: Number(form.price),
         cost_price: form.cost_price !== "" ? Number(form.cost_price) : null,
+        batch: String(form.batch ?? "").trim() || null,
         supplier_id: form.supplier_id !== "" ? Number(form.supplier_id) : null,
         is_featured: badgeType === "featured",
         is_new: badgeType === "new",
@@ -1127,6 +1140,18 @@ function ProductForm({ t, product, products, categories, suppliers, refreshSuppl
           refreshSuppliers={refreshSuppliers}
           inputStyle={inputStyle}
         />
+      </div>
+      <div style={{ marginBottom: 14 }}>
+        <input
+          list="batch-list"
+          placeholder="Партия (например: Партия 3 · 15.09)"
+          value={form.batch}
+          onChange={(e) => updateField("batch", e.target.value)}
+          style={inputStyle}
+        />
+        <datalist id="batch-list">
+          {batchList.map((b) => <option key={b} value={b} />)}
+        </datalist>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
@@ -2055,6 +2080,7 @@ function FinanceTab({ products, suppliers, authFetch }: any) {
           <div className="price" style={{ fontSize: 22, color: totalProfit >= 0 ? "#4CAF50" : "#E24B4A" }}>{totalProfit.toFixed(0)} смн</div>
         </div>
       </div>
+      <BatchFinance authFetch={authFetch} />
       <div style={{ marginBottom: 30 }}>
         <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 14 }}>
           Расходы
@@ -2134,6 +2160,69 @@ function FinanceTab({ products, suppliers, authFetch }: any) {
       </table>
       </div>
       <SalesList authFetch={authFetch} period={periodFilter} supplierId={supplierFilter} suppliers={suppliers} />
+    </div>
+  );
+}
+
+function BatchFinance({ authFetch }: any) {
+  const [batches, setBatches] = useState<string[]>([]);
+  const [batch, setBatch] = useState("");
+  const [sold, setSold] = useState<any>(null);
+  const [stock, setStock] = useState<any>(null);
+
+  useEffect(() => {
+    authFetch(`${API}/orders/finance/batches`)
+      .then((r: any) => (r.ok ? r.json() : null))
+      .then((d: any) => {
+        const list: string[] = d?.batches ?? [];
+        setBatches(list);
+        setBatch((b) => b || d?.last || list[list.length - 1] || "__none__");
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!batch) return;
+    const s = new URLSearchParams({ batch, period: "all", mode: "lines", offset: "0", limit: "1" });
+    authFetch(`${API}/orders/finance/sales?${s}`)
+      .then((r: any) => (r.ok ? r.json() : null)).then((d: any) => setSold(d?.totals ?? null)).catch(() => setSold(null));
+    authFetch(`${API}/orders/finance/batch-stock?${new URLSearchParams({ batch })}`)
+      .then((r: any) => (r.ok ? r.json() : null)).then(setStock).catch(() => setStock(null));
+  }, [batch]);
+
+  const money = (v: any) => `${Math.round(Number(v ?? 0))} смн`;
+  const profitColor = (v: any) => (Number(v ?? 0) >= 0 ? "#4CAF50" : "#E24B4A");
+  const card = (label: string, value: any, color?: string, accent?: boolean) => (
+    <div style={{ border: `1px solid ${accent ? "var(--accent)" : "var(--line)"}`, padding: 20 }}>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>{label}</div>
+      <div className="price" style={{ fontSize: 22, color }}>{money(value)}</div>
+    </div>
+  );
+  const missing = Number(sold?.missing ?? 0) + Number(stock?.missing_cost ?? 0);
+
+  return (
+    <div style={{ marginBottom: 30 }}>
+      <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 14 }}>Партии</div>
+      <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
+        <select
+          value={batch}
+          onChange={(e) => setBatch(e.target.value)}
+          style={{ padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 0, background: "var(--bg)", color: "var(--text)" }}
+        >
+          {batches.map((b) => <option key={b} value={b}>{b}</option>)}
+          <option value="__none__">Без партии</option>
+        </select>
+        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+          Продано: {sold?.qty ?? 0} шт · На складе: {stock?.qty ?? 0} шт
+          {missing > 0 && <span style={{ color: "#E24B4A" }}> · без себестоимости: {missing} шт</span>}
+        </span>
+      </div>
+      <div className="finance-summary-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        {card("Выручка (продано)", sold?.revenue)}
+        {card("Чистая прибыль", sold?.profit, profitColor(sold?.profit), true)}
+        {card("Ожидаемая выручка", stock?.expected_revenue, "var(--text-muted)")}
+        {card("Ожидаемая прибыль", stock?.expected_profit, profitColor(stock?.expected_profit))}
+      </div>
     </div>
   );
 }
