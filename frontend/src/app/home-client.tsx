@@ -826,6 +826,12 @@ function HomeInner() {
       <div key={quickKey} className="pc">
         <div className="pc-media" onClick={() => router.push(`/product/${p.id}`)}>
           <CardMedia images={p.images} alt={localized(p.title_ru, p.title_tj)} />
+          {ctx === "grid" && (
+            <>
+              <span className="pc-light" aria-hidden="true" />
+              <span className="pc-lamp" aria-hidden="true" />
+            </>
+          )}
           {badge && <span className="pc-badge">{badge}</span>}
           {p.avg_rating && p.review_count > 0 ? (
             <span className="pc-rating" title={`${p.avg_rating.toFixed(1)} / 5 · ${p.review_count}`}>
