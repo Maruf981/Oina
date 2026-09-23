@@ -883,6 +883,15 @@ function ProductForm({ t, product, products, categories, suppliers, refreshSuppl
   const [dragOverImageIndex, setDragOverImageIndex] = useState<number | null>(null);
 
   const updateField = (key: string, value: any) => setForm({ ...form, [key]: value });
+  // RU-поле с историей: при выборе прежнего значения подставляем и его TJ-перевод
+  const updateRuField = (base: string, value: any) => {
+    const ru = `${base}_ru`, tj = `${base}_tj`;
+    const f: any = form;
+    const list: any[] = products ?? [];
+    const match = list.find((p) => p[ru] === value && p[tj]);
+    const tjIsAuto = !f[tj] || list.some((p) => p[ru] === f[ru] && p[tj] === f[tj]);
+    setForm({ ...form, [ru]: value, ...(match && tjIsAuto ? { [tj]: match[tj] } : {}) } as any);
+  };
 
   const [activeColors, setActiveColors] = useState<string[]>(
     Array.from(new Set((product?.variants ?? []).map((v: any) => v.color)))
@@ -1155,28 +1164,28 @@ function ProductForm({ t, product, products, categories, suppliers, refreshSuppl
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <input placeholder={`${t.material} (RU)`} value={form.material_ru} onChange={(e) => updateField("material_ru", e.target.value)} style={inputStyle} />
-        <input placeholder={`${t.material} (TJ)`} value={form.material_tj} onChange={(e) => updateField("material_tj", e.target.value)} style={inputStyle} />
+        <input placeholder={`${t.material} (RU)`} list="dl-material_ru" value={form.material_ru} onChange={(e) => updateRuField("material", e.target.value)} style={inputStyle} />
+        <input placeholder={`${t.material} (TJ)`} list="dl-material_tj" value={form.material_tj} onChange={(e) => updateField("material_tj", e.target.value)} style={inputStyle} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <input placeholder={`${t.country} (RU)`} value={form.country_of_origin_ru} onChange={(e) => updateField("country_of_origin_ru", e.target.value)} style={inputStyle} />
-        <input placeholder={`${t.country} (TJ)`} value={form.country_of_origin_tj} onChange={(e) => updateField("country_of_origin_tj", e.target.value)} style={inputStyle} />
+        <input placeholder={`${t.country} (RU)`} list="dl-country_of_origin_ru" value={form.country_of_origin_ru} onChange={(e) => updateRuField("country_of_origin", e.target.value)} style={inputStyle} />
+        <input placeholder={`${t.country} (TJ)`} list="dl-country_of_origin_tj" value={form.country_of_origin_tj} onChange={(e) => updateField("country_of_origin_tj", e.target.value)} style={inputStyle} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <input placeholder={`${t.care} (RU)`} value={form.care_instructions_ru} onChange={(e) => updateField("care_instructions_ru", e.target.value)} style={inputStyle} />
-        <input placeholder={`${t.care} (TJ)`} value={form.care_instructions_tj} onChange={(e) => updateField("care_instructions_tj", e.target.value)} style={inputStyle} />
+        <input placeholder={`${t.care} (RU)`} list="dl-care_instructions_ru" value={form.care_instructions_ru} onChange={(e) => updateRuField("care_instructions", e.target.value)} style={inputStyle} />
+        <input placeholder={`${t.care} (TJ)`} list="dl-care_instructions_tj" value={form.care_instructions_tj} onChange={(e) => updateField("care_instructions_tj", e.target.value)} style={inputStyle} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <input placeholder="Сезон (RU)" value={form.season_ru} onChange={(e) => updateField("season_ru", e.target.value)} style={inputStyle} />
-        <input placeholder="Сезон (TJ)" value={form.season_tj} onChange={(e) => updateField("season_tj", e.target.value)} style={inputStyle} />
+        <input placeholder="Сезон (RU)" list="dl-season_ru" value={form.season_ru} onChange={(e) => updateRuField("season", e.target.value)} style={inputStyle} />
+        <input placeholder="Сезон (TJ)" list="dl-season_tj" value={form.season_tj} onChange={(e) => updateField("season_tj", e.target.value)} style={inputStyle} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <input placeholder="Рисунок (RU)" value={form.pattern_ru} onChange={(e) => updateField("pattern_ru", e.target.value)} style={inputStyle} />
-        <input placeholder="Рисунок (TJ)" value={form.pattern_tj} onChange={(e) => updateField("pattern_tj", e.target.value)} style={inputStyle} />
+        <input placeholder="Рисунок (RU)" list="dl-pattern_ru" value={form.pattern_ru} onChange={(e) => updateRuField("pattern", e.target.value)} style={inputStyle} />
+        <input placeholder="Рисунок (TJ)" list="dl-pattern_tj" value={form.pattern_tj} onChange={(e) => updateField("pattern_tj", e.target.value)} style={inputStyle} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14, marginBottom: 14 }}>
@@ -1184,11 +1193,11 @@ function ProductForm({ t, product, products, categories, suppliers, refreshSuppl
       </div>
       {[["product_type", "Тип"], ["fit", "Фасон"], ["style", "Стиль"]].map(([k, label]) => (
         <div key={k} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-          <input placeholder={`${label} (RU)`} list={`dl-${k}_ru`} value={(form as any)[`${k}_ru`]} onChange={(e) => updateField(`${k}_ru` as any, e.target.value)} style={inputStyle} />
+          <input placeholder={`${label} (RU)`} list={`dl-${k}_ru`} value={(form as any)[`${k}_ru`]} onChange={(e) => updateRuField(k, e.target.value)} style={inputStyle} />
           <input placeholder={`${label} (TJ)`} list={`dl-${k}_tj`} value={(form as any)[`${k}_tj`]} onChange={(e) => updateField(`${k}_tj` as any, e.target.value)} style={inputStyle} />
         </div>
       ))}
-      {["brand", "product_type_ru", "product_type_tj", "fit_ru", "fit_tj", "style_ru", "style_tj"].map((f) => (
+      {["brand", "product_type_ru", "product_type_tj", "fit_ru", "fit_tj", "style_ru", "style_tj", "material_ru", "material_tj", "country_of_origin_ru", "country_of_origin_tj", "care_instructions_ru", "care_instructions_tj", "season_ru", "season_tj", "pattern_ru", "pattern_tj"].map((f) => (
         <datalist key={f} id={`dl-${f}`}>
           {Array.from(new Set((products ?? []).map((p: any) => p[f]).filter(Boolean))).map((v: any) => <option key={v} value={v} />)}
         </datalist>
