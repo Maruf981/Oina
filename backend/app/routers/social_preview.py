@@ -55,22 +55,17 @@ def build_caption_base(product: Product) -> list[str]:
         ("🌦️ Сезон", product.season_ru),
         ("📐 Посадка", product.fit_ru),
         ("✨ Стиль", product.style_ru),
-        ("🔳 Узор", product.pattern_ru),
         ("🌍 Страна", product.country_of_origin_ru),
-        ("🧺 Уход", product.care_instructions_ru),
     ]
     rest = [f"{label}: {value.strip()}" for label, value in extra if value and str(value).strip()]
     if rest:
         lines.append("")
         lines.extend(rest)
-    if product.description_ru and product.description_ru.strip():
-        lines.append("")
-        lines.append(product.description_ru.strip())
     return lines
 
 
 def _order_block(product: Product) -> list[str]:
-    return ["", f"🔗 Товар: {SITE}/product/{product.id}", f"📞 Телефон: {PHONE}"]
+    return ["", f"📩 Заказ: {SITE}", f"📞 Телефон: {PHONE}"]
 
 
 def build_caption_instagram(product: Product) -> str:
