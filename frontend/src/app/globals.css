@@ -513,3 +513,18 @@ input:-webkit-autofill:active {
 .home-root {
   padding-top: var(--header-h, 120px) !important;
 }
+
+/* ===== Splash / preloader ===== */
+#oina-splash{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#f3eee6;color:#8a6a3b;transition:opacity .5s ease,visibility .5s ease}
+html.no-splash #oina-splash{display:none}
+#oina-splash.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+.oina-splash__box{display:flex;flex-direction:column;align-items:center;gap:22px;animation:oina-splash-in .8s ease both}
+.oina-splash__logo{width:min(220px,55vw);height:auto}
+.oina-splash__text{margin:0;font-family:var(--font-cormorant),serif;font-size:14px;letter-spacing:.35em;text-transform:uppercase;opacity:.8}
+.oina-splash__bar{width:160px;height:1px;background:rgba(138,106,59,.2);overflow:hidden}
+.oina-splash__bar span{display:block;width:40%;height:100%;background:#a8834a;animation:oina-splash-bar 1.2s ease-in-out infinite}
+@keyframes oina-splash-bar{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+@keyframes oina-splash-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.oina-splash__bar span,.oina-splash__box{animation:none}}
+#oina-splash{animation:oina-splash-auto .5s ease 8s forwards}
+@keyframes oina-splash-auto{to{opacity:0;visibility:hidden;pointer-events:none}}

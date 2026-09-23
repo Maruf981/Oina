@@ -1,0 +1,1 @@
+export const splashScript = `(function(){try{var d=document.documentElement;d.setAttribute("data-theme",localStorage.getItem("theme")||"light");if(sessionStorage.getItem("oina-splash"))d.classList.add("no-splash");}catch(e){}})();`;

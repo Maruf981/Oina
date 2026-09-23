@@ -16,6 +16,8 @@ import { SupportWidget } from "./support-widget";
 import { BagDrawerHost } from "./bag-drawer";
 import { SiteFooter } from "./site-footer";
 import Script from "next/script";
+import { Splash } from "./splash";
+import { splashScript } from "./splash-script";
 
 export const metadata: Metadata = {
   title: {
@@ -56,9 +58,11 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning className={`${fontDisplay.variable} ${fontBody.variable}`}>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: splashScript }} />
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
       </head>
       <body>
+        <Splash />
         <ThemeSync />
         <ThemeProvider>
           <LangProvider>

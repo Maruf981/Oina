@@ -319,6 +319,7 @@ function HomeInner() {
   }, []);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState(false);
+  useEffect(() => { if (!productsLoading) { document.documentElement.dataset.oinaReady = "1"; window.dispatchEvent(new Event("oina:ready")); } }, [productsLoading]);
   const [retryTrigger, setRetryTrigger] = useState(0);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [homepageReviews, setHomepageReviews] = useState<HomepageReview[]>([]);
