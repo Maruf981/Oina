@@ -1,0 +1,4 @@
+.ss { position: fixed; left: 1rem; right: 1rem; bottom: 8px; z-index: 50; display: flex; gap: 4px; pointer-events: none; }
+.ss span { position: relative; flex: 1; height: 3px; overflow: hidden; background: color-mix(in srgb, var(--text) 15%, transparent); }
+.ss span::after { content: ""; position: absolute; inset: 0; background: var(--text); transform-origin: left; transform: scaleX(clamp(0, calc(var(--p, 0) - var(--i)), 1)); }
+@media (max-width: 768px) { .ss { display: none; } }
