@@ -3605,11 +3605,9 @@ function TemplatesTab({ products, authFetch }: any) {
   const [selectedId, setSelectedId] = useState<number | "">("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
-  const [captionInstagram, setCaptionInstagram] = useState("");
-  const [captionTiktok, setCaptionTiktok] = useState("");
+  const [captions, setCaptions] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
-  const [copiedInstagram, setCopiedInstagram] = useState(false);
-  const [copiedTiktok, setCopiedTiktok] = useState(false);
+  const [copied, setCopied] = useState("");
 
   const productList: any[] = Array.isArray(products) ? products : [];
 
@@ -3618,8 +3616,7 @@ function TemplatesTab({ products, authFetch }: any) {
     setLoading(true);
     setError("");
     setData(null);
-    setCopiedInstagram(false);
-    setCopiedTiktok(false);
+    setCopied("");
     const res = await authFetch(`${API}/social-preview/${selectedId}`);
     if (!res.ok) {
       setError("Не удалось сгенерировать шаблон");
@@ -3628,22 +3625,24 @@ function TemplatesTab({ products, authFetch }: any) {
     }
     const result = await res.json();
     setData(result);
-    setCaptionInstagram(result.caption_instagram || "");
-    setCaptionTiktok(result.caption_tiktok || "");
+    setCaptions({
+      instagram: result.caption_instagram || "",
+      tiktok: result.caption_tiktok || "",
+      telegram: result.caption_telegram || "",
+    });
     setLoading(false);
   };
 
-  const handleCopyInstagram = () => {
-    navigator.clipboard.writeText(captionInstagram);
-    setCopiedInstagram(true);
-    setTimeout(() => setCopiedInstagram(false), 2000);
+  const handleCopy = (key: string) => {
+    navigator.clipboard.writeText(captions[key] ?? "");
+    setCopied(key);
+    setTimeout(() => setCopied((c) => (c === key ? "" : c)), 2000);
   };
-
-  const handleCopyTiktok = () => {
-    navigator.clipboard.writeText(captionTiktok);
-    setCopiedTiktok(true);
-    setTimeout(() => setCopiedTiktok(false), 2000);
-  };
+  const captionFields: [string, string][] = [
+    ["instagram", "Текст для Instagram (пост)"],
+    ["tiktok", "Текст для TikTok / Stories"],
+    ["telegram", "Текст для Telegram"],
+  ];
 
   const handleDownload = async (url: string, filename: string) => {
     const res = await fetch(url);
@@ -3738,34 +3737,22 @@ function TemplatesTab({ products, authFetch }: any) {
           </div>
 
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-            <div style={{ maxWidth: 400, flex: 1, minWidth: 280 }}>
-              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>Текст для Instagram (пост)</div>
-              <textarea
-                value={captionInstagram}
-                onChange={(e) => setCaptionInstagram(e.target.value)}
-                style={{ ...inputStyle, minHeight: 130, fontFamily: "inherit" }}
-              />
-              <button
-                onClick={handleCopyInstagram}
-                style={{ padding: "8px 16px", background: "var(--text)", color: "var(--bg)", border: "none", fontSize: 12, cursor: "pointer" }}
-              >
-                {copiedInstagram ? "Скопировано" : "Скопировать текст"}
-              </button>
-            </div>
-            <div style={{ maxWidth: 400, flex: 1, minWidth: 280 }}>
-              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>Текст для TikTok / Stories</div>
-              <textarea
-                value={captionTiktok}
-                onChange={(e) => setCaptionTiktok(e.target.value)}
-                style={{ ...inputStyle, minHeight: 130, fontFamily: "inherit" }}
-              />
-              <button
-                onClick={handleCopyTiktok}
-                style={{ padding: "8px 16px", background: "var(--text)", color: "var(--bg)", border: "none", fontSize: 12, cursor: "pointer" }}
-              >
-                {copiedTiktok ? "Скопировано" : "Скопировать текст"}
-              </button>
-            </div>
+            {captionFields.map(([key, label]) => (
+              <div key={key} style={{ maxWidth: 400, flex: 1, minWidth: 280 }}>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>{label}</div>
+                <textarea
+                  value={captions[key] ?? ""}
+                  onChange={(e) => setCaptions((c) => ({ ...c, [key]: e.target.value }))}
+                  style={{ ...inputStyle, minHeight: 260, fontFamily: "inherit" }}
+                />
+                <button
+                  onClick={() => handleCopy(key)}
+                  style={{ padding: "8px 16px", background: "var(--text)", color: "var(--bg)", border: "none", fontSize: 12, cursor: "pointer" }}
+                >
+                  {copied === key ? "Скопировано" : "Скопировать текст"}
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
