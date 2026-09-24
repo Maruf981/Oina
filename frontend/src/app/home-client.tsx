@@ -320,6 +320,7 @@ function HomeInner() {
   }, []);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState(false);
+  useEffect(() => { if (!productsLoading && window.location.hash === "#catalog") document.getElementById("catalog")?.scrollIntoView(); }, [productsLoading]);
   useEffect(() => { if (!productsLoading) { document.documentElement.dataset.oinaReady = "1"; window.dispatchEvent(new Event("oina:ready")); } }, [productsLoading]);
   const [retryTrigger, setRetryTrigger] = useState(0);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
@@ -913,7 +914,7 @@ function HomeInner() {
   };
 
   return (
-    <div data-theme={theme} className="home-root" style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
+    <div className="home-root" style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <SiteHeader />
 
 
@@ -922,7 +923,7 @@ function HomeInner() {
       <CollectionBar selectedCategoryId={selectedCategoryId} router={router} />
 
       {recommendedProducts.length > 0 && (
-        <section className="pc-wrap sec">
+        <section id="catalog" className="pc-wrap sec">
           <div className="sec-head">
             <span className="coll-rule" />
             <h2 className="sec-title">{t.recommended}</h2>

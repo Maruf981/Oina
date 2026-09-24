@@ -143,7 +143,7 @@ export default function FavoritesPage() {
   const isVid = (img: { url: string; media_type?: string }) => img.media_type === "video" || /\/video\/upload\/|\.(mp4|webm|mov)(\?|$)/i.test(img.url);
 
   return (
-    <div data-theme={theme} className="fv-root">
+    <div className="fv-root">
       <SiteHeader />
       {compareIds.length > 0 && (
         <div className="fv-cmp-bar">

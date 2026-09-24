@@ -335,7 +335,7 @@ export default function ProductDetailClient() {
 
   if (!product) {
     return (
-      <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", padding: 40 }}>
+      <div style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", padding: 40 }}>
         Загрузка...
       </div>
     );
@@ -520,7 +520,7 @@ export default function ProductDetailClient() {
     );
 
   return (
-    <div data-theme={theme} className="pd-root">
+    <div className="pd-root">
       <SiteHeader />
       <div className="pd">
         <nav className="pd-crumbs">

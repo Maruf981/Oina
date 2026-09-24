@@ -67,6 +67,10 @@ export default function AccountPage() {
   const { theme } = useTheme();
   const { lang } = useLang();
   const [tab, setTab] = useState<Tab>("profile");
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("tab");
+    if (q === "profile" || q === "orders" || q === "password") setTab(q);
+  }, []);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -207,7 +211,7 @@ export default function AccountPage() {
 
   if (!auth.customer) {
     return (
-      <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", padding: 40 }}>
+      <div style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", padding: 40 }}>
         Загрузка...
       </div>
     );
@@ -221,7 +225,7 @@ export default function AccountPage() {
   ];
 
   return (
-    <div data-theme={theme} className="ac-root">
+    <div className="ac-root">
       <SiteHeader />
       <div className="ac">
         <div className="ac-head">

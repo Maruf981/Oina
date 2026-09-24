@@ -260,7 +260,7 @@ export default function RecommendedPage() {
   };
 
   return (
-    <div data-theme={theme} className="fv-root">
+    <div className="fv-root">
       <SiteHeader />
       <div className="fv">
         <div className="sec-head fv-head">

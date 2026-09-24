@@ -19,7 +19,7 @@ export default function DeliveryPage() {
   }, []);
 
   return (
-    <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
+    <div style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "60px 20px" }}>
         <div style={{ marginBottom: 30 }}>
           <BackButton />

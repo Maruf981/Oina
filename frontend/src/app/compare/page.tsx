@@ -107,7 +107,7 @@ function CompareInner() {
   const n = items?.length || 0;
 
   return (
-    <div data-theme={theme} className="cp-root">
+    <div className="cp-root">
       <SiteHeader />
       <div className="cp">
         <nav className="cp-crumbs">

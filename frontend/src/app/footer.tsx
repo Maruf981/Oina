@@ -3,7 +3,7 @@ import "./site-footer.css";
 import { SocialLinks } from "./social-links";
 import { FooterParticles } from "./footer-particles";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { translations, Lang } from "./translations";
 import { useLang } from "./lang-context";
 import { useTheme } from "./theme-context";
@@ -16,6 +16,11 @@ export function Footer({ lang }: { lang: Lang }) {
   const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
   const tr = (ru: string, tj: string) => (lang === "ru" ? ru : tj);
+  const pathname = usePathname();
+  const goCatalog = () => {
+    if (pathname === "/") document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth" });
+    else router.push("/#catalog");
+  };
 
   return (
     <footer className="ft">
@@ -43,7 +48,7 @@ export function Footer({ lang }: { lang: Lang }) {
         </div>
         <div>
           <div className="ft-label">{tr("Покупки", "Харид")}</div>
-          <span onClick={() => router.push("/")}>{tr("Все товары", "Ҳамаи молҳо")}</span>
+          <span onClick={goCatalog}>{tr("Все товары", "Ҳамаи молҳо")}</span>
           <span onClick={() => router.push("/recommended")}>{tr("Рекомендации", "Тавсияҳо")}</span>
           <span onClick={() => router.push("/favorites")}>{tr("Избранное", "Интихобҳо")}</span>
           <span onClick={() => router.push("/cart")}>{tr("Корзина", "Сабад")}</span>
