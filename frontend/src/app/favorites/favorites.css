@@ -12,3 +12,22 @@
   .fv { padding-left: .75rem; padding-right: .75rem; padding-bottom: calc(7rem + env(safe-area-inset-bottom)); }
   .fv-title { font-size: 2.2rem; }
 }
+
+/* ===== Сравнение: выбор в избранном ===== */
+.fv-cmp { display: flex; align-items: center; justify-content: center; gap: .45rem; width: 100%; margin-top: .5rem; padding: .35rem 0; background: transparent; border: 0; color: var(--text-muted); font-family: var(--font-label); font-size: .6875rem; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; }
+.fv-cmp:hover, .fv-cmp.is-on { color: var(--text); }
+.fv-cmp:disabled { opacity: .35; cursor: not-allowed; }
+.fv-cmp-box { width: 14px; height: 14px; border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; }
+.fv-cmp:hover .fv-cmp-box, .fv-cmp.is-on .fv-cmp-box { border-color: var(--text); }
+.fv-cmp.is-on .fv-cmp-box { background: var(--text); color: var(--bg); }
+.fv-cmp-box svg { width: 11px; height: 11px; }
+.fv-cmp-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 24px; z-index: 160; width: min(560px, calc(100% - 1.5rem)); display: flex; align-items: center; gap: 1rem; padding: .75rem 1rem; background: var(--bg); color: var(--text); border: 1px solid var(--text); font-size: .8125rem; }
+.fv-cmp-bar > span { margin-right: auto; }
+.fv-cmp-clear { background: transparent; border: 0; padding: 0; color: var(--text-muted); font-size: .75rem; text-decoration: underline; cursor: pointer; }
+.fv-cmp-go { background: var(--text); color: var(--bg); border: 1px solid var(--text); border-radius: 0; padding: .6rem 1.1rem; font-family: var(--font-label); font-size: .6875rem; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; }
+.fv-cmp-go:disabled { opacity: .4; cursor: not-allowed; }
+.fv-root:has(.fv-cmp-bar) .fv { padding-bottom: calc(10rem + env(safe-area-inset-bottom)); }
+@media (max-width: 640px) {
+  .fv-cmp-bar { bottom: calc(80px + max(15px, env(safe-area-inset-bottom))); }
+  .fv-root:has(.fv-cmp-bar) .fv { padding-bottom: calc(14rem + env(safe-area-inset-bottom)); }
+}

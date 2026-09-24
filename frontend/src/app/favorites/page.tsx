@@ -55,6 +55,12 @@ export default function FavoritesPage() {
   const { lang } = useLang();
 
   const [loading, setLoading] = useState(true);
+  const [compareIds, setCompareIds] = useState<number[]>([]);
+  const toggleCompare = (id: number) =>
+    setCompareIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= 3 ? prev : [...prev, id]));
+  useEffect(() => {
+    setCompareIds((prev) => prev.filter((id) => favorites.some((f) => f.product.id === id)));
+  }, [favorites]);
 
   const loadGuestFavorites = async () => {
     setLoading(true);
@@ -139,6 +145,19 @@ export default function FavoritesPage() {
   return (
     <div data-theme={theme} className="fv-root">
       <SiteHeader />
+      {compareIds.length > 0 && (
+        <div className="fv-cmp-bar">
+          <span>
+            {compareIds.length < 2
+              ? tr("Выберите ещё одну вещь", "Боз як чиз интихоб кунед")
+              : `${tr("Выбрано", "Интихоб шуд")}: ${compareIds.length} ${tr("из 3", "аз 3")}`}
+          </span>
+          <button type="button" className="fv-cmp-clear" onClick={() => setCompareIds([])}>{tr("Очистить", "Тоза кардан")}</button>
+          <button type="button" className="fv-cmp-go" disabled={compareIds.length < 2} onClick={() => router.push(`/compare?ids=${compareIds.join(",")}`)}>
+            {tr("Сравнить", "Муқоиса")}
+          </button>
+        </div>
+      )}
       <div className="fv">
         <div className="sec-head fv-head">
           <span className="coll-rule" />
@@ -201,6 +220,20 @@ export default function FavoritesPage() {
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M5 8.5 H19 L18 21 H6 Z" strokeLinejoin="round" /><path d="M8.5 8.5 V7 C8.5 4.8 10 3.3 12 3.3 C14 3.3 15.5 4.8 15.5 7 V8.5" /></svg>
                     </button>
                   </div>
+
+                  <button
+                    type="button"
+                    className={`fv-cmp${compareIds.includes(p.id) ? " is-on" : ""}`}
+                    disabled={!compareIds.includes(p.id) && compareIds.length >= 3}
+                    onClick={() => toggleCompare(p.id)}
+                  >
+                    <span className="fv-cmp-box">
+                      {compareIds.includes(p.id) && (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                      )}
+                    </span>
+                    {tr("Сравнить", "Муқоиса")}
+                  </button>
 
                   <div className="pc-info" onClick={() => router.push(`/product/${p.id}`)}>
                     {p.catalog_number && <div className="pc-eyebrow">{tr("Арт.", "Арт.")} {p.catalog_number}</div>}
