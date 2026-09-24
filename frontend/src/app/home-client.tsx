@@ -273,7 +273,7 @@ function StarRating({ avgRating, reviewCount }: { avgRating: number | null; revi
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-function HomeInner() {
+function HomeInner({ initial }: { initial?: HomeInitial }) {
   const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const { categories } = useCategories();
@@ -282,8 +282,8 @@ function HomeInner() {
     return v ? Number(v) : null;
   });
   const [openMegaMenu, setOpenMegaMenu] = useState<number | null>(null);
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [dualSlides, setDualSlides] = useState<DualSlide[]>([]);
+  const [banners, setBanners] = useState<Banner[]>(initial?.banners ?? []);
+  const [dualSlides, setDualSlides] = useState<DualSlide[]>(initial?.dualSlides ?? []);
   useBlurReveal();
   // колонки сетки — как в product-card.css: ≤640 → 2, ≤900 → 3, иначе 4
   const [gridCols, setGridCols] = useState(4);
@@ -295,36 +295,40 @@ function HomeInner() {
     return () => window.removeEventListener("resize", calc);
   }, []);
   useEffect(() => {
+    if (initial?.dualSlides) return;
     fetch(`${API_URL}/dual-slides/`)
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setDualSlides(Array.isArray(d) ? d : []))
       .catch(() => setDualSlides([]));
   }, []);
   useEffect(() => {
+    if (initial?.banners) return;
     fetch(`${API_URL}/banners/`)
       .then((r) => r.json())
       .then(setBanners)
       .catch(() => setBanners([]));
   }, []);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [productsTotal, setProductsTotal] = useState(0);
+  const [products, setProducts] = useState<Product[]>(initial?.catalog?.items ?? []);
+  const [productsTotal, setProductsTotal] = useState(initial?.catalog?.total ?? 0);
+  const initialCatalogRef = useRef(initial?.catalog ?? null); // первая порция с сервера — первый запрос каталога не нужен
   const catalogParamsRef = useRef("");      // фильтры текущего списка — для подгрузки следующих страниц
   const firstCatalogLoadRef = useRef(true); // первая загрузка восстанавливает прокрутку (сколько было открыто)
   const loadingMoreRef = useRef(false);
-  const [hits, setHits] = useState<typeof products>([]);
+  const [hits, setHits] = useState<typeof products>(initial?.hits ?? []);
   useEffect(() => {
+    if (initial?.hits) return;
     fetch(`${API_URL}/products/?sort=popularity&limit=10`)
       .then((r) => r.json())
       .then((d) => setHits(Array.isArray(d) ? d : d.items || d.products || []))
       .catch(() => {});
   }, []);
-  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(!initial?.catalog);
   const [productsError, setProductsError] = useState(false);
   useEffect(() => { if (!productsLoading && window.location.hash === "#catalog") document.getElementById("catalog")?.scrollIntoView(); }, [productsLoading]);
   useEffect(() => { if (!productsLoading) { document.documentElement.dataset.oinaReady = "1"; window.dispatchEvent(new Event("oina:ready")); } }, [productsLoading]);
   const [retryTrigger, setRetryTrigger] = useState(0);
-  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
-  const [homepageReviews, setHomepageReviews] = useState<HomepageReview[]>([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>(initial?.recommended ?? []);
+  const [homepageReviews, setHomepageReviews] = useState<HomepageReview[]>(initial?.reviews ?? []);
   const [recommendedCollapsed, setRecommendedCollapsed] = useState(false);
   const [recommendedProgress, setRecommendedProgress] = useState(0);
   const recommendedScrollRef = useRef<HTMLDivElement>(null);
@@ -622,6 +626,14 @@ function HomeInner() {
       if (newQuery !== searchParams.toString()) {
         router.replace(newQuery ? `/?${newQuery}` : "/", { scroll: false });
       }
+      const init = initialCatalogRef.current;
+      initialCatalogRef.current = null;
+      if (init && firstCatalogLoadRef.current && !params.toString() && Math.max(visibleCount, 20) <= init.items.length) {
+        // первая порция уже пришла с сервера и отрисована
+        firstCatalogLoadRef.current = false;
+        catalogParamsRef.current = "";
+        return;
+      }
       setProductsLoading(true);
       setProductsError(false);
       const paramsStr = params.toString();
@@ -701,12 +713,14 @@ function HomeInner() {
     });
   }
   useEffect(() => {
+    if (initial?.recommended) return;
     fetch(`${API_URL}/products/?recommended_only=true`)
       .then((res) => res.json())
       .then((data) => setRecommendedProducts(data))
       .catch(() => setRecommendedProducts([]));
   }, []);
   useEffect(() => {
+    if (initial?.reviews) return;
     fetch(`${API_URL}/reviews/homepage`)
       .then((res) => res.json())
       .then((data) => setHomepageReviews(data))
@@ -1213,15 +1227,25 @@ function SkeletonCard() {
     </div>
   );
 }
+// фото карточки: srcset под ширину колонки сетки (2 / 3 / 4 колонки)
+const CARD_SIZES = "(max-width: 640px) 50vw, (max-width: 900px) 33vw, 300px";
+const cardSrcSet = (u: string) => [400, 600, 800].map((w) => `${cld(u, w)} ${w}w`).join(", ");
+
 function CardMedia({ images, alt }: { images: { url: string; media_type?: string }[]; alt: string }) {
   const [active, setActive] = useState(0);
   const [hover, setHover] = useState(false);
+  // сколько слайдов можно грузить: сначала только первое фото, дальше — по мере листания (+1 вперёд)
+  const [upTo, setUpTo] = useState(0);
 
   useEffect(() => {
     if (!hover || images.length <= 1) return;
     const timer = setInterval(() => setActive((i) => (i + 1) % images.length), 1600);
     return () => clearInterval(timer);
   }, [hover, images.length]);
+
+  useEffect(() => {
+    if (active > 0) setUpTo((u) => Math.max(u, Math.min(active + 1, images.length - 1)));
+  }, [active, images.length]);
 
   if (images.length === 0) return null;
 
@@ -1233,10 +1257,10 @@ function CardMedia({ images, alt }: { images: { url: string; media_type?: string
     >
       {images.map((img, i) => (
         <div key={img.url + i} className={`pc-slide${i === active ? " is-active" : ""}`}>
-          {img.media_type === "video" ? (
-            <video src={cldVideo(img.url)} muted loop playsInline autoPlay={i === active} />
+          {i > Math.max(upTo, active) ? null : img.media_type === "video" ? (
+            <video src={cldVideo(img.url)} muted loop playsInline autoPlay={i === active} preload={i === active ? "auto" : "metadata"} />
           ) : (
-            <img src={cld(img.url, 800)} alt={alt} loading={i === 0 ? "eager" : "lazy"} decoding="async" draggable={false} />
+            <img src={cld(img.url, 800)} srcSet={cardSrcSet(img.url)} sizes={CARD_SIZES} alt={alt} loading="lazy" decoding="async" draggable={false} />
           )}
         </div>
       ))}
@@ -1311,12 +1335,12 @@ function AutoSlideImage({ images, onClick, alt }: { images: { url: string; media
   );
 }
 
-export default function HomeClient() {
+export default function HomeClient({ initial }: { initial?: HomeInitial }) {
   return (
     <>
       <ScrollSegments />
     <Suspense fallback={null}>
-      <HomeInner />
+      <HomeInner initial={initial} />
     </Suspense>
     </>
   );
@@ -1345,16 +1369,27 @@ function HeroSlider({ banners }: { banners: Banner[] }) {
   if (slides.length === 0) return null;
 
   const current = index % slides.length;
+  // в DOM — текущий, предыдущий (для плавного перехода) и следующий баннер, а не все сразу
+  const near = (i: number) =>
+    slides.length <= 3 || i === current || i === (current + 1) % slides.length || i === (current - 1 + slides.length) % slides.length;
   const isVideo = (url: string) => /\/video\/upload\/|\.(mp4|webm|mov)(\?|$)/i.test(url);
 
   return (
     <section className="hero-full">
       {slides.map((b, i) => (
         <div key={b.id} className={`hero-slide${i === current ? " is-active" : ""}`} aria-hidden={i !== current}>
-          {isVideo(b.image_url!) ? (
+          {!near(i) ? null : isVideo(b.image_url!) ? (
             <WaterVideo src={b.image_url!} />
           ) : (
-            <img src={cld(b.image_url!, 2000)} alt="" />
+            <img
+              src={cld(b.image_url!, 1600)}
+              srcSet={[800, 1200, 1600, 2000].map((w) => `${cld(b.image_url!, w)} ${w}w`).join(", ")}
+              sizes="100vw"
+              alt=""
+              loading={i === 0 ? "eager" : "lazy"}
+              fetchPriority={i === 0 ? "high" : "low"}
+              decoding="async"
+            />
           )}
         </div>
       ))}
@@ -1458,3 +1493,13 @@ function CollectionBar({ selectedCategoryId, router }: { selectedCategoryId: num
     </section>
   );
 }
+
+// данные первого экрана, загруженные на сервере (page.tsx); undefined — загрузить в браузере
+export type HomeInitial = {
+  banners?: Banner[];
+  dualSlides?: DualSlide[];
+  hits?: Product[];
+  recommended?: Product[];
+  reviews?: HomepageReview[];
+  catalog?: { items: Product[]; total: number };
+};
