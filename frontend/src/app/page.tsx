@@ -49,7 +49,7 @@ export default async function Home({ searchParams }: Props) {
     get<unknown>("/banners/"),
     get<unknown>("/dual-slides/"),
     get<unknown>("/products/?sort=popularity&limit=10"),
-    get<unknown>("/products/?recommended_only=true"),
+    get<unknown>("/products/?recommended_only=true&limit=12"),
     get<unknown>("/reviews/homepage"),
     hasFilters ? Promise.resolve(undefined) : get<{ items?: unknown; total?: number }>("/products/page?offset=0&limit=20"),
   ]);

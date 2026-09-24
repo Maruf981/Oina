@@ -321,15 +321,25 @@ export default function RecommendedPage() {
 }
 
 // --- 1:1 с главной (home-client.tsx CardMedia) ---
+// фото карточки: srcset под ширину колонки сетки (2 / 3 / 4 колонки)
+const CARD_SIZES = "(max-width: 640px) 50vw, (max-width: 900px) 33vw, 300px";
+const cardSrcSet = (u: string) => [400, 600, 800].map((w) => `${cld(u, w)} ${w}w`).join(", ");
+
 function CardMedia({ images, alt }: { images: { url: string; media_type?: string }[]; alt: string }) {
   const [active, setActive] = useState(0);
   const [hover, setHover] = useState(false);
+  // сколько слайдов можно грузить: сначала только первое фото, дальше — по мере листания (+1 вперёд)
+  const [upTo, setUpTo] = useState(0);
 
   useEffect(() => {
     if (!hover || images.length <= 1) return;
     const timer = setInterval(() => setActive((i) => (i + 1) % images.length), 1600);
     return () => clearInterval(timer);
   }, [hover, images.length]);
+
+  useEffect(() => {
+    if (active > 0) setUpTo((u) => Math.max(u, Math.min(active + 1, images.length - 1)));
+  }, [active, images.length]);
 
   if (images.length === 0) return null;
 
@@ -341,13 +351,14 @@ function CardMedia({ images, alt }: { images: { url: string; media_type?: string
     >
       {images.map((img, i) => (
         <div key={img.url + i} className={`pc-slide${i === active ? " is-active" : ""}`}>
-          {img.media_type === "video" ? (
-            <video src={cldVideo(img.url)} muted loop playsInline autoPlay={i === active} />
+          {i > Math.max(upTo, active) ? null : img.media_type === "video" ? (
+            <video src={cldVideo(img.url)} muted loop playsInline autoPlay={i === active} preload={i === active ? "auto" : "metadata"} />
           ) : (
-            <img src={cld(img.url, 800)} alt={alt} loading={i === 0 ? "eager" : "lazy"} decoding="async" draggable={false} />
+            <img src={cld(img.url, 800)} srcSet={cardSrcSet(img.url)} sizes={CARD_SIZES} alt={alt} loading="lazy" decoding="async" draggable={false} />
           )}
         </div>
       ))}
     </div>
   );
 }
+

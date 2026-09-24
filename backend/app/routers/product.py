@@ -127,6 +127,15 @@ def low_stock_products(threshold: int = 3, db: Session = Depends(get_db), _: boo
         }
         for v in variants
     ]
+@router.get("/ids")
+def list_product_ids(db: Session = Depends(get_db)):
+    """Только id опубликованных товаров — для sitemap (без полей товара)."""
+    rows = (db.query(Product.id)
+            .filter(Product.is_active == True, Product.is_archived == False)
+            .order_by(Product.id).all())
+    return [r[0] for r in rows]
+
+
 @router.get("/{product_id}", response_model=ProductPublicOut)
 def get_product(product_id: int, db: Session = Depends(get_db), is_admin: bool = Depends(get_current_admin_optional)):
     product = product_repo.get_by_id(db, product_id)

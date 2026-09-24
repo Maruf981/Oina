@@ -119,7 +119,18 @@ class ProductOut(ProductBase):
     class Config:
         from_attributes = True
 
+PUBLIC_STOCK_CAP = 10  # наружу точный остаток не отдаём: 37 шт -> "10"
+
+
+class ProductVariantPublicOut(ProductVariantOut):
+    @field_validator("stock", mode="after")
+    @classmethod
+    def _cap_stock(cls, v: int) -> int:
+        return min(v, PUBLIC_STOCK_CAP)
+
+
 class ProductPublicOut(ProductOut):
+    variants: list[ProductVariantPublicOut] = []
     """Для витрины: себестоимость и поставщик наружу не отдаются."""
     cost_price: float | None = Field(default=None, exclude=True)
     batch: str | None = Field(default=None, exclude=True)

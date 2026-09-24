@@ -714,7 +714,7 @@ function HomeInner({ initial }: { initial?: HomeInitial }) {
   }
   useEffect(() => {
     if (initial?.recommended) return;
-    fetch(`${API_URL}/products/?recommended_only=true`)
+    fetch(`${API_URL}/products/?recommended_only=true&limit=12`)
       .then((res) => res.json())
       .then((data) => setRecommendedProducts(data))
       .catch(() => setRecommendedProducts([]));

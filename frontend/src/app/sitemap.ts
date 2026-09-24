@@ -14,11 +14,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const res = await fetch(`${API_URL}/products/`, { cache: "no-store" });
+    const res = await fetch(`${API_URL}/products/ids`, { cache: "no-store" });
     if (!res.ok) return staticPages;
-    const products: { id: number }[] = await res.json();
-    const productPages: MetadataRoute.Sitemap = products.map((p) => ({
-      url: `${SITE_URL}/product/${p.id}`,
+    const ids: number[] = await res.json();
+    const productPages: MetadataRoute.Sitemap = ids.map((id) => ({
+      url: `${SITE_URL}/product/${id}`,
       changeFrequency: "weekly",
       priority: 0.8,
     }));

@@ -32,7 +32,7 @@ const imgOf = (s: DualSlide, side: Side) =>
 const STACK_OFFSET = 14; // на сколько px виден край предыдущей карточки
 
 // Один слайд на компьютере: 3 фото в ряд + шарик с подписью под курсором
-function DesktopRow({ s, lang, fallback, onOpen }: { s: DualSlide; lang: string; fallback: string; onOpen: () => void }) {
+function DesktopRow({ s, lang, fallback, onOpen, near = true }: { s: DualSlide; lang: string; fallback: string; onOpen: () => void; near?: boolean }) {
   const [hover, setHover] = useState(false);
   const [ball, setBall] = useState<{ side: Side; x: number; y: number }>({ side: "left", x: 0, y: 0 });
   const layerRefs = {
@@ -135,7 +135,7 @@ function DesktopRow({ s, lang, fallback, onOpen }: { s: DualSlide; lang: string;
                   style={{
                     width: "100%", height: "100%",
                     backgroundColor: side === "left" ? undefined : "var(--header-bg)",
-                    backgroundImage: url ? `url(${cld(url, 1400)})` : "none",
+                    backgroundImage: url && near ? `url(${cld(url, 1000)})` : "none",
                     backgroundSize: "cover", backgroundPosition: "center",
                     transform: hover && ball.side === side ? "scale(1.04)" : "scale(1)",
                     transition: "transform 0.9s ease-out",
@@ -179,6 +179,17 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
     ? items.flatMap((s) => SIDES.filter((side) => imgOf(s, side)).map((side) => ({ key: `${s.id}-${side}`, s, side: side as Side | null })))
     : items.map((s) => ({ key: String(s.id), s, side: null as Side | null }));
   const count = cards.length;
+
+  // фоны грузим, только когда слайдер рядом с экраном (он стоит после 24 товаров)
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    if (near || count === 0) return;
+    const el = cardRefs.current[0];
+    if (!el || !("IntersectionObserver" in window)) { setNear(true); return; }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setNear(true); io.disconnect(); } }, { rootMargin: "800px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near, count]);
 
   useEffect(() => {
     if (count <= 1) return;
@@ -249,12 +260,12 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
                 style={{
                   position: "absolute", inset: 0,
                   backgroundColor: "var(--header-bg)",
-                  backgroundImage: `url(${cld(imgOf(c.s, c.side), 1400)})`,
+                  backgroundImage: near ? `url(${cld(imgOf(c.s, c.side), 900)})` : "none",
                   backgroundSize: "cover", backgroundPosition: "center",
                 }}
               />
             ) : (
-              <DesktopRow s={c.s} lang={lang} fallback={fallback} onOpen={() => open(c.s)} />
+              <DesktopRow s={c.s} lang={lang} fallback={fallback} onOpen={() => open(c.s)} near={near} />
             )}
             <div
               ref={(el) => { dimRefs.current[i] = el; }}
