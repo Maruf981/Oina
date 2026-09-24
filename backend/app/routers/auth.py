@@ -79,11 +79,13 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
+def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    from app.core.phone import phone_core
+    keys = [f"login:phone:{phone_core(data.phone) or data.phone}", f"login:net:{_client_ip(request)}"]
+    _check_locked(keys)
     customer = find_customer_by_phone(db, data.phone)
-    if not customer or not customer.password_hash:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not verify_password(data.password, customer.password_hash):
+    if not customer or not customer.password_hash or not verify_password(data.password, customer.password_hash):
+        _fail(keys)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = create_access_token(customer.id, customer.token_version or 0)
