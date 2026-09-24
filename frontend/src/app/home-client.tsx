@@ -22,6 +22,7 @@ import { useTheme } from "./theme-context";
 import { useLang } from "./lang-context";
 import { useCity } from "./city-context";
 import { Footer } from "./footer";
+import { BackToTop } from "./back-to-top";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type Variant = {
@@ -1197,6 +1198,7 @@ function HomeInner() {
         </section>
       )}
       <Footer lang={lang} />
+      <BackToTop />
     </div>
   );
 }

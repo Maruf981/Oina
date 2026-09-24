@@ -1,0 +1,14 @@
+.to-top {
+  position: fixed; left: 20px; bottom: 20px; z-index: 150;
+  width: 44px; height: 44px; padding: 0;
+  display: none; align-items: center; justify-content: center;
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--line); border-radius: 0; cursor: pointer;
+  opacity: 0; visibility: hidden; transform: translateY(8px);
+  transition: opacity .25s ease, transform .25s ease, visibility .25s, border-color .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.to-top.is-visible { opacity: 1; visibility: visible; transform: none; }
+.to-top:hover, .to-top:active, .to-top:focus-visible { border-color: var(--text); outline: none; }
+@media (max-width: 768px) { .to-top { display: flex; } }
+@media (max-width: 640px) { .to-top { bottom: calc(80px + max(15px, env(safe-area-inset-bottom))); } }
