@@ -2166,13 +2166,23 @@ function FinanceTab({ products, suppliers, authFetch }: any) {
         </tbody>
       </table>
       </div>
-      <BatchFinance authFetch={authFetch} />
-      <SalesList authFetch={authFetch} period={periodFilter} supplierId={supplierFilter} suppliers={suppliers} />
+      <BatchAndSales authFetch={authFetch} period={periodFilter} supplierId={supplierFilter} suppliers={suppliers} />
     </div>
   );
 }
 
-function BatchFinance({ authFetch }: any) {
+function BatchAndSales({ authFetch, period, supplierId, suppliers }: any) {
+  const [salesBatch, setSalesBatch] = useState("");
+  return (
+    <>
+      <BatchFinance authFetch={authFetch} onPick={setSalesBatch} />
+      <SalesList authFetch={authFetch} period={period} supplierId={supplierId} suppliers={suppliers}
+        batch={salesBatch} onClearBatch={() => setSalesBatch("")} />
+    </>
+  );
+}
+
+function BatchFinance({ authFetch, onPick }: any) {
   const [batches, setBatches] = useState<string[]>([]);
   const [batch, setBatch] = useState("");
   const [sold, setSold] = useState<any>(null);
@@ -2233,7 +2243,7 @@ function BatchFinance({ authFetch }: any) {
       <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
         <select
           value={batch}
-          onChange={(e) => setBatch(e.target.value)}
+          onChange={(e) => { setBatch(e.target.value); onPick?.(e.target.value); }}
           style={{ padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 0, background: "var(--bg)", color: "var(--text)" }}
         >
           {batches.map((b) => <option key={b} value={b}>{b}</option>)}
@@ -2280,6 +2290,14 @@ function BatchFinance({ authFetch }: any) {
           onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--line)")}
         >
           {showItems ? "Скрыть товары" : "Показать товары"}
+        </button>
+        <button
+          onClick={() => onPick?.(batch)}
+          style={{ padding: "8px 16px", border: "1px solid var(--line)", borderRadius: 0, background: "var(--bg)", color: "var(--text)", cursor: "pointer" }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--text)")}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--line)")}
+        >
+          Продажи партии ↓
         </button>
       </div>
 
@@ -3910,7 +3928,7 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
   );
 }
 
-function SalesList({ authFetch, period, supplierId, suppliers }: any) {
+function SalesList({ authFetch, period, supplierId, suppliers, batch = "", onClearBatch }: any) {
   const PAGE = 50;
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -3929,9 +3947,10 @@ function SalesList({ authFetch, period, supplierId, suppliers }: any) {
   const params = (offset: number, limit: number, m: string = mode) => {
     const p = new URLSearchParams({ mode: m, offset: String(offset), limit: String(limit) });
     if (from || to) { if (from) p.set("date_from", from); if (to) p.set("date_to", to); }
-    else p.set("period", period);
+    else p.set("period", batch ? "all" : period); // партия — за всё время, как в карточках партии
     if (supplierId !== "") p.set("supplier_id", String(supplierId));
     if (q) p.set("search", q);
+    if (batch) p.set("batch", batch);
     return p;
   };
 
@@ -3951,7 +3970,7 @@ function SalesList({ authFetch, period, supplierId, suppliers }: any) {
       .catch(() => { if (id === reqId.current && offset === 0) { setTotal(0); setT(null); } })
       .finally(() => { if (id === reqId.current) setLoading(false); });
   };
-  useEffect(() => { load(0); }, [period, supplierId, from, to, mode, q]);
+  useEffect(() => { load(0); }, [period, supplierId, from, to, mode, q, batch]);
 
   const supName = (id: any) => (suppliers || []).find((s: any) => s.id === id)?.name ?? "—";
   const pct = (a: number, b: number) => (b > 0 ? `${((a / b) * 100).toFixed(1)}%` : "—");
@@ -4004,6 +4023,14 @@ function SalesList({ authFetch, period, supplierId, suppliers }: any) {
   return (
     <div style={{ marginTop: 34 }}>
       <div className="catalog-label" style={{ border: "none", padding: 0, marginBottom: 14 }}>Продажи</div>
+      {batch && (
+        <div style={{ marginBottom: 12 }}>
+          <span onClick={onClearBatch} title="Показать все продажи"
+            style={{ border: "1px solid var(--text)", padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>
+            Партия: {batch === "__none__" ? "без партии" : batch} ×
+          </span>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
         <span style={{ fontSize: 12, color: "var(--text-muted)" }}>с</span>
