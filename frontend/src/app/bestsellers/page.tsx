@@ -322,7 +322,7 @@ export default function BestsellersPage() {
 
 // --- 1:1 с главной (home-client.tsx CardMedia) ---
 // фото карточки: srcset под ширину колонки сетки (2 / 3 / 4 колонки)
-const CARD_SIZES = "(max-width: 640px) 50vw, (max-width: 900px) 33vw, 300px";
+const CARD_SIZES = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1440px) 25vw, 420px";
 const cardSrcSet = (u: string) => [400, 600, 800].map((w) => `${cld(u, w)} ${w}w`).join(", ");
 
 function CardMedia({ images, alt }: { images: { url: string; media_type?: string }[]; alt: string }) {
