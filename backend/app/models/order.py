@@ -57,6 +57,7 @@ class OrderItem(Base):
     product_variant_id: Mapped[int] = mapped_column(ForeignKey("product_variants.id"))
     quantity: Mapped[int] = mapped_column(default=1)
     price_at_order: Mapped[float] = mapped_column(Numeric(10, 2))
+    price_manual: Mapped[bool] = mapped_column(default=False, server_default="false")  # цена введена вручную (опт)
     is_returned: Mapped[bool] = mapped_column(default=False, server_default='false')
     returned_quantity: Mapped[int] = mapped_column(default=0, server_default='0')
     cost_at_order: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)

@@ -339,7 +339,7 @@ def exchange_item_variant(
     размер/цвет/цену. Автоматически: возвращает старый вариант на склад, списывает
     новый со склада, пересчитывает цену позиции и общую сумму заказа.
     """
-    return order_repo.exchange_item_variant(db, order_id, item_id, data.new_variant_id)
+    return order_repo.exchange_item_variant(db, order_id, item_id, data.new_variant_id, data.custom_price)
 
 
 @router.patch("/{order_id}/assign-courier")

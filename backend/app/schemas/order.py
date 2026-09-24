@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class OrderItemCreate(BaseModel):
     product_variant_id: int
     quantity: int
+    custom_price: float | None = None  # только заказ по телефону (админ)
 
 
 class OrderCreate(BaseModel):
@@ -63,6 +64,7 @@ class ExchangeRequest(BaseModel):
 
 class ExchangeVariantRequest(BaseModel):
     new_variant_id: int
+    custom_price: float | None = None  # своя цена при обмене на другой товар
 
 
 class OrderStatusUpdate(BaseModel):
@@ -105,6 +107,7 @@ class OrderOut(BaseModel):
 
 class OrderItemAdminOut(OrderItemOut):
     cost_at_order: float | None = None
+    price_manual: bool = False
     supplier_id: int | None = None
 
 

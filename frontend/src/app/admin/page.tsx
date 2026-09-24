@@ -179,7 +179,7 @@ type Order = {
   cancel_reason?: string | null;
   source?: string;
   customer: { id: number; name: string | null; phone: string };
-  items: { id: number; product_variant_id: number; quantity: number; price_at_order: number; variant: { id: number; size: string; color: string; title_ru: string; title_tj: string | null; catalog_number: string } | null }[];
+  items: { id: number; product_variant_id: number; quantity: number; price_at_order: number; price_manual?: boolean; variant: { id: number; size: string; color: string; title_ru: string; title_tj: string | null; catalog_number: string } | null }[];
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -2868,6 +2868,8 @@ function OrdersTab({ t, authFetch, products }: any) {
   const [exchangeProductId, setExchangeProductId] = useState("");
   const [exchangeVariantId, setExchangeVariantId] = useState("");
   const [exchangeError, setExchangeError] = useState("");
+  const [exchangeCustomPrice, setExchangeCustomPrice] = useState("");
+  useEffect(() => { setExchangeCustomPrice(""); }, [exchangeProductId]);
 
   const productList: any[] = Array.isArray(products) ? products : [];
 
@@ -2893,7 +2895,7 @@ function OrdersTab({ t, authFetch, products }: any) {
     const res = await authFetch(`${API}/orders/${orderId}/items/${itemId}/exchange-variant`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ new_variant_id: Number(exchangeVariantId) }),
+      body: JSON.stringify({ new_variant_id: Number(exchangeVariantId), custom_price: Number(exchangeCustomPrice) > 0 ? Number(exchangeCustomPrice) : null }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => null);
@@ -3142,7 +3144,7 @@ function OrdersTab({ t, authFetch, products }: any) {
                   )}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ color: "var(--text-muted)", textDecoration: (item as any).is_returned ? "line-through" : "none" }}>{item.price_at_order} смн</span>
+                  <span style={{ color: "var(--text-muted)", textDecoration: (item as any).is_returned ? "line-through" : "none" }}>{item.price_at_order} смн</span>{item.price_manual && <span title="Цена введена вручную" style={{ border: "1px solid var(--line)", padding: "0 6px", fontSize: 11, marginLeft: 6 }}>опт</span>}
                   {!(item as any).is_returned && !["cancelled", "returned"].includes(o.status) && !(o.status === "delivered" && (o as any).is_dushanbe !== false) && (
                     <span onClick={() => handleReturnItem(o.id, item.id, item.quantity, (item as any).returned_quantity ?? 0)} style={{ cursor: "pointer", color: "#E24B4A", fontSize: 11, textDecoration: "underline" }}>Возврат</span>
                   )}
@@ -3176,6 +3178,11 @@ function OrdersTab({ t, authFetch, products }: any) {
                       <option key={v.id} value={v.id}>{v.color}, {v.size} (остаток: {v.stock})</option>
                     ))}
                   </select>
+                )}
+                {exchangeProductId && (
+                  <input type="number" min={1} placeholder="Своя цена (необязательно)" value={exchangeCustomPrice}
+                    onChange={(e) => setExchangeCustomPrice(e.target.value)}
+                    style={{ border: "1px solid var(--line)", padding: "6px 8px", background: "transparent", color: "inherit", fontSize: 13, borderRadius: 0, marginBottom: 8, width: 200 }} />
                 )}
                 {exchangeError && <p style={{ color: "#E24B4A", fontSize: 12, marginBottom: 8 }}>{exchangeError}</p>}
                 <div style={{ display: "flex", gap: 8 }}>
@@ -3770,7 +3777,7 @@ function TemplatesTab({ products, authFetch }: any) {
 }
 
 function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
-  const empty = { productId: "", variantId: "", quantity: 1 };
+  const empty = { productId: "", variantId: "", quantity: 1, customPrice: "" };
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -3786,6 +3793,20 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
   const inp: any = { border: "1px solid var(--line)", padding: "8px 10px", background: "transparent", color: "inherit", fontSize: 14, borderRadius: 0 };
   const btn: any = { border: "1px solid var(--line)", padding: "8px 14px", background: "transparent", color: "inherit", cursor: "pointer", borderRadius: 0 };
   const list = (products || []).filter((p: any) => p.is_active !== false);
+  const priceOf = (p: any) => {
+    const reg = Number(p?.price || 0);
+    if (p?.current_price != null) return { reg, cur: Number(p.current_price) };
+    const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10); // Душанбе UTC+5
+    const pct = Number(p?.discount_percent || 0);
+    const active = pct > 0 && pct < 100 && (!p.discount_from || p.discount_from <= today) && (!p.discount_to || p.discount_to >= today);
+    return { reg, cur: active ? Math.round((reg * (100 - pct)) / 100) : reg };
+  };
+  const linePrice = (it: any) => {
+    const p = list.find((x: any) => String(x.id) === it.productId);
+    if (!p) return 0;
+    return it.customPrice !== "" && Number(it.customPrice) > 0 ? Number(it.customPrice) : priceOf(p).cur;
+  };
+  const orderTotal = Math.round(items.reduce((s: number, it: any) => s + (it.variantId ? linePrice(it) * Number(it.quantity || 0) : 0), 0) * 100) / 100;
   const updateItem = (i: number, patch: any) => setItems(items.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
 
   const reset = () => { setName(""); setPhone(""); setAddress(""); setComment(""); setPromo(""); setPayment("cod"); setIsDushanbe(true); setItems([empty]); setError(""); };
@@ -3795,6 +3816,7 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
     if (!name.trim() || !phone.trim() || !address.trim()) return setError("Заполните имя, телефон и адрес");
     const valid = items.filter((it) => it.variantId && Number(it.quantity) > 0);
     if (!valid.length) return setError("Добавьте хотя бы один товар");
+    if (valid.some((it) => it.customPrice !== "" && !(Number(it.customPrice) > 0))) return setError("Своя цена должна быть больше 0");
     setSaving(true);
     const res = await authFetch(`${API}/orders/phone`, {
       method: "POST",
@@ -3807,7 +3829,11 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
         payment_method: payment,
         is_dushanbe: isDushanbe,
         promo_code: promo.trim() || null,
-        items: valid.map((it) => ({ product_variant_id: Number(it.variantId), quantity: Number(it.quantity) })),
+        items: valid.map((it) => ({
+          product_variant_id: Number(it.variantId),
+          quantity: Number(it.quantity),
+          custom_price: it.customPrice !== "" && Number(it.customPrice) > 0 ? Number(it.customPrice) : null,
+        })),
       }),
     });
     setSaving(false);
@@ -3846,7 +3872,7 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
         const prod = list.find((p: any) => String(p.id) === it.productId);
         return (
           <div key={i} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <select style={{ ...inp, minWidth: 220 }} value={it.productId} onChange={(e) => updateItem(i, { productId: e.target.value, variantId: "" })}>
+            <select style={{ ...inp, minWidth: 220 }} value={it.productId} onChange={(e) => updateItem(i, { productId: e.target.value, variantId: "", customPrice: "" })}>
               <option value="">— товар —</option>
               {list.map((p: any) => <option key={p.id} value={p.id}>{p.catalog_number} — {p.title_ru}</option>)}
             </select>
@@ -3859,11 +3885,22 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
               </select>
             )}
             <input style={{ ...inp, width: 70 }} type="number" min={1} value={it.quantity} onChange={(e) => updateItem(i, { quantity: e.target.value })} />
+            {prod && (() => {
+              const { reg, cur } = priceOf(prod);
+              const cost = prod.cost_price != null ? Number(prod.cost_price) : null;
+              const cp = Number(it.customPrice);
+              return (<>
+                <span style={{ fontSize: 13 }}>{cur < reg ? <><s style={{ color: "var(--text-muted)" }}>{reg}</s> {cur}</> : reg} смн</span>
+                <input style={{ ...inp, width: 110 }} type="number" min={1} placeholder="Своя цена" value={it.customPrice} onChange={(e) => updateItem(i, { customPrice: e.target.value })} />
+                {it.customPrice !== "" && cp > 0 && cost != null && cp < cost && <span style={{ color: "#E24B4A", fontSize: 12 }}>ниже себестоимости ({cost})</span>}
+              </>);
+            })()}
             {items.length > 1 && <span style={{ cursor: "pointer", color: "#E24B4A", fontSize: 12 }} onClick={() => setItems(items.filter((_, idx) => idx !== i))}>Удалить</span>}
           </div>
         );
       })}
       <span style={{ cursor: "pointer", fontSize: 13, textDecoration: "underline" }} onClick={() => setItems([...items, empty])}>+ ещё товар</span>
+      <b style={{ fontSize: 14 }}>Итого: {orderTotal} смн{promo.trim() ? " · промокод применится только к позициям без своей цены" : ""}</b>
       {error && <span style={{ color: "#E24B4A", fontSize: 13 }}>{error}</span>}
       <div style={{ display: "flex", gap: 10 }}>
         <button style={btn} disabled={saving} onClick={submit}>{saving ? "Сохраняю..." : "Создать заказ"}</button>

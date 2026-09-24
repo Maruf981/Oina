@@ -76,13 +76,20 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
         if variant.stock < item.quantity:
             raise HTTPException(status_code=400, detail=f"В наличии только {variant.stock} шт: {variant.product.title_ru} ({variant.color}, {variant.size})")
 
-        order_items.append((variant, item.quantity))
+        custom = item.custom_price if admin else None  # с сайта ручную цену не принимаем
+        if custom is not None:
+            if custom <= 0:
+                raise HTTPException(status_code=400, detail="Цена должна быть больше 0")
+            custom = round(float(custom), 2)
+        order_items.append((variant, item.quantity, custom))
 
-    subtotal = sum(current_price(v.product) * q for v, q in order_items)
+    subtotal = sum((c if c is not None else current_price(v.product)) * q for v, q, c in order_items)
     promo = get_valid_promo(db, data.promo_code, customer.id, subtotal, lock=True) if data.promo_code else None
     promo_percent = promo.percent if promo else None
-    order_items = [(v, q, price_with_promo(v.product, promo_percent)) for v, q in order_items]
-    total = sum(price * q for _, q, price in order_items)
+    # ручная цена окончательная: скидка товара и промокод к ней не применяются
+    order_items = [(v, q, c if c is not None else price_with_promo(v.product, promo_percent), c is not None)
+                   for v, q, c in order_items]
+    total = sum(price * q for _, q, price, _ in order_items)
 
     order_comment = data.comment
     if current and not admin:
@@ -110,12 +117,13 @@ def create_order(db: Session, data: OrderCreate, current: Customer | None = None
     db.add(order)
     db.flush()
 
-    for variant, quantity, price in order_items:
+    for variant, quantity, price, manual in order_items:
         db.add(OrderItem(
             order_id=order.id,
             product_variant_id=variant.id,
             quantity=quantity,
             price_at_order=price,
+            price_manual=manual,
             cost_at_order=variant.product.cost_price,
             batch=variant.product.batch,
             supplier_id=variant.product.supplier_id,
@@ -189,7 +197,9 @@ def return_order_item(db: Session, order_id: int, item_id: int, quantity: int | 
     return item
 
 
-def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_id: int) -> OrderItem:
+def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_id: int, custom_price: float | None = None) -> OrderItem:
+    if custom_price is not None and custom_price <= 0:
+        raise HTTPException(status_code=400, detail="Цена должна быть больше 0")
     # блокируем заказ: одновременные возврат/обмен/отмена идут строго по очереди
     db.query(Order).filter(Order.id == order_id).with_for_update().populate_existing().first()
     item = (
@@ -248,19 +258,25 @@ def exchange_item_variant(db: Session, order_id: int, item_id: int, new_variant_
     old_total = float(order.total)
     same_product = new_variant.product_id == old_variant.product_id
     # тот же товар (другой размер/цвет) — клиент уже заплатил, цену не меняем
-    new_price = item.price_at_order if same_product else price_with_promo(new_variant.product, order.promo_percent)
+    if custom_price is not None:
+        new_price, new_manual = round(float(custom_price), 2), True
+    elif same_product:  # тот же товар — цена (в т.ч. ручная) сохраняется
+        new_price, new_manual = item.price_at_order, item.price_manual
+    else:
+        new_price, new_manual = price_with_promo(new_variant.product, order.promo_percent), False
     if item.returned_quantity > 0:
         # вернувшиеся штуки остаются в истории на старом варианте, остаток — новой позицией
         item.quantity = item.returned_quantity
         item.is_returned = True
         new_item = OrderItem(product_variant_id=new_variant_id, quantity=remaining,
-                             price_at_order=new_price, cost_at_order=new_variant.product.cost_price, batch=new_variant.product.batch,
+                             price_at_order=new_price, price_manual=new_manual, cost_at_order=new_variant.product.cost_price, batch=new_variant.product.batch,
                              returned_quantity=0, is_returned=False, supplier_id=new_variant.product.supplier_id)
         order.items.append(new_item)
         item = new_item
     else:
         item.product_variant_id = new_variant_id
         item.price_at_order = new_price
+        item.price_manual = new_manual
         item.cost_at_order = new_variant.product.cost_price
         item.batch = new_variant.product.batch
         item.supplier_id = new_variant.product.supplier_id
