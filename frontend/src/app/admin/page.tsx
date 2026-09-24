@@ -3805,6 +3805,21 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
   const [promo, setPromo] = useState("");
   const [isDushanbe, setIsDushanbe] = useState(true);
   const [items, setItems] = useState<any[]>([empty]);
+  const [found, setFound] = useState<any>(null);
+  const filled = useRef<any>({ name: "", address: "" }); // что подставили автоматически
+  useEffect(() => {
+    if (phone.replace(/\D/g, "").length < 9) { setFound(null); return; }
+    const t = setTimeout(async () => {
+      const res = await authFetch(`${API}/orders/phone/customer?phone=${encodeURIComponent(phone.trim())}`).catch(() => null);
+      const d = res && res.ok ? await res.json().catch(() => null) : null;
+      setFound(d);
+      const f = filled.current, nn = d?.name || "", na = d?.address || "";
+      setName((v: string) => (!v || v === f.name ? nn : v));
+      setAddress((v: string) => (!v || v === f.address ? na : v));
+      filled.current = { name: nn, address: na };
+    }, 400);
+    return () => clearTimeout(t);
+  }, [phone]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -3827,7 +3842,7 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
   const orderTotal = Math.round(items.reduce((s: number, it: any) => s + (it.variantId ? linePrice(it) * Number(it.quantity || 0) : 0), 0) * 100) / 100;
   const updateItem = (i: number, patch: any) => setItems(items.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
 
-  const reset = () => { setName(""); setPhone(""); setAddress(""); setComment(""); setPromo(""); setPayment("cod"); setIsDushanbe(true); setItems([empty]); setError(""); };
+  const reset = () => { setName(""); setPhone(""); setAddress(""); setComment(""); setPromo(""); setPayment("cod"); setIsDushanbe(true); setItems([empty]); setError(""); setFound(null); filled.current = { name: "", address: "" }; };
 
   const submit = async () => {
     setError("");
@@ -3872,6 +3887,7 @@ function PhoneOrderForm({ authFetch, products, refreshOrders }: any) {
       <b>📞 Новый заказ по телефону</b>
       <input style={inp} placeholder="Имя клиента" value={name} onChange={(e) => setName(e.target.value)} />
       <input style={inp} placeholder="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      {found && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>✓ Клиент найден: {found.name || "без имени"} · заказов: {found.orders}{found.has_account ? " · есть аккаунт" : ""}</span>}
       <input style={inp} placeholder="Адрес доставки" value={address} onChange={(e) => setAddress(e.target.value)} />
       <input style={inp} placeholder="Комментарий (необязательно)" value={comment} onChange={(e) => setComment(e.target.value)} />
       <input style={inp} placeholder="Промокод (необязательно)" value={promo} onChange={(e) => setPromo(e.target.value)} />

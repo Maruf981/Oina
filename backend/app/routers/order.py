@@ -109,6 +109,25 @@ def create_order(data: OrderCreate, background_tasks: BackgroundTasks, request: 
 def create_phone_order(data: OrderCreate, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     return order_repo.create_order(db, data, None, admin=True)
 
+
+@router.get("/phone/customer")
+def phone_order_customer(phone: str, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    """Админка, заказ по телефону: клиент по номеру — для автозаполнения формы."""
+    from app.models.order import Order
+    if len(phone_core(phone)) != 9:
+        return None
+    c = db.query(Customer).filter(Customer.phone.in_(phone_variants(phone))).first()
+    if not c:
+        return None
+    q = db.query(Order).filter(Order.customer_id == c.id)
+    last = q.order_by(Order.created_at.desc()).first()
+    return {
+        "name": c.name or (getattr(last, "customer_name", None) or ""),
+        "address": c.address or (getattr(last, "delivery_address", None) or ""),
+        "orders": q.count(),
+        "has_account": c.password_hash is not None,
+    }
+
 @router.get("/", response_model=list[OrderAdminOut])
 def list_orders(limit: int | None = None, active: bool = False, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     from app.models.order import Order, OrderStatus
