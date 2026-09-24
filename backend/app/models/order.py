@@ -45,6 +45,7 @@ class Order(Base):
     promo_percent: Mapped[int | None] = mapped_column(nullable=True)
     source: Mapped[str] = mapped_column(String(20), default="site", server_default="site")
     via_account: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    payment_reminder_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # когда (снова) спросить админа о неоплаченном заказе
     customer: Mapped["Customer"] = relationship(back_populates="orders")
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")
 

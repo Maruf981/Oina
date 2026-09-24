@@ -280,7 +280,7 @@ async def help_handler(message: Message):
         "Доступные команды:\n"
         "📦 Добавить товар — черновик товара через форму\n"
         "📋 Мои черновики — список неопубликованных товаров\n"
-        "🛒 Новые заказы — последние заказы\n"
+        "🛒 Новые заказы — заказы в работе (не доставлены, не отменены)\n"
         "🔍 Поиск товара — найти по названию/артикулу\n"
         "📈 Статистика — выручка и заказы за периоды\n"
         "⚠️ Низкие остатки — товары с малым остатком\n"
@@ -311,15 +311,15 @@ async def orders_handler(message: Message):
     try:
         token = await get_admin_token()
         async with httpx.AsyncClient(timeout=20) as client:
-            res = await client.get(f"{API_BASE_URL}/orders/?limit=5", headers={"Authorization": f"Bearer {token}"})
+            res = await client.get(f"{API_BASE_URL}/orders/?active=true&limit=10", headers={"Authorization": f"Bearer {token}"})
             orders = res.json()
     except httpx.TimeoutException:
         await message.answer("Сервер долго не отвечает (возможно, ещё просыпается после простоя). Попробуйте ещё раз через несколько секунд.")
         return
     if not orders:
-        await message.answer("Заказов пока нет.")
+        await message.answer("Необработанных заказов нет ✅")
         return
-    for order in orders[:5]:
+    for order in orders[:10]:
         status = order["status"]
         label = STATUS_LABELS_RU.get(status, status)
         keyboard = build_status_keyboard(order["id"], status)
@@ -362,6 +362,31 @@ async def cb_cancel_abort(callback: CallbackQuery):
         return
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.answer("Не отменён. Откройте «🛒 Новые заказы» заново.")
+
+
+@dp.callback_query(F.data.startswith("unpaid:"))
+async def cb_unpaid(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    _, action, order_id_str = callback.data.split(":")
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            res = await client.post(
+                f"{API_BASE_URL}/orders/{order_id_str}/unpaid-decision",
+                json={"action": action, "telegram_id": callback.from_user.id},
+                headers={"X-Bot-Secret": BOT_INTERNAL_SECRET},
+            )
+        body = res.json()
+    except httpx.TimeoutException:
+        await callback.answer("Сервер долго не отвечает. Попробуйте ещё раз.", show_alert=True)
+        return
+    except Exception:
+        body = {}
+    detail = body.get("detail") if isinstance(body.get("detail"), str) else "Не удалось выполнить. Попробуйте позже."
+    mark = "✅" if body.get("ok") else "ℹ️"
+    await callback.message.edit_text((callback.message.text or "") + f"\n\n{mark} {detail}")
+    await callback.answer(detail[:200])
 
 
 @dp.message(F.text == "📋 Мои черновики")

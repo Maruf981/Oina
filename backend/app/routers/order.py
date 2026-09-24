@@ -107,9 +107,11 @@ def create_phone_order(data: OrderCreate, db: Session = Depends(get_db), _: bool
     return order_repo.create_order(db, data, None, admin=True)
 
 @router.get("/", response_model=list[OrderAdminOut])
-def list_orders(limit: int | None = None, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
-    from app.models.order import Order
+def list_orders(limit: int | None = None, active: bool = False, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
+    from app.models.order import Order, OrderStatus
     q = db.query(Order).order_by(Order.created_at.desc())
+    if active:  # только заказы в работе (для «Новые заказы» в админ-боте)
+        q = q.filter(Order.status.notin_([OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.RETURNED]))
     if limit:
         q = q.limit(min(limit, 500))
     return q.all()
@@ -536,3 +538,34 @@ def finance_batch_stock(batch: str | None = None, db: Session = Depends(get_db),
 @router.get("/finance/batch-products")
 def finance_batch_products(batch: str, db: Session = Depends(get_db), _: bool = Depends(get_current_admin)):
     return order_repo.batch_products(db, batch)
+
+
+@router.post("/{order_id}/unpaid-decision")
+def unpaid_decision(order_id: int, data: dict, db: Session = Depends(get_db), _: bool = Depends(verify_bot_secret)):
+    """Кнопки админ-бота по просроченному неоплаченному заказу: отменить / оплата получена / ждать ещё 2 ч.
+    Только админ (его Telegram id) и только пока заказ ещё «Ожидает оплаты»."""
+    from datetime import datetime, timedelta
+    from fastapi import HTTPException
+    from app.core.config import settings
+    from app.models.order import Order, OrderStatus
+
+    if not settings.ADMIN_TELEGRAM_ID or data.get("telegram_id") != settings.ADMIN_TELEGRAM_ID:
+        raise HTTPException(status_code=403, detail="Нет доступа")
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+    if order.status != OrderStatus.AWAITING_PAYMENT:
+        return {"ok": False, "detail": "Заказ уже обработан"}
+
+    action = data.get("action")
+    if action == "cancel":
+        order_repo.update_status(db, order, "cancelled", require_from={"awaiting_payment"})
+        return {"ok": True, "detail": "Заказ отменён, товар вернулся на склад"}
+    if action == "paid":
+        order_repo.set_paid(db, order, True)
+        return {"ok": True, "detail": "Оплата отмечена, заказ подтверждён"}
+    if action == "wait":
+        order.payment_reminder_at = datetime.utcnow() + timedelta(hours=2)
+        db.commit()
+        return {"ok": True, "detail": "Спрошу снова через 2 часа"}
+    raise HTTPException(status_code=400, detail="Неизвестное действие")
