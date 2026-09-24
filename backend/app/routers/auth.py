@@ -32,6 +32,9 @@ def _client_ip(request: Request) -> str:
 
 def _check_locked(keys: list[str]) -> None:
     now = _time.monotonic()
+    if len(_fails) > 1000:  # чистим память: ключи без ошибок за 15 минут
+        for k in [k for k, dq in _fails.items() if not dq or now - dq[-1] > _LOCK_SECONDS]:
+            del _fails[k]
     for k in keys:
         q = _fails[k]
         while q and now - q[0] > _LOCK_SECONDS:

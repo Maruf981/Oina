@@ -29,6 +29,9 @@ _order_hits: dict = _defaultdict(_deque)
 def _order_rate_limit(key: str, limit: int, window: int) -> None:
     from fastapi import HTTPException
     now = _time.monotonic()
+    if len(_order_hits) > 1000:  # чистим память: ключи без заказов за последний час
+        for k in [k for k, dq in _order_hits.items() if not dq or now - dq[-1] > 3600]:
+            del _order_hits[k]
     q = _order_hits[key]
     while q and now - q[0] > window:
         q.popleft()
