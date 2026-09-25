@@ -41,7 +41,7 @@ void main(){
 }`;
 
 
-export default function WaterVideo({ src, poster }: { src: string; poster?: string }) {
+export default function WaterVideo({ src, mobileSrc, poster }: { src: string; mobileSrc?: string; poster?: string }) {
   const wrap = useRef<HTMLDivElement>(null);
   const vid = useRef<HTMLVideoElement>(null);
   const cvs = useRef<HTMLCanvasElement>(null);
@@ -135,7 +135,11 @@ export default function WaterVideo({ src, poster }: { src: string; poster?: stri
   const fill = { position: "absolute", inset: 0, width: "100%", height: "100%" } as const;
   return (
     <div ref={wrap} style={{ ...fill, overflow: "hidden" }}>
-      <video ref={vid} src={src} crossOrigin="anonymous" poster={poster} autoPlay muted loop playsInline style={{ ...fill, objectFit: "cover" }} />
+      <video ref={vid} crossOrigin="anonymous" poster={poster} autoPlay muted loop playsInline style={{ ...fill, objectFit: "cover" }}>
+        {/* браузер берёт первый подходящий source: на узких экранах — лёгкая версия */}
+        {mobileSrc && <source src={mobileSrc} media="(max-width: 900px)" />}
+        <source src={src} />
+      </video>
       <canvas ref={cvs} style={{ ...fill, pointerEvents: "none", opacity: 0, transition: "opacity .4s" }} />
     </div>
   );

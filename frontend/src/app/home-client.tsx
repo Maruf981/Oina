@@ -1379,7 +1379,7 @@ function HeroSlider({ banners }: { banners: Banner[] }) {
       {slides.map((b, i) => (
         <div key={b.id} className={`hero-slide${i === current ? " is-active" : ""}`} aria-hidden={i !== current}>
           {!near(i) ? null : isVideo(b.image_url!) ? (
-            <WaterVideo src={b.image_url!} />
+            <WaterVideo src={cldVideo(b.image_url!, 1920)} mobileSrc={cldVideo(b.image_url!, 1080)} />
           ) : (
             <img
               src={cld(b.image_url!, 1600)}
