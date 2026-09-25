@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import HomeClient, { type HomeInitial } from "./home-client";
+import { JsonLd, storeJsonLd } from "../lib/json-ld";
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -63,5 +64,10 @@ export default async function Home({ searchParams }: Props) {
     catalog: catalog && Array.isArray(catalog.items) ? { items: catalog.items as never[], total: Number(catalog.total ?? 0) } : undefined,
   };
 
-  return <HomeClient initial={initial} />;
+  return (
+    <>
+      <JsonLd data={storeJsonLd} />
+      <HomeClient initial={initial} />
+    </>
+  );
 }

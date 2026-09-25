@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "../lib/json-ld";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -7,6 +8,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/admin", "/account", "/orders"],
     },
-    sitemap: "https://oina-frontend.onrender.com/sitemap.xml",
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }
