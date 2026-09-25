@@ -878,6 +878,7 @@ function ProductForm({ t, product, products, categories, suppliers, refreshSuppl
   const [createdNotice, setCreatedNotice] = useState(false);
   const savingRef = useRef(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [productImages, setProductImages] = useState(product?.images ?? []);
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
   const [dragOverImageIndex, setDragOverImageIndex] = useState<number | null>(null);
@@ -1018,11 +1019,25 @@ function ProductForm({ t, product, products, categories, suppliers, refreshSuppl
   };
 
   const [imageColor, setImageColor] = useState("");
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!product || !e.target.files?.length) return;
     setUploadingImage(true);
     const files = Array.from(e.target.files);
+    
+    // Создаем preview URLs для каждого файла
+    const newPreviews: string[] = [];
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const target = event.target as FileReader;
+        if (target && target.result) {
+          newPreviews.push(target.result as string);
+          setPreviewUrls((prev) => [...prev, target.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    
     const url = imageColor
       ? `${API}/upload/product-image/${product.id}?color=${encodeURIComponent(imageColor)}`
       : `${API}/upload/product-image/${product.id}`;
@@ -1040,6 +1055,7 @@ function ProductForm({ t, product, products, categories, suppliers, refreshSuppl
         }
       }
       setImageColor("");
+      setPreviewUrls([]); // Очищаем preview после загрузки
       e.target.value = "";
     } finally {
       setUploadingImage(false);
@@ -1568,26 +1584,37 @@ function ProductForm({ t, product, products, categories, suppliers, refreshSuppl
             ))}
           </select>
           <input type="file" accept="image/*,video/*" multiple onChange={handleImageUpload} disabled={uploadingImage} />
+          {previewUrls.length > 0 && (
+            <div style={{ marginTop: 20, borderTop: "1px solid var(--line)", paddingTop: 20 }}>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>Предпросмотр (как на главной)</div>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                {previewUrls.map((url, idx) => (
+                  <div key={idx} style={{ width: 180, aspectRatio: "3 / 4", border: "1px solid var(--line)", background: "var(--surface)", overflow: "hidden" }}>
+                    <img src={url} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 12 }}>
+            <button
+              onClick={handleSave}
+              style={{ padding: "14px 28px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+            >
+              {t.save}
+            </button>
+            {product && (
+              <button
+                onClick={() => window.open(`/product/${product.id}`, "_blank")}
+                style={{ padding: "14px 28px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+              >
+                Предпросмотр
+              </button>
+            )}
+          </div>
         </div>
       )}
-
-      <div style={{ display: "flex", gap: 12 }}>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          style={{ padding: "14px 28px", background: "var(--text)", color: "var(--bg)", border: "none", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
-        >
-          {t.save}
-        </button>
-        {product && (
-          <button
-            onClick={() => window.open(`/product/${product.id}`, "_blank")}
-            style={{ padding: "14px 28px", background: "transparent", color: "var(--text)", border: "1px solid var(--line)", fontFamily: "var(--font-label)", fontSize: 13, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
-          >
-            Предпросмотр
-          </button>
-        )}
-      </div>
     </div>
   );
 }
