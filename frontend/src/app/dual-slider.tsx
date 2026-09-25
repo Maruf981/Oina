@@ -1,7 +1,28 @@
 "use client";
 
-import { cld } from "../lib/cld";
+import { cld, cldVideo, cldVideoPoster, isVideoUrl } from "../lib/cld";
 import { useEffect, useRef, useState } from "react";
+
+// Видео в ячейке: играет, только пока видно на экране (в слайдере до 3 видео на слайд)
+function SlideVideo({ url, width }: { url: string; width: number }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || !("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) v.play().catch(() => {}); else v.pause(); });
+    io.observe(v);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <video
+      ref={ref}
+      src={cldVideo(url, width)}
+      poster={cldVideoPoster(url, width) || undefined}
+      muted loop playsInline autoPlay preload="metadata"
+      style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }}
+    />
+  );
+}
 
 export type DualSlide = {
   id: number;
@@ -127,6 +148,7 @@ function DesktopRow({ s, lang, fallback, onOpen, near = true }: { s: DualSlide; 
       <div style={{ position: "absolute", inset: 0, display: "flex" }}>
         {SIDES.map((side, k) => {
           const url = imgOf(s, side);
+          const video = isVideoUrl(url);
           return (
             <div key={side} style={{ display: "contents" }}>
               {k > 0 && <div style={{ flexShrink: 0, width: 1, background: "rgba(255,255,255,0.18)" }} />}
@@ -135,12 +157,14 @@ function DesktopRow({ s, lang, fallback, onOpen, near = true }: { s: DualSlide; 
                   style={{
                     width: "100%", height: "100%",
                     backgroundColor: side === "left" ? undefined : "var(--header-bg)",
-                    backgroundImage: url && near ? `url(${cld(url, 1000)})` : "none",
+                    backgroundImage: url && near && !video ? `url(${cld(url, 1000)})` : "none",
                     backgroundSize: "cover", backgroundPosition: "center",
                     transform: hover && ball.side === side ? "scale(1.04)" : "scale(1)",
                     transition: "transform 0.9s ease-out",
                   }}
-                />
+                >
+                  {url && near && video && <SlideVideo url={url} width={1000} />}
+                </div>
               </div>
             </div>
           );
@@ -260,10 +284,12 @@ export function DualSlider({ slides, router, lang }: { slides: DualSlide[]; rout
                 style={{
                   position: "absolute", inset: 0,
                   backgroundColor: "var(--header-bg)",
-                  backgroundImage: near ? `url(${cld(imgOf(c.s, c.side), 900)})` : "none",
+                  backgroundImage: near && !isVideoUrl(imgOf(c.s, c.side)) ? `url(${cld(imgOf(c.s, c.side), 900)})` : "none",
                   backgroundSize: "cover", backgroundPosition: "center",
                 }}
-              />
+              >
+                {near && isVideoUrl(imgOf(c.s, c.side)) && <SlideVideo url={imgOf(c.s, c.side)!} width={900} />}
+              </div>
             ) : (
               <DesktopRow s={c.s} lang={lang} fallback={fallback} onOpen={() => open(c.s)} near={near} />
             )}

@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cldVideoPoster, isVideoUrl } from "../../lib/cld";
+
+const MAX_VIDEO_MB = 50;
 
 const SIDES = [
   ["left", "Левое"],
@@ -73,7 +76,9 @@ export function DualSlidesSection({ api, authFetch, categories }: any) {
   const save = async () => {
     setError("");
     if (SIDES.some(([k]) => !String(form[`${k}_label_ru`] || "").trim())) return setError("Заполните текст шара (RU) для всех трёх фото");
-    if (!editingId && SIDES.some(([k]) => !files[k])) return setError("Загрузите все три фото");
+    if (!editingId && SIDES.some(([k]) => !files[k])) return setError("Загрузите все три фото или видео");
+    const big = SIDES.find(([k]) => files[k]?.type.startsWith("video/") && files[k]!.size > MAX_VIDEO_MB * 1024 * 1024);
+    if (big) return setError(`${big[1]} видео больше ${MAX_VIDEO_MB} МБ`);
     setSaving(true);
     const res = await authFetch(editingId ? `${api}/dual-slides/${editingId}` : `${api}/dual-slides/`, {
       method: editingId ? "PATCH" : "POST",
@@ -88,7 +93,7 @@ export function DualSlidesSection({ api, authFetch, categories }: any) {
       const fd = new FormData();
       fd.append("file", file);
       const up = await authFetch(`${api}/upload/dual-slide-image/${saved.id}?side=${side}`, { method: "POST", body: fd });
-      if (!up.ok) { setSaving(false); return setError(`Не удалось загрузить ${name.toLowerCase()} фото`); }
+      if (!up.ok) { setSaving(false); return setError(`Не удалось загрузить ${name.toLowerCase()} фото/видео`); }
     }
     setSaving(false); reset(); refresh();
   };
@@ -109,12 +114,12 @@ export function DualSlidesSection({ api, authFetch, categories }: any) {
   };
 
   const inputStyle = { width: "100%", padding: 10, marginBottom: 10, background: "var(--surface)", border: "1px solid var(--line)", color: "var(--text)", boxSizing: "border-box" as const };
-  const thumb = (url: string | null) => ({ width: 60, height: 80, flexShrink: 0, backgroundColor: "var(--surface)", backgroundImage: url ? `url(${url})` : "none", backgroundSize: "cover", backgroundPosition: "center", border: "1px solid var(--line)" });
+  const thumb = (url: string | null) => ({ width: 60, height: 80, flexShrink: 0, backgroundColor: "var(--surface)", backgroundImage: url ? `url(${isVideoUrl(url) ? cldVideoPoster(url, 200) : url})` : "none", backgroundSize: "cover", backgroundPosition: "center", border: "1px solid var(--line)" });
 
   return (
     <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid var(--line)" }}>
       <h3 className="product-title" style={{ fontSize: 18, marginBottom: 6 }}>Двойные слайды</h3>
-      <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>Показываются на главной после первых 24 товаров. 3 фото, квадрат 1200×1200.</p>
+      <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>Показываются на главной после первых 24 товаров. 3 фото или видео (mp4/webm/mov до 50 МБ, звук убирается), квадрат 1200×1200.</p>
 
       {!creating ? (
         <button
@@ -133,8 +138,8 @@ export function DualSlidesSection({ api, authFetch, categories }: any) {
                 <input maxLength={60} placeholder="Шар TJ (например: Курта)" value={form[`${k}_label_tj`]} onChange={(e) => setForm({ ...form, [`${k}_label_tj`]: e.target.value })} style={inputStyle} />
               </div>
               <label style={{ display: "block", marginBottom: 10, fontSize: 13, color: "var(--text-muted)" }}>
-                Фото{editingId ? " (пусто = не менять)" : ""}
-                <input type="file" accept="image/*" onChange={(e) => setFiles({ ...files, [k]: e.target.files?.[0] ?? null })} style={{ display: "block", marginTop: 6 }} />
+                Фото или видео{editingId ? " (пусто = не менять)" : ""}
+                <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" onChange={(e) => setFiles({ ...files, [k]: e.target.files?.[0] ?? null })} style={{ display: "block", marginTop: 6 }} />
               </label>
             </div>
           ))}

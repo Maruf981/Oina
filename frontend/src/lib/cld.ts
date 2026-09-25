@@ -14,3 +14,13 @@ export function cldVideo(url: string | null | undefined, width = 720): string {
   if (/\/video\/upload\/[^/]*(f_auto|q_auto)/.test(url)) return url;
   return url.replace("/video/upload/", `/video/upload/f_auto,q_auto,vc_auto,c_limit,w_${width}/`);
 }
+
+export const isVideoUrl = (url: string | null | undefined) => !!url && /\/video\/upload\/|\.(mp4|webm|mov)(\?|$)/i.test(url);
+
+// Первый кадр видео Cloudinary как картинка — постер, пока видео грузится, и превью в админке.
+export function cldVideoPoster(url: string, width = 1000): string {
+  if (!url.includes("res.cloudinary.com") || !url.includes("/video/upload/")) return "";
+  return url
+    .replace("/video/upload/", `/video/upload/so_0,f_auto,q_auto,c_limit,w_${width}/`)
+    .replace(/\.(mp4|webm|mov)(\?|$)/i, ".jpg$2");
+}

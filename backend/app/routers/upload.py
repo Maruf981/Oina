@@ -205,7 +205,20 @@ async def upload_dual_slide_image(
     slide = db.query(DualSlide).filter(DualSlide.id == slide_id).first()
     if not slide:
         raise HTTPException(status_code=404, detail="Slide not found")
-    result = cloudinary.uploader.upload(file.file, folder="oina/dual-slides", resource_type="image")
+    content_type = file.content_type or ""
+    is_video = content_type.startswith("video/")
+    if not is_video and not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Можно загрузить только фото или видео")
+    options = {"folder": "oina/dual-slides", "resource_type": "video" if is_video else "image"}
+    if is_video:
+        file.file.seek(0, 2)
+        size = file.file.tell()
+        file.file.seek(0)
+        if size > 50 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Видео больше 50 МБ")
+        # слот квадратный 1200×1200: убираем звук, ограничиваем ширину и сжимаем
+        options["transformation"] = [{"audio_codec": "none", "width": 1200, "crop": "limit", "quality": "auto"}]
+    result = cloudinary.uploader.upload(file.file, **options)
     setattr(slide, f"{side}_image_url", result["secure_url"])
     db.commit()
     db.refresh(slide)
