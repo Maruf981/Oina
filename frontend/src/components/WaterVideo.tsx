@@ -41,7 +41,7 @@ void main(){
 }`;
 
 
-export default function WaterVideo({ src, mobileSrc, poster }: { src: string; mobileSrc?: string; poster?: string }) {
+export default function WaterVideo({ src, desktopSrc, mobileSrc, poster }: { src: string; desktopSrc?: string; mobileSrc?: string; poster?: string }) {
   const wrap = useRef<HTMLDivElement>(null);
   const vid = useRef<HTMLVideoElement>(null);
   const cvs = useRef<HTMLCanvasElement>(null);
@@ -88,7 +88,8 @@ export default function WaterVideo({ src, mobileSrc, poster }: { src: string; mo
     };
 
     const resize = () => {
-      dpr = Math.min(devicePixelRatio || 1, 1.5);
+      // на телефонах шейдер воды дорогой — ограничиваем 1.5, на компьютерах до 2, чтобы не мылило
+      dpr = Math.min(devicePixelRatio || 1, matchMedia("(max-width: 900px)").matches ? 1.5 : 2);
       canvas.width = box.clientWidth * dpr;
       canvas.height = box.clientHeight * dpr;
       gl.viewport(0, 0, canvas.width, canvas.height);
@@ -136,8 +137,9 @@ export default function WaterVideo({ src, mobileSrc, poster }: { src: string; mo
   return (
     <div ref={wrap} style={{ ...fill, overflow: "hidden" }}>
       <video ref={vid} crossOrigin="anonymous" poster={poster} autoPlay muted loop playsInline style={{ ...fill, objectFit: "cover" }}>
-        {/* браузер берёт первый подходящий source: на узких экранах — лёгкая версия */}
+        {/* браузер берёт первый подходящий source: на узких экранах — лёгкая версия, 2560 — только большим экранам */}
         {mobileSrc && <source src={mobileSrc} media="(max-width: 900px)" />}
+        {desktopSrc && <source src={desktopSrc} media="(max-width: 1920px)" />}
         <source src={src} />
       </video>
       <canvas ref={cvs} style={{ ...fill, pointerEvents: "none", opacity: 0, transition: "opacity .4s" }} />

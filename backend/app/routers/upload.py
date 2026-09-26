@@ -155,8 +155,9 @@ async def upload_banner_image(
     is_video = (file.content_type or "").startswith("video/")
     options = {"folder": "oina/banners", "resource_type": "video" if is_video else "image"}
     if is_video:
-        # убираем звук, ограничиваем ширину 1920 и сжимаем
-        options["transformation"] = [{"audio_codec": "none", "width": 1920, "crop": "limit", "quality": "auto"}]
+        # убираем звук и ограничиваем ширину 2560 почти без потери качества;
+        # основное сжатие (ширина под экран, q_auto:good) делается при отдаче на фронте
+        options["transformation"] = [{"audio_codec": "none", "width": 2560, "crop": "limit", "quality": "auto:best"}]
     result = cloudinary.uploader.upload(file.file, **options)
     banner.image_url = result["secure_url"]
     db.commit()
