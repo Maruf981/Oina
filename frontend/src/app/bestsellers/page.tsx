@@ -152,7 +152,7 @@ export default function BestsellersPage() {
       : null;
     const cat = p.category ? categories.find((c) => c.id === p.category!.id) : null;
     const catName = cat ? (lang === "tj" && cat.name_tj ? cat.name_tj : cat.name) : "";
-    const eyebrow = p.is_brand ? (catName ? `Бренд · ${catName}` : "Бренд") : catName;
+    const eyebrow = catName;
     const quickKey = `${ctx}-${p.id}`;
     const quickOpen = quickAddProductId === p.id && quickAddCtx === ctx;
     const addVariant = (v: Variant) => {
