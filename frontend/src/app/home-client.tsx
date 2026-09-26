@@ -927,6 +927,15 @@ function HomeInner({ initial }: { initial?: HomeInitial }) {
     );
   };
 
+  // римские номера разделов («I — Рекомендации»), считаем только показанные
+  const shownSections = [
+    recommendedProducts.length > 0 && "rec",
+    "all",
+    dualSlides.length > 0 && products.length > 0 && "dual",
+    homepageReviews.length > 0 && "rev",
+  ].filter(Boolean);
+  const secNo = (id: string) => ["I", "II", "III", "IV", "V"][shownSections.indexOf(id)];
+
   return (
     <div className="home-root" style={{ maxWidth: 1200, margin: "0 auto", background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
       <SiteHeader />
@@ -939,9 +948,8 @@ function HomeInner({ initial }: { initial?: HomeInitial }) {
       {recommendedProducts.length > 0 && (
         <section id="catalog" className="pc-wrap sec">
           <div className="sec-head">
-            <span className="coll-rule" />
+            <div className="sec-kicker">{secNo("rec")} — {lang === "ru" ? "Рекомендации" : "Тавсияҳо"}</div>
             <h2 className="sec-title">{t.recommended}</h2>
-            <span className="sec-link" onClick={() => router.push("/recommended")}>{t.seeAll}</span>
           </div>
           <div className="rec-row">
             <button className="rec-arrow rec-arrow--left" aria-label="←" onClick={() => recommendedScrollRef.current?.scrollBy({ left: -(recommendedScrollRef.current.clientWidth * 0.75) })}>
@@ -956,11 +964,14 @@ function HomeInner({ initial }: { initial?: HomeInitial }) {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M9 4 L17 12 L9 20" /></svg>
             </button>
           </div>
+          <div className="sec-cta">
+            <span className="sec-link" onClick={() => router.push("/recommended")}>{t.seeAll}</span>
+          </div>
         </section>
       )}
 
       <div className="sec-head">
-        <span className="coll-rule" />
+        <div className="sec-kicker">{secNo("all")} — {lang === "ru" ? "Каталог" : "Каталог"}</div>
         <h2 className="sec-title">{lang === "ru" ? "Все товары" : "Ҳамаи молҳо"}</h2>
         <span className="sec-count">
           {lang === "ru" ? "Показано" : "Нишон дода шуд"} {products.length} {lang === "ru" ? "из" : "аз"} {productsTotal}
@@ -1022,11 +1033,13 @@ function HomeInner({ initial }: { initial?: HomeInitial }) {
             {idx === Math.min(gridCols * 4, products.length) - 1 && dualSlides.length > 0 && (
               <div style={{ gridColumn: "1 / -1" }}>
                 <div className="sec-head" style={{ paddingBottom: "1rem" }}>
-                  <span className="coll-rule" />
+                  <div className="sec-kicker">{secNo("dual")} — {lang === "ru" ? "Детали" : "Ҷузъиёт"}</div>
                   <h2 className="sec-title">{lang === "ru" ? "Стиль в деталях" : "Услуб дар ҷузъиёт"}</h2>
-                  <span className="sec-link" onClick={() => document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{lang === "ru" ? "Смотреть коллекцию →" : "Дидани коллексия →"}</span>
                 </div>
                 <DualSlider slides={dualSlides} router={router} lang={lang} />
+                <div className="sec-cta">
+                  <span className="sec-link" onClick={() => document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{lang === "ru" ? "Смотреть коллекцию" : "Дидани коллексия"}</span>
+                </div>
                 <div style={{ height: 1, background: "var(--line)", marginTop: "2.5rem", width: "100vw", marginLeft: "calc(50% - 50vw)" }} />
                 <div className="sec-head" style={{ paddingTop: "2.5rem", paddingBottom: "1rem" }}>
                   <span className="coll-rule" />
@@ -1188,7 +1201,7 @@ function HomeInner({ initial }: { initial?: HomeInitial }) {
       {homepageReviews.length > 0 && (
         <section className="pc-wrap sec sec--reviews">
           <div className="sec-head">
-            <span className="coll-rule" />
+            <div className="sec-kicker">{secNo("rev")} — {lang === "ru" ? "Отзывы" : "Назарҳо"}</div>
             <h2 className="sec-title">{lang === "ru" ? "Отзывы покупателей" : "Назари мизоҷон"}</h2>
           </div>
           <div className="rv-scroll">

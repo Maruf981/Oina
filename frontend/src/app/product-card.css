@@ -26,13 +26,13 @@
   padding: .35rem .6rem;
   font-family: var(--font-label); font-size: .5625rem; font-weight: 500;
   letter-spacing: .22em; text-transform: uppercase;
-  color: rgba(30, 27, 24, .6);
+  color: rgba(36, 30, 25, .6);
   background: rgba(255, 255, 255, .35);
   -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
   pointer-events: none;
   transition: background .35s ease, color .35s ease;
 }
-.pc:hover .pc-badge { background: #1e1b18; color: #F6F2EC; }
+.pc:hover .pc-badge { background: #241e19; color: #F6F2EC; }
 
 /* сердечко и корзина поверх низа фото — полупрозрачно, ярче при наведении на карточку */
 .pc-actions {
@@ -45,13 +45,13 @@
 .pc-icon {
   pointer-events: auto;
   border: 0; padding: 6px; cursor: pointer;
-  color: rgba(30, 27, 24, .22); display: inline-flex; line-height: 0;
+  color: rgba(36, 30, 25, .22); display: inline-flex; line-height: 0;
   background: none;
   transition: color .35s ease, transform .2s ease;
 }
-.pc:hover .pc-icon { color: #1e1b18; }
+.pc:hover .pc-icon { color: #241e19; }
 /* на тач-экранах наведения нет — иконки чуть ярче */
-@media (hover: none) { .pc-icon { color: rgba(30, 27, 24, .45); } }
+@media (hover: none) { .pc-icon { color: rgba(36, 30, 25, .45); } }
 .pc-icon svg { width: 18px; height: 18px; }
 .pc-icon:hover { transform: scale(1.08); }
 .pc-icon:disabled { opacity: .3; cursor: not-allowed; transform: none; }
@@ -117,7 +117,15 @@
 /* --- секции: центрированные заголовки --- */
 .sec-head { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 3.5rem 1rem 2.25rem; gap: .7rem; }
 .sec-head .coll-rule { margin-bottom: .3rem; }
-.sec-title { font-family: var(--font-display); font-weight: 300; font-size: 2.6rem; line-height: 1.1; margin: 0; color: var(--text); }
+.sec-title { font-family: var(--font-display); font-weight: 300; font-size: 3.5rem; line-height: 1.12; letter-spacing: .005em; margin: 0; color: var(--text); text-wrap: balance; }
+.sec-kicker {
+  font-family: var(--font-label); font-size: .625rem; font-weight: 500;
+  letter-spacing: var(--tracking-label, .22em); text-transform: uppercase; color: var(--text-muted);
+}
+/* «Смотреть все» под товарами, по центру — как у Sundra */
+.sec-cta { display: flex; justify-content: center; padding-top: 2.5rem; }
+.sec-cta .sec-link { font-size: .6875rem; letter-spacing: .26em; padding-bottom: 8px; border-bottom-color: var(--line); border-bottom-width: 2px; transition: border-color .3s ease; }
+.sec-cta .sec-link:hover { border-bottom-color: var(--text); }
 .sec-link, .sec-count {
   font-family: var(--font-label); font-size: .625rem; font-weight: 500;
   letter-spacing: var(--tracking-label, .22em); text-transform: uppercase; color: var(--text-muted);
@@ -147,9 +155,11 @@
 
 @media (max-width: 900px) {
   .rec-item { flex-basis: calc((100% - 3rem) / 3); }
-  .sec-title { font-size: 2.1rem; }
+  .sec-title { font-size: 2.875rem; }
 }
 @media (max-width: 640px) {
+  .sec-title { font-size: 2.125rem; }
+  .sec-cta { padding-top: 1.75rem; }
   .rec-scroll { gap: .6rem; }
   .rec-item { flex-basis: calc((100% - .6rem) / 2); }
   .rec-arrow { display: none; }
@@ -190,13 +200,13 @@
 .pc-rating {
   position: absolute; top: 0; right: 0; z-index: 2;
   padding: .4rem .5rem; line-height: 0;
-  color: rgba(30, 27, 24, .6);
+  color: rgba(36, 30, 25, .6);
   background: rgba(255, 255, 255, .35);
   -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
   pointer-events: none;
   transition: background .35s ease, color .35s ease;
 }
-.pc:hover .pc-rating { background: #1e1b18; color: #F6F2EC; }
+.pc:hover .pc-rating { background: #241e19; color: #F6F2EC; }
 .pc-stars { position: relative; display: inline-block; }
 .pc-stars-row { display: flex; gap: 1px; }
 .pc-stars-row > span { display: block; flex-shrink: 0; width: 10px; height: 10px; }
@@ -213,9 +223,9 @@
   background: none !important;
   -webkit-backdrop-filter: none; backdrop-filter: none;
   display: inline-flex; align-items: center; gap: .3rem; line-height: 1;
-  color: rgba(30, 27, 24, .65);
+  color: rgba(36, 30, 25, .65);
 }
-.pc:hover .pc-rating { color: #1e1b18; }
+.pc:hover .pc-rating { color: #241e19; }
 .pc-rating-num {
   font-family: var(--font-label); font-size: .625rem; font-weight: 500;
   letter-spacing: .04em;

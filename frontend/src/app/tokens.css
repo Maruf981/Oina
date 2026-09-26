@@ -1,13 +1,13 @@
 :root {
   /* Color — светлая (кремовая) по умолчанию */
-  --bg: #F6F2EC;
-  --surface: #FBF8F3;
-  --line: #E2DBD0;
-  --text: #1E1B18;
-  --text-muted: #8A8278;
-  --accent: #1E1B18;
+  --bg: #F7F4EF;
+  --surface: #FCFAF6;
+  --line: #DED4C6;
+  --text: #241E19;
+  --text-muted: #7A6E62;
+  --accent: #241E19;
   --accent-hover: #5A5249;
-  --menu-panel-bg: #F6F2EC;
+  --menu-panel-bg: #F7F4EF;
   --on-media: #FFFFFF;
   --on-media-line: rgba(255, 255, 255, 0.35);
 
@@ -31,14 +31,14 @@
 }
 
 [data-theme="light"] {
-  --bg: #F6F2EC;
-  --surface: #FBF8F3;
-  --line: #E2DBD0;
-  --text: #1E1B18;
-  --text-muted: #8A8278;
-  --accent: #1E1B18;
+  --bg: #F7F4EF;
+  --surface: #FCFAF6;
+  --line: #DED4C6;
+  --text: #241E19;
+  --text-muted: #7A6E62;
+  --accent: #241E19;
   --accent-hover: #5A5249;
-  --menu-panel-bg: #F6F2EC;
+  --menu-panel-bg: #F7F4EF;
 }
 
 [data-theme="dark"] {
