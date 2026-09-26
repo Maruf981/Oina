@@ -377,7 +377,7 @@ export default function AdminPage() {
 
   if (!token) {
     return (
-      <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", fontWeight: 400, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ width: 320, display: "flex", flexDirection: "column", gap: 16 }}>
           <span className="product-title" style={{ fontSize: 22, textAlign: "center", marginBottom: 10 }}>
             {t.title}
@@ -403,7 +403,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
+    <div data-theme={theme} style={{ background: "var(--bg)", color: "var(--text)", fontWeight: 400, minHeight: "100vh" }}>
       <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 40px", borderBottom: "1px solid var(--line)" }}>
         <span className="product-title" style={{ fontSize: 20, fontStyle: "italic" }}>Oina Admin</span>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>

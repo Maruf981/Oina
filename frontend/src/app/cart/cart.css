@@ -5,7 +5,7 @@
 .ck-head { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2.5rem 0 2.5rem; }
 .ck-head .coll-rule { margin-bottom: 1rem; }
 .ck-eyebrow, .ck-label, .ck-meta, .ck-field-label {
-  font-family: var(--font-label); font-weight: 500; letter-spacing: .2em; text-transform: uppercase; color: var(--text-muted);
+  font-family: var(--font-label); font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--text-muted);
 }
 .ck-eyebrow, .ck-label { font-size: .625rem; }
 .ck-meta, .ck-field-label { font-size: .5625rem; }
@@ -15,7 +15,7 @@
 
 .ck-steps { list-style: none; display: flex; gap: 2.2rem; padding: 0; margin: 0; flex-wrap: wrap; justify-content: center; }
 .ck-steps li {
-  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .2em; text-transform: uppercase;
+  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
   color: var(--text-muted); opacity: .55; padding-bottom: .35rem; border-bottom: 1px solid transparent;
 }
 .ck-steps li span { margin-right: .35rem; }
@@ -27,7 +27,7 @@
 .ck-list-head, .ck-item { display: grid; grid-template-columns: minmax(0, 1fr) 8rem 7rem; gap: 1.5rem; align-items: center; }
 .ck-list-head {
   padding-bottom: .9rem; border-bottom: 1px solid var(--text);
-  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; color: var(--text-muted);
+  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--text-muted);
 }
 .ck-list-head span:nth-child(2) { text-align: center; }
 .ck-list-head span:last-child, .ck-item-sum { text-align: right; }
@@ -39,7 +39,7 @@
 .ck-item-unit { font-size: .75rem; color: var(--text-muted); margin-top: .3rem; }
 .ck-remove, .ck-link {
   display: inline-block; cursor: pointer;
-  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .2em; text-transform: uppercase;
+  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
 }
 .ck-remove { margin-top: .7rem; color: var(--text-muted); }
 .ck-remove:hover { color: var(--text); }
@@ -60,7 +60,7 @@
 .ck-sum-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .ck-sum-info { flex: 1; min-width: 0; }
 .ck-sum-title { font-family: var(--font-display); font-size: 1rem; margin-top: .2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ck-sum-price { font-size: .75rem; color: var(--text-muted); white-space: nowrap; }
+.ck-sum-price { font-size: .75rem; color: var(--text-muted); white-space: nowrap; letter-spacing: .4px; font-variant-numeric: tabular-nums; }
 .ck-sum-row { display: flex; justify-content: space-between; gap: 1rem; padding: .45rem 0; font-size: .8125rem; color: var(--text-muted); }
 .ck-sum-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: .7rem; padding-top: 1rem; border-top: 1px solid var(--text); font-family: var(--font-display); font-size: 1.5rem; }
 .ck-sum-total--big { margin-top: 0; padding-top: 0; border-top: 0; font-size: 2rem; font-weight: 300; }

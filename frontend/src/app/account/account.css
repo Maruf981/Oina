@@ -16,7 +16,7 @@
 .ac-avatar:hover .ac-avatar-img { opacity: .8; }
 .ac-avatar.is-loading .ac-avatar-img { opacity: .4; }
 .ac-avatar-edit {
-  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .2em; text-transform: uppercase;
+  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
   color: var(--text-muted); border-bottom: 1px solid currentColor; padding-bottom: 2px;
 }
 .ac-title { font-family: var(--font-display); font-weight: 300; font-size: 2.8rem; line-height: 1.1; margin: 1.2rem 0 .3rem; }
@@ -39,7 +39,7 @@
 .ac-order-title { font-family: var(--font-display); font-size: 1.5rem; margin-top: .3rem; }
 .ac-order-right { display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; }
 .ac-status {
-  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .18em; text-transform: uppercase;
+  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
   padding: .3rem .55rem; border: 1px solid var(--text); white-space: nowrap;
 }
 .ac-order-total { font-size: .9375rem; }

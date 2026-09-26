@@ -12,7 +12,7 @@
   margin: 0 !important;
   font-size: clamp(2.25rem, 4.2vw, 4.25rem) !important;
   line-height: 1 !important;
-  letter-spacing: -.01em;
+  letter-spacing: .005em;
   text-transform: uppercase;
 }
 .bs-sub {
@@ -20,7 +20,7 @@
   font-family: var(--font-label);
   font-size: .75rem;
   line-height: 1.5;
-  letter-spacing: .12em;
+  letter-spacing: .22em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -33,7 +33,7 @@
   border-radius: 0;
   font-family: var(--font-label);
   font-size: .6875rem;
-  letter-spacing: .16em;
+  letter-spacing: .22em;
   text-transform: uppercase;
   color: var(--bg);
   cursor: pointer;

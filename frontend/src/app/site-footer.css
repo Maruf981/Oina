@@ -63,7 +63,7 @@
 .ft-bottom {
   padding: 1.6rem 0 2rem;
   font-family: var(--font-label); font-size: .625rem; font-weight: 500;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--ft-muted);
+  letter-spacing: .22em; text-transform: uppercase; color: var(--ft-muted);
 }
 
 @media (max-width: 900px) {

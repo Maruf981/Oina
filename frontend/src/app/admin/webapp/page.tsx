@@ -203,14 +203,14 @@ export default function WebAppPage() {
 
   if (done) {
     return (
-      <div style={{ background: "#0E0E10", color: "#F2F0EA", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "sans-serif" }}>
+      <div style={{ background: "#0E0E10", color: "#F2F0EA", fontWeight: 400, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "sans-serif" }}>
         <span style={{ fontSize: 18 }}>✅ Черновик товара сохранён</span>
       </div>
     );
   }
 
   return (
-    <div style={{ background: "#0E0E10", color: "#F2F0EA", minHeight: "100vh", padding: 20, paddingBottom: 100, fontFamily: "sans-serif" }}>
+    <div style={{ background: "#0E0E10", color: "#F2F0EA", fontWeight: 400, minHeight: "100vh", padding: 20, paddingBottom: 100, fontFamily: "sans-serif" }}>
       <h2 style={{ marginBottom: 20 }}>Новый черновик товара</h2>
 
       <label style={{ display: "block", marginBottom: 12 }}>

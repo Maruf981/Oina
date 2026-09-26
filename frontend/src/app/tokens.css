@@ -15,7 +15,7 @@
   --font-display: var(--font-cormorant), 'Cormorant Garamond', 'Times New Roman', serif;
   --font-label: var(--font-jost), 'Jost', 'Helvetica Neue', Arial, sans-serif;
   --font-body: var(--font-jost), 'Jost', 'Helvetica Neue', Arial, sans-serif;
-  --tracking-label: 0.18em;
+  --tracking-label: 0.22em;
 
   /* Spacing scale */
   --space-1: 4px;
@@ -56,7 +56,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
-  font-weight: 400;
+  font-weight: 300;
   -webkit-font-smoothing: antialiased;
 }
 

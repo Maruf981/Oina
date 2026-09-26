@@ -62,7 +62,7 @@
   font-weight: 300;
   font-size: 6rem;
   line-height: 1.02;
-  letter-spacing: -.01em;
+  letter-spacing: .005em;
   color: #fff;
   margin: 0;
 }
@@ -110,7 +110,7 @@
 .coll-rule { width: 2.5rem; height: 1px; background: var(--line); margin-bottom: 1rem; }
 .coll-eyebrow {
   font-family: var(--font-label); font-size: .625rem; font-weight: 500;
-  letter-spacing: var(--tracking-label, .18em); text-transform: uppercase; color: var(--text-muted);
+  letter-spacing: var(--tracking-label, .22em); text-transform: uppercase; color: var(--text-muted);
 }
 .coll-title { font-family: var(--font-display); font-weight: 300; font-size: 2.9rem; line-height: 1.1; margin: .55rem 0 0; }
 .coll-sub { margin-top: .6rem; font-size: .8125rem; color: var(--text-muted); }
@@ -130,7 +130,7 @@
 .coll-bar--sub .coll-item { white-space: nowrap; flex-shrink: 0; }
 .coll-item {
   font-family: var(--font-label); font-size: .6875rem; font-weight: 500;
-  letter-spacing: var(--tracking-label, .18em); text-transform: uppercase;
+  letter-spacing: var(--tracking-label, .22em); text-transform: uppercase;
   color: var(--text-muted); cursor: pointer; position: relative; padding: 4px 0;
 }
 .coll-bar--sub .coll-item { font-size: .625rem; }

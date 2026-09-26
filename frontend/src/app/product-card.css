@@ -25,7 +25,7 @@
   position: absolute; top: 0; left: 0; z-index: 2;
   padding: .35rem .6rem;
   font-family: var(--font-label); font-size: .5625rem; font-weight: 500;
-  letter-spacing: .16em; text-transform: uppercase;
+  letter-spacing: .22em; text-transform: uppercase;
   color: rgba(30, 27, 24, .6);
   background: rgba(255, 255, 255, .35);
   -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
@@ -69,7 +69,7 @@
 }
 .pc-quick-label {
   font-family: var(--font-label); font-size: .5625rem; font-weight: 500;
-  letter-spacing: .16em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .55rem;
+  letter-spacing: .22em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .55rem;
 }
 .pc-quick-row { display: flex; gap: .4rem; flex-wrap: wrap; }
 .pc-size {
@@ -108,7 +108,7 @@
 .sec-title { font-family: var(--font-display); font-weight: 300; font-size: 2.6rem; line-height: 1.1; margin: 0; color: var(--text); }
 .sec-link, .sec-count {
   font-family: var(--font-label); font-size: .625rem; font-weight: 500;
-  letter-spacing: var(--tracking-label, .18em); text-transform: uppercase; color: var(--text-muted);
+  letter-spacing: var(--tracking-label, .22em); text-transform: uppercase; color: var(--text-muted);
 }
 .sec-link { cursor: pointer; color: var(--text); padding-bottom: 4px; border-bottom: 1px solid currentColor; }
 .sec-link:hover { opacity: .6; }
@@ -148,12 +148,12 @@
 .rec-scroll { gap: 1rem; }
 .rec-item { flex-basis: calc((100% - 7rem) / 8); }
 .rec-item .pc-title { font-size: 1rem; margin-top: .25rem; }
-.rec-item .pc-eyebrow { font-size: .5rem; letter-spacing: .14em; }
+.rec-item .pc-eyebrow { font-size: .5rem; letter-spacing: .22em; }
 .rec-item .pc-price { font-size: .6875rem; margin-top: .25rem; }
 .rec-item .pc-price s { margin-left: .35rem; }
 .rec-item .pc-actions { padding-top: .45rem; }
 .rec-item .pc-icon svg { width: 16px; height: 16px; }
-.rec-item .pc-badge { font-size: .5rem; padding: .25rem .4rem; letter-spacing: .12em; }
+.rec-item .pc-badge { font-size: .5rem; padding: .25rem .4rem; letter-spacing: .22em; }
 .rec-item .pc-info { padding-top: .35rem; }
 .rec-item .pc-quick { left: .3rem; right: .3rem; bottom: .3rem; padding: .5rem; }
 .rec-item .pc-size { min-width: 1.6rem; padding: .2rem .3rem; font-size: .625rem; }
@@ -244,7 +244,7 @@
 .rv-meta { min-width: 0; }
 .rv-product {
   font-family: var(--font-label); font-size: .5625rem; font-weight: 500;
-  letter-spacing: var(--tracking-label, .18em); text-transform: uppercase; color: var(--text-muted);
+  letter-spacing: var(--tracking-label, .22em); text-transform: uppercase; color: var(--text-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .rv-stars { margin-top: .35rem; font-size: .75rem; letter-spacing: 1px; color: var(--line); }
@@ -256,7 +256,7 @@
 }
 .rv-name {
   font-family: var(--font-label); font-size: .625rem; font-weight: 500;
-  letter-spacing: var(--tracking-label, .18em); text-transform: uppercase; color: var(--text-muted);
+  letter-spacing: var(--tracking-label, .22em); text-transform: uppercase; color: var(--text-muted);
 }
 @media (max-width: 1100px) { .rv { flex-basis: calc((100% - 3rem) / 3); } }
 @media (max-width: 640px) {
@@ -295,7 +295,7 @@
 .au-prefix { font-size: .9375rem; color: var(--text-muted); padding-right: .7rem; margin-right: .7rem; border-right: 1px solid var(--line); line-height: 1.1; }
 .au-eye {
   cursor: pointer; padding-left: .8rem;
-  font-family: var(--font-label); font-size: .5rem; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; color: var(--text-muted);
+  font-family: var(--font-label); font-size: .5rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--text-muted);
 }
 .au-forgot { align-self: flex-end; margin: -.4rem 0 1.4rem; }
 .au-msg { margin-bottom: .9rem; line-height: 1.5; }

@@ -5,7 +5,7 @@
 .pd-crumbs {
   display: flex; gap: .7rem; align-items: center; margin-bottom: 1.4rem;
   font-family: var(--font-label); font-size: .5625rem; font-weight: 500;
-  letter-spacing: .2em; text-transform: uppercase; color: var(--text-muted);
+  letter-spacing: .22em; text-transform: uppercase; color: var(--text-muted);
 }
 .pd-crumbs span { cursor: pointer; }
 .pd-crumbs span:hover { color: var(--text); }
@@ -21,14 +21,14 @@
 .pd-sound {
   position: absolute; right: .6rem; bottom: .6rem; border: 0; cursor: pointer;
   background: rgba(20, 18, 16, .55); color: #fff; padding: .45rem .7rem;
-  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase;
+  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
 }
 
 .pd-info { position: sticky; top: calc(var(--header-h, 84px) + 1.5rem); }
 .pd-top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .pd-eyebrow, .pd-label {
   font-family: var(--font-label); font-size: .625rem; font-weight: 500;
-  letter-spacing: .2em; text-transform: uppercase; color: var(--text-muted);
+  letter-spacing: .22em; text-transform: uppercase; color: var(--text-muted);
 }
 .pd-label b { font-weight: 500; color: var(--text); }
 .pd-label--row { display: flex; justify-content: space-between; }
@@ -47,7 +47,7 @@
 .pd-title { font-family: var(--font-display); font-weight: 300; font-size: 2.6rem; line-height: 1.12; margin: .6rem 0 .9rem; }
 .pd-price { display: flex; align-items: baseline; gap: .7rem; font-size: 1.05rem; }
 .pd-price s { font-size: .8125rem; color: var(--text-muted); }
-.pd-price em { font-style: normal; font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .16em; color: var(--text-muted); }
+.pd-price em { font-style: normal; font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .22em; color: var(--text-muted); }
 
 .pd-rating { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .7rem; margin-top: .6rem; font-size: .75rem; color: var(--text-muted); padding-bottom: 1.4rem; border-bottom: 1px solid var(--line); }
 .pd-stars { display: inline-flex; gap: 2px; }
@@ -69,7 +69,7 @@
 .pd-size {
   min-width: 4rem; height: 2.5rem; padding: 0 .9rem; cursor: pointer;
   background: transparent; color: var(--text); border: 1px solid var(--text);
-  font-family: var(--font-label); font-size: .625rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase;
+  font-family: var(--font-label); font-size: .625rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
   transition: background .2s ease, color .2s ease;
 }
 .pd-size:hover, .pd-size.is-active { background: var(--text); color: var(--bg); }
@@ -102,7 +102,7 @@
 .pd-acc-item > button {
   width: 100%; display: flex; justify-content: space-between; align-items: center; background: none; border: 0; cursor: pointer;
   padding: 1.15rem 0; color: var(--text);
-  font-family: var(--font-label); font-size: .625rem; font-weight: 500; letter-spacing: .2em; text-transform: uppercase;
+  font-family: var(--font-label); font-size: .625rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
 }
 .pd-acc-item > button i { font-style: normal; font-size: .95rem; color: var(--text-muted); letter-spacing: 0; }
 .pd-acc-body { padding: 0 0 1.2rem; font-size: .8125rem; line-height: 1.7; color: var(--text-muted); }
@@ -117,7 +117,7 @@
 .pd-review-row { display: flex; align-items: center; gap: 1rem; margin-top: .7rem; }
 .pd-link-btn {
   background: none; border: 0; border-bottom: 1px solid currentColor; padding: 0 0 3px; cursor: pointer; color: var(--text);
-  font-family: var(--font-label); font-size: .625rem; font-weight: 500; letter-spacing: .2em; text-transform: uppercase;
+  font-family: var(--font-label); font-size: .625rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
 }
 .pd-foot { padding-top: 1.4rem; font-size: .75rem; color: var(--text-muted); line-height: 1.7; }
 
@@ -132,7 +132,7 @@
 .pd-table { width: 100%; border-collapse: collapse; margin-top: .6rem; font-size: .8125rem; }
 .pd-table th {
   text-align: left; padding: .6rem .4rem; border-bottom: 1px solid var(--text);
-  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--text-muted);
+  font-family: var(--font-label); font-size: .5625rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--text-muted);
 }
 .pd-table td { padding: .6rem .4rem; border-bottom: 1px solid var(--line); color: var(--text-muted); }
 .pd-table td:first-child { color: var(--text); }
@@ -140,7 +140,7 @@
 .pd-toast {
   position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%); z-index: 500;
   background: var(--text); color: var(--bg); padding: .9rem 1.6rem;
-  font-family: var(--font-label); font-size: .625rem; font-weight: 500; letter-spacing: .18em; text-transform: uppercase;
+  font-family: var(--font-label); font-size: .625rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase;
 }
 .pd-toast.is-error { background: #7A2B2B; color: #fff; }
 
